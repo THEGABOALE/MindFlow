@@ -1,6 +1,6 @@
 # MindFlow
 
-MindFlow es una plataforma digital de aprendizaje gamificado orientada a estudiantes de preescolar, primaria y secundaria. Su propósito es reforzar contenidos relacionados con derechos de la mujer, prevención de violencia, equidad de género y dignidad mediante misiones, retos, preguntas interactivas, niveles, retroalimentación visual y actividades breves adaptadas a cada etapa educativa.
+NOVA es una plataforma digital de aprendizaje gamificado orientada a estudiantes de preescolar, primaria y secundaria. Su propósito es reforzar contenidos relacionados con derechos de la mujer, prevención de violencia, equidad de género y dignidad mediante misiones, retos, preguntas interactivas, niveles, retroalimentación visual y actividades breves adaptadas a cada etapa educativa.
 
 El proyecto busca ofrecer una experiencia accesible, motivadora y útil tanto para estudiantes como para docentes, permitiendo que los contenidos puedan ser trabajados desde el aula o desde dispositivos móviles y navegadores web.
 
@@ -248,7 +248,7 @@ README.md
 
 ## Equipo
 
-Proyecto desarrollado por el equipo MindFlow como parte del Programa PIA UAM 2026 y del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
+Proyecto desarrollado por el equipo MindFlow como parte del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
 
 ---
 
