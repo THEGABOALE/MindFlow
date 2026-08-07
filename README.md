@@ -1,4 +1,4 @@
-# MindFlow
+# NOVA
 
 NOVA es una plataforma digital de aprendizaje gamificado orientada a estudiantes de preescolar, primaria y secundaria. Su propósito es reforzar contenidos relacionados con derechos de la mujer, prevención de violencia, equidad de género y dignidad mediante misiones, retos, preguntas interactivas, niveles, retroalimentación visual y actividades breves adaptadas a cada etapa educativa.
 
@@ -246,9 +246,96 @@ README.md
 
 ---
 
+## Flujo de trabajo con Git y GitHub
+
+El equipo utiliza Git y GitHub para llevar control de versiones, organizar los avances del proyecto y revisar los cambios antes de integrarlos a la rama principal.
+
+El flujo recomendado es trabajar mediante ramas separadas según el tipo de tarea, realizar commits descriptivos y subir los cambios mediante Pull Requests para su revisión.
+
+---
+
+## Convención de commits
+
+Los mensajes de commit deben ser claros, breves y describir el cambio realizado. Se recomienda usar una estructura basada en el tipo de cambio realizado:
+
+```txt
+tipo(alcance): descripción breve del cambio realizado
+```
+
+Ejemplos:
+
+```bash
+git commit -m "core(config): agregar variables de entorno"
+git commit -m "docs(readme): agregar base del repositorio"
+git commit -m "core(api): inicializar backend express"
+git commit -m "refactor(api): separar ruta de verificación"
+```
+
+Tipos de commit:
+
+```txt
+feat: Nueva funcionalidad o característica
+fix: Corrección de errores
+refactor: Refactorizar sin cambiar la lógica
+docs: Canmbios en la documentación
+style: Cambios en el formato o estilo sin alterar la lógica
+perf: Mejoras de rendimiento
+test: Agregar o actualizar tests
+chore: Tareas de mantenimiento (deps, tooling, build, etc)
+ci: Cambios er CI/CD o automatización
+core: Cambios en funcionalidad central o infraestructura
+```
+
+## Convención de nombres de ramas
+
+Las ramas deben tener nombres claros y relacionados con la tarea que se está trabajando. Se recomienda usar minúsculas, guiones medios y un prefijo según el tipo de trabajo.
+
+Formato recomendado:
+
+```txt
+tipo/nombre-de-la-rama
+```
+
+Ejemplos:
+
+```txt
+feature/conexion-postgresql
+docs/actualizar-readme
+fix/error-puerto-db
+refactor/estructura-backend
+```
+
+Tipos recomendados para ramas:
+
+```txt
+feature: nuevas funcionalidades
+fix: corrección de errores
+docs: documentación
+config: configuración
+refactor: mejoras internas del código
+```
+
+Ejemplos de flujo de trabajo:
+
+```bash
+git switch main
+git pull origin main
+git switch -c feature/conexion-postgresql
+```
+
+Después de trabajar los cambios
+
+```bash
+git add .
+git commit -m "core(db): configurar conexion PostreSQL"
+git push -u origin feature/conexion-postgresql
+```
+
+Luego de esto se crea un Pull Request en GitHub para revisar los cambios e integrarlos al repositorio.
+---
 ## Equipo
 
-Proyecto desarrollado por el equipo MindFlow como parte del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
+El proyecto **NOVA** es desarrollado por el equipo **MindFlow** como parte del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
 
 ---
 
