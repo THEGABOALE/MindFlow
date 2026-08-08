@@ -23,6 +23,7 @@ Por el momento, el repositorio contiene la estructura inicial del backend, inclu
 
 ### Backend actual
 
+- **pg**: cliente de PostgreSQL para conectar el backend con la base de datos.
 - **Node.js**: entorno de ejecución para JavaScript en el servidor.
 - **Express.js**: framework para construir la API del backend.
 - **Nodemon**: herramienta de desarrollo para reiniciar el servidor automáticamente cuando hay cambios.
@@ -38,24 +39,32 @@ Por el momento, el repositorio contiene la estructura inicial del backend, inclu
 - **Kaboom.js**: motor para experiencias interactivas o lúdicas.
 - **jsPDF**: generación de material imprimible, como hojas de trabajo o misiones físicas.
 
-> Nota: PostgreSQL, IndexedDB, Kaboom.js, jsPDF y el frontend aún forman parte de la arquitectura prevista, pero no necesariamente están implementados en esta etapa inicial del backend.
+> Nota: PostgreSQL ya cuenta con una conexión inicial desde el backend, IndexedDB, Kaboom.js, jsPDF y el frontend aún forman parte de la arquitectura prevista, pero no necesariamente están implementados en esta etapa.
 
 ## Estructura actual del proyecto
 
 ```txt
 MindFlow/
 ├─ backend/
-│  ├─ node_modules/
+│  ├─ .env.example
 │  ├─ package.json
 │  ├─ package-lock.json
 │  └─ src/
 │     ├─ app.js
 │     ├─ server.js
-│     └─ config/
-│        └─ env.js
+│     ├─ config/
+│     │  └─ env.js
+│     ├─ controllers/
+│     │  └─ health.controller.js
+│     ├─ routes/
+│     │  └─ health.routes.js
+│     └─ database/
+│        ├─ connection.js
+│        └─ schema.sql
 ├─ .gitignore
 └─ README.md
 ```
+
 ## Instalación básica
 
 ### 1. Clonar el repositorio
@@ -164,6 +173,8 @@ npm start
 
 En esta etapa, el backend ya cuenta con una base inicial funcional:
 
+- Conexió con PostgreSQL mediante la libreria `pg`
+- Se agregó la ruta `GET /api/health/db`, la cual permite saber si la API puede conectarse correctamente a la base de datos configurada en el archivo `.env`.
 - Proyecto Node.js inicializado.
 - Express instalado.
 - Servidor separado en archivos base.
@@ -179,50 +190,19 @@ El siguiente avance técnico recomendado es configurar la conexión con PostgreS
 
 Los siguientes pasos previstos para el backend son:
 
-### 1. Instalar el cliente de PostgreSQL
+### 1. Validar y ejecutar el esquema inicial de base de datos
 
-```bash
-npm install pg
-```
+El archivo `backend/src/database/schema.sql` contiene las tablas base propuestas para el producto mínimo viable.
 
-### 2. Agregar variables de base de datos al archivo `.env`
+### 2. Crear endpoints iniciales de consulta
 
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=mindflow_db
-DB_USER=postgres
-DB_PASSWORD=tu_password
-```
-
-### 3. Crear el archivo de conexión
+Primeras rutas sugeridas:
 
 ```txt
-backend/src/database/connection.js
+GET /api/levels
+GET /api/missions
+GET /api/missions/:id/questions
 ```
-
-### 4. Crear una ruta de prueba para validar la conexión con PostgreSQL
-
-Ejemplo:
-
-```txt
-GET /api/health/db
-```
-
-### 5. Empezar el desarrollo de módulos principales
-
-Los módulos principales previstos son:
-
-- Usuarios.
-- Estudiantes.
-- Docentes.
-- Misiones.
-- Progreso.
-- Monedas.
-- Experiencia.
-- Logros.
-
----
 
 ## Buenas prácticas del repositorio
 
@@ -244,15 +224,11 @@ README.md
 .gitignore
 ```
 
----
-
 ## Flujo de trabajo con Git y GitHub
 
 El equipo utiliza Git y GitHub para llevar control de versiones, organizar los avances del proyecto y revisar los cambios antes de integrarlos a la rama principal.
 
 El flujo recomendado es trabajar mediante ramas separadas según el tipo de tarea, realizar commits descriptivos y subir los cambios mediante Pull Requests para su revisión.
-
----
 
 ## Convención de commits
 
@@ -277,12 +253,12 @@ Tipos de commit:
 feat: Nueva funcionalidad o característica
 fix: Corrección de errores
 refactor: Refactorizar sin cambiar la lógica
-docs: Canmbios en la documentación
+docs: Cambios en la documentación
 style: Cambios en el formato o estilo sin alterar la lógica
 perf: Mejoras de rendimiento
 test: Agregar o actualizar tests
 chore: Tareas de mantenimiento (deps, tooling, build, etc)
-ci: Cambios er CI/CD o automatización
+ci: Cambios en CI/CD o automatización
 core: Cambios en funcionalidad central o infraestructura
 ```
 
@@ -327,17 +303,15 @@ Después de trabajar los cambios
 
 ```bash
 git add .
-git commit -m "core(db): configurar conexion PostreSQL"
+git commit -m "core(db): configurar conexion PostgreSQL"
 git push -u origin feature/conexion-postgresql
 ```
 
 Luego de esto se crea un Pull Request en GitHub para revisar los cambios e integrarlos al repositorio.
----
+
 ## Equipo
 
 El proyecto **NOVA** es desarrollado por el equipo **MindFlow** como parte del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
-
----
 
 ## Rama de trabajo
 
