@@ -1,5 +1,14 @@
 node_modules/
 .env
 dist/
-build/
 .DS_Store
+
+# Backend
+backend/node_modules/
+backend/.env
+
+# Android
+**/build/
+**/.gradle/
+**/local.properties
+*.iml
