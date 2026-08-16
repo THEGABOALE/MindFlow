@@ -1,0 +1,43 @@
+-- =========================
+-- DATOS INICIALES PARA DESARROLLO
+-- =========================
+
+INSERT INTO roles (name) VALUES
+('student'),
+('teacher'),
+('director'),
+('admin'),
+('validator');
+
+INSERT INTO users (full_name, email, password_hash, role_id)
+VALUES
+('Estudiante Demo', NULL, NULL, 1);
+
+INSERT INTO educational_levels (name, code, description, order_index)
+VALUES
+('Primaria alta', 'PRIMARIA_ALTA', 'Contenido para estudiantes de tercero a sexto grado.', 1),
+('Secundaria baja', 'SECUNDARIA_BAJA', 'Contenido para estudiantes de séptimo a noveno grado.', 2),
+('Secundaria alta', 'SECUNDARIA_ALTA', 'Contenido para estudiantes de décimo y undécimo grado.', 3);
+
+INSERT INTO missions (level_id, title, description, topic, order_index, points_reward, is_published)
+VALUES
+(1, 'Bienvenida a NOVA', 'Primera misión introductoria sobre derechos y dignidad.', 'Introducción', 1, 10, TRUE),
+(1, 'Reconocer mis derechos', 'Misión sobre derechos fundamentales y respeto.', 'Derechos', 2, 15, TRUE),
+(1, 'Decisiones con respeto', 'Caso práctico sobre toma de decisiones y dignidad.', 'Dignidad', 3, 20, TRUE),
+(2, 'Convivencia y equidad', 'Misión introductoria para secundaria baja.', 'Equidad', 1, 15, TRUE),
+(3, 'Análisis de casos', 'Misión de reflexión para secundaria alta.', 'Casos prácticos', 1, 20, TRUE);
+
+INSERT INTO questions (mission_id, question_text, question_type, feedback, order_index, points)
+VALUES
+(1, '¿Qué busca enseñar NOVA?', 'multiple_choice', 'NOVA busca reforzar el aprendizaje sobre derechos, dignidad y respeto.', 1, 1),
+(1, '¿Por qué es importante aprender sobre dignidad?', 'multiple_choice', 'La dignidad permite reconocer el valor de cada persona y promover relaciones de respeto.', 2, 1);
+
+INSERT INTO answer_options (question_id, option_text, is_correct, feedback, order_index)
+VALUES
+(1, 'Derechos y dignidad de la mujer', TRUE, 'Correcto. Ese es el enfoque principal de NOVA.', 1),
+(1, 'Solo matemáticas', FALSE, 'No. NOVA se enfoca en derechos, dignidad y prevención de violencia.', 2),
+(1, 'Juegos sin contenido educativo', FALSE, 'No. NOVA usa juegos, pero con propósito educativo.', 3),
+
+(2, 'Porque ayuda a reconocer el valor y respeto que merece cada persona', TRUE, 'Correcto. La dignidad se relaciona con el respeto y el valor humano.', 1),
+(2, 'Porque solo sirve para ganar puntos', FALSE, 'No. Los puntos motivan, pero el objetivo es aprender.', 2),
+(2, 'Porque no tiene relación con la convivencia', FALSE, 'No. La dignidad sí se relaciona con la convivencia.', 3);
