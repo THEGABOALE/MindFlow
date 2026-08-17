@@ -1,5 +1,8 @@
 package com.mindflow.nova.ui.screens
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MenuBook
@@ -67,6 +70,7 @@ fun HomeScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
+    var selectedMissionForGame by remember { mutableStateOf<MissionResponse?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -83,7 +87,15 @@ fun HomeScreen() {
             isLoading = false
         }
     }
-
+    if (selectedMissionForGame != null) {
+        MiniGamePlaceholderScreen(
+            mission = selectedMissionForGame!!,
+            onBack = {
+                selectedMissionForGame = null
+            }
+        )
+        return
+    }
     Scaffold(
         containerColor = NovaBackground,
         bottomBar = {
@@ -123,6 +135,9 @@ fun HomeScreen() {
                 NovaMainContent(
                     selectedTab = selectedTab,
                     level = levels.first(),
+                    onMissionSelected = { mission ->
+                        selectedMissionForGame = mission
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -143,6 +158,7 @@ private enum class NovaTab {
 private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
+    onMissionSelected: (MissionResponse) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (selectedTab) {
@@ -156,6 +172,7 @@ private fun NovaMainContent(
         NovaTab.Lessons -> {
             LessonsContent(
                 level = level,
+                onMissionSelected = onMissionSelected,
                 modifier = modifier
             )
         }
@@ -903,6 +920,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
 @Composable
 private fun LessonsContent(
     level: LevelResponse,
+    onMissionSelected: (MissionResponse) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -930,7 +948,11 @@ private fun LessonsContent(
 
         itemsIndexed(level.missions) { index, mission ->
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onMissionSelected(mission)
+                    },
                 shape = RoundedCornerShape(22.dp),
                 color = Color.White,
                 border = androidx.compose.foundation.BorderStroke(1.dp, NovaBorder),
@@ -1197,6 +1219,86 @@ private fun ProfileContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MiniGamePlaceholderScreen(
+    mission: MissionResponse,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(NovaBackground)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column {
+            Text(
+                text = "Minijuego",
+                color = NovaPurple,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = mission.title,
+                color = NovaText,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = mission.description ?: "Pantalla reservada para el desarrollo del minijuego.",
+                color = NovaTextSecondary,
+                fontSize = 15.sp,
+                lineHeight = 22.sp
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(360.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = Color.White,
+                shadowElevation = 4.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, NovaBorder)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Área en blanco para minijuego",
+                        color = NovaTextSecondary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = NovaPurple,
+                contentColor = Color.White
+            ),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Text(
+                text = "Volver a lecciones",
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
