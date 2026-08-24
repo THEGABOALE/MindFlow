@@ -42,11 +42,11 @@ VALUES
 (2, 'Porque solo sirve para ganar puntos', FALSE, 'No. Los puntos motivan, pero el objetivo es aprender.', 2),
 (2, 'Porque no tiene relación con la convivencia', FALSE, 'No. La dignidad sí se relaciona con la convivencia.', 3);
 
-INSERT INTO institution_types (names) VALUES
+INSERT INTO institution_types (name) VALUES
 ('public'),
 ('private');
 
-INSERT INTO educational_centers (name, institution_types_id, department, municipality) VALUES
+INSERT INTO educational_centers (name, institution_type_id, department, municipality) VALUES
 ('Centro Educativo Demo', 1, 'Managua', 'Managua');
 
 INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year)
@@ -55,4 +55,4 @@ VALUES
 
 INSERT INTO group_access_codes (group_id, code, expires_at, max_uses)
 VALUES
-(1, 'NOVA123', CURRENT_TIMESTAMP + INTERVAL '30 days', 40);
+(1, 'NOVA123', CURRENT_TIMESTAMP + INTERVAL '5 minutes', 40);
