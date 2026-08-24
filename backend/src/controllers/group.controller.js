@@ -110,27 +110,27 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
       VALUES ($1, NULL, NULL, $2)
       RETURNING id, full_name, email, role_id;
       `,
-      [finalStudentName, studentRoleId]
+      [finalStudentName, studentRoleId] // Use the final student name and the role ID of the student role as parameters for the query
     );
 
-    const student = userResult.rows[0];
+    const student = userResult.rows[0]; // Store the newly created student user information in a variable
 
-    await client.query(
+    await client.query( // Insert a new record into the student_group_enrollments table to associate the student with the group
       `
       INSERT INTO student_group_enrollments (user_id, group_id)
       VALUES ($1, $2)
       ON CONFLICT (user_id, group_id) DO NOTHING;
       `,
-      [student.id, accessCode.group_id]
+      [student.id, accessCode.group_id] // Use the student user ID and the group ID from the access code as parameters for the query
     );
 
-    await client.query(
+    await client.query( // Update the current uses of the access code in the group_access_codes table to reflect that a new student has joined the group
       `
       UPDATE group_access_codes
       SET current_uses = current_uses + 1
       WHERE id = $1;
       `,
-      [accessCode.code_id]
+      [accessCode.code_id] 
     );
 
     await client.query("COMMIT");
