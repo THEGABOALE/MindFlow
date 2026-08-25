@@ -56,11 +56,16 @@ MindFlow/
 │     │  └─ env.js
 │     ├─ controllers/
 │     │  └─ health.controller.js
+         └─ level.controller.js
+         └─ group.routes.js
 │     ├─ routes/
 │     │  └─ health.routes.js
+         └─ group.routes.js
+         └─ level.routes.js
 │     └─ database/
 │        ├─ connection.js
 │        └─ schema.sql
+         └─ data.sql
 ├─ .gitignore
 └─ README.md
 ```
@@ -192,16 +197,17 @@ Los siguientes pasos previstos para el backend son:
 
 ### 1. Validar y ejecutar el esquema inicial de base de datos
 
-El archivo `backend/src/database/schema.sql` contiene las tablas base propuestas para el producto mínimo viable.
+El archivo `backend/src/database/schema.sql` contiene las tablas base propuestas para el producto mínimo viable, tambien se creó los primeros datos de prueba en el archivo `backend/src/database/data.sql` para poder probar la base de datos.
 
 ### 2. Crear endpoints iniciales de consulta
 
-Primeras rutas sugeridas:
+rutas creadas:
 
 ```txt
 GET /api/levels
 GET /api/missions
 GET /api/missions/:id/questions
+POST /api/groups/join
 ```
 
 ## Buenas prácticas del repositorio
