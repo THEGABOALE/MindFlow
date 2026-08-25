@@ -16,7 +16,7 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
     await client.query("BEGIN"); // Begin a transaction
 
     const codeResult = await client.query( // Query the database for the access code and related group and level information
-        `
+     `
     SELECT
       gac.id AS code_id,
       gac.code,
@@ -92,7 +92,7 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
       "SELECT id FROM roles WHERE name = 'student' LIMIT 1;"
     );
 
-    if (roleResult.rows.length === 0) {
+    if (roleResult.rows.length === 0) { // If the student role does not exist in the database, return a 500 error
       await client.query("ROLLBACK");
 
       return res.status(500).json({
@@ -133,9 +133,9 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
       [accessCode.code_id] 
     );
 
-    await client.query("COMMIT");
+    await client.query("COMMIT"); // Commit the transaction to save the changes to the database
 
-    return res.status(201).json({
+    return res.status(201).json({ // Return a 201 status code and a success message along with the student, group, and level information
       message: "Estudiante agregado al grupo exitosamente",
       status: "OK",
       student: {
@@ -158,7 +158,7 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
         description: accessCode.level_description
       }
     });
-  } catch (error) {
+  } catch (error) { // If any error occurs during the transaction, rollback the transaction and return a 500 error with the error message
     await client.query("ROLLBACK");
 
     return res.status(500).json({
@@ -171,6 +171,6 @@ const joinGroupByCode = async (req, res) => { // Function to handle joining a gr
   }
 };
 
-module.exports = {
+module.exports = { // Export the JoinGroupByCode function to be used in other parts of the application
   joinGroupByCode
 };
