@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.JoinGroupRequest
 import com.mindflow.nova.data.remote.RetrofitClient
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 private val NovaPurple = Color(0xFF82368C)
 private val NovaBackground = Color(0xFFFFF8FD)
@@ -108,14 +109,30 @@ fun JoinGroupScreen(
                                 val response = RetrofitClient.api.joinGroupByCode(
                                     JoinGroupRequest(
                                         code = code.trim(),
-                                        studentName = studentName.trim().ifBlank { "Estudiante Demo" }
+                                        studentName = "Gabriel Demo"
                                     )
                                 )
-
                                 if (response.isSuccessful) {
-                                    onJoinSuccess()
+                                    val body = response.body()
+
+                                    if (body?.status == "OK") {
+                                        message = body.message
+                                        onJoinSuccess()
+                                    } else {
+                                        message = body?.message ?: "No se pudo unir al grupo"
+                                    }
                                 } else {
-                                    message = "Error HTTP: ${response.code()}"
+                                    val errorBody = response.errorBody()?.string()
+                                    message = if (errorBody.isNullOrEmpty()) {
+                                        try {
+                                            val jsonObject = JSONObject(errorBody)
+                                            jsonObject.optString("message", "Error HTTP: ${response.code()}")
+                                        } catch (e: Exception) {
+                                            "Error HTTP: ${response.code()}"
+                                        }
+                                    } else {
+                                        "Error HTTP: ${response.code()}"
+                                    }
                                 }
                             } catch (e: Exception) {
                                 message = "Error de conexión: ${e.message}"
