@@ -1,7 +1,6 @@
 const { verifySessionToken } = require("../utils/jwt");
 
-// Exige un token de sesión válido (header "Authorization: Bearer <token>") y
-// deja el usuario decodificado en req.user para los controladores siguientes.
+// Exige "Authorization: Bearer <token>" y deja el usuario en req.user.
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   const [scheme, token] = authHeader.split(" ");
@@ -30,8 +29,7 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Exige que req.user (ya autenticado con `authenticate`) tenga uno de los
-// roles permitidos. Uso: router.post("/ruta", authenticate, requireRole("admin"), controller)
+// Exige que req.user tenga uno de los roles permitidos.
 const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {

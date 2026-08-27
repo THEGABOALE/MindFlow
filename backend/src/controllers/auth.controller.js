@@ -1,5 +1,5 @@
-const bcrypt = require("bcryptjs"); // Hashing de contraseñas para el login por ID
-const { OAuth2Client } = require("google-auth-library"); // Verificación real del id_token de Google
+const bcrypt = require("bcryptjs");
+const { OAuth2Client } = require("google-auth-library");
 const pool = require("../database/connection");
 const env = require("../config/env");
 const { signSessionToken } = require("../utils/jwt");
@@ -8,8 +8,6 @@ const googleClient = new OAuth2Client(env.auth.googleClientId);
 
 const SALT_ROUNDS = 10;
 
-// Trae un usuario (con el nombre de su rol) por correo o por login_id. Solo
-// uno de los dos debe venir con valor.
 const findUserForLogin = async ({ email, loginId }) => {
   const result = await pool.query(
     `
@@ -52,13 +50,6 @@ const buildSessionResponse = (user) => {
   };
 };
 
-// POST /api/auth/login/google
-// Body: { idToken }
-// Verifica el id_token contra Google (audiencia = GOOGLE_CLIENT_ID), y solo
-// deja entrar si el correo ya está registrado en la base de datos — la
-// institución tiene que haber dado de alta a la persona de antemano, así el
-// rol (alumno/profesor) queda definido siempre por la base de datos y no por
-// lo que diga el cliente.
 const loginWithGoogle = async (req, res) => {
   const { idToken } = req.body || {};
 
@@ -110,9 +101,8 @@ const loginWithGoogle = async (req, res) => {
     const user = await findUserForLogin({ email: payload.email });
 
     if (!user) {
-      // TODO: cuando exista el flujo de autorregistro por dominio, acá se
-      // podría crear la cuenta en vez de rechazarla. Por ahora la institución
-      // tiene que registrar a la persona primero.
+      // La institución tiene que haber registrado el correo de antemano; el
+      // rol lo define siempre la base de datos, nunca el cliente.
       return res.status(404).json({
         message: "Ese correo no está registrado en ninguna institución. Contactá a tu coordinador.",
         status: "ERROR"
@@ -136,10 +126,6 @@ const loginWithGoogle = async (req, res) => {
   }
 };
 
-// POST /api/auth/login/id
-// Body: { loginId, password }
-// Pensado para alumnos de primaria sin correo institucional: se loguean con
-// un ID y una contraseña que les da el coordinador (ej. garciaga / 1234).
 const loginWithId = async (req, res) => {
   const { loginId, password } = req.body || {};
 
@@ -153,8 +139,7 @@ const loginWithId = async (req, res) => {
   try {
     const user = await findUserForLogin({ loginId: loginId.trim() });
 
-    // Mismo mensaje genérico si el ID no existe o la contraseña no coincide,
-    // para no revelar si un ID en particular está registrado.
+    // Mismo mensaje genérico si el ID no existe o la contraseña no coincide.
     if (!user || !user.password_hash) {
       return res.status(401).json({
         message: "ID o contraseña incorrectos",
@@ -188,18 +173,13 @@ const loginWithId = async (req, res) => {
   }
 };
 
-// Qué roles puede crear cada rol. Un coordinador maneja gente por debajo suyo
-// en la jerarquía institucional (alumnos y profesores) pero no puede crear
-// coordinadores ni admins — si no, podría escalar sus propios permisos.
+// Un coordinador no puede crear coordinadores ni admins, para no poder
+// escalar sus propios permisos.
 const CREATABLE_ROLES_BY_ROLE = {
   coordinator: ["student", "teacher"],
   admin: ["student", "teacher", "coordinator", "admin", "validator"]
 };
 
-// POST /api/auth/students
-// Body: { fullName, loginId, password, roleName? }
-// Protegido: lo usa el coordinador de la institución para dar de alta cuentas
-// de ID+contraseña, típicamente alumnos de primaria que no tienen correo.
 const createIdAccount = async (req, res) => {
   const { fullName, loginId, password, roleName } = req.body || {};
 
@@ -262,8 +242,7 @@ const createIdAccount = async (req, res) => {
       });
     }
 
-    // La cuenta nueva queda en el mismo centro que quien la crea, así un
-    // coordinador solo puede dar de alta gente de su propia institución.
+    // La cuenta nueva queda en el mismo centro que quien la crea.
     const creatorResult = await client.query(
       "SELECT center_id FROM users WHERE id = $1 LIMIT 1;",
       [req.user.id]
