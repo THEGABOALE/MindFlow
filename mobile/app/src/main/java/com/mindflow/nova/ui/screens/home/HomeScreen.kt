@@ -47,7 +47,6 @@ import com.mindflow.nova.ui.screens.lessons.TrueFalseLessonScreen
 import com.mindflow.nova.ui.screens.lessons.TrueFalseMockData
 import com.mindflow.nova.ui.screens.profile.ProfileScreen
 import com.mindflow.nova.ui.screens.progress.ProgressScreen
-import com.mindflow.nova.ui.screens.teacher.TeacherRoomsScreen
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -62,7 +61,6 @@ fun HomeScreen() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeLesson by remember { mutableStateOf<LessonRoute?>(null) }
-    var showTeacherPanel by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
@@ -78,10 +76,6 @@ fun HomeScreen() {
         } finally {
             isLoading = false
         }
-    }
-    if (showTeacherPanel) {
-        TeacherRoomsScreen(onBack = { showTeacherPanel = false })
-        return
     }
     when (val route = activeLesson) {
         is LessonRoute.MultipleChoice -> {
@@ -161,7 +155,6 @@ fun HomeScreen() {
                     selectedTab = selectedTab,
                     level = levels.first(),
                     onMissionSelected = { mission -> activeLesson = routeForMission(mission) },
-                    onOpenTeacherPanel = { showTeacherPanel = true },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -203,7 +196,6 @@ private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
     onMissionSelected: (MissionResponse) -> Unit,
-    onOpenTeacherPanel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (selectedTab) {
@@ -231,7 +223,6 @@ private fun NovaMainContent(
 
         NovaTab.Profile -> {
             ProfileScreen(
-                onOpenTeacherPanel = onOpenTeacherPanel,
                 modifier = modifier
             )
         }

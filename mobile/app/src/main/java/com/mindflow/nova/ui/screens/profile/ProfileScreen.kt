@@ -1,22 +1,17 @@
 package com.mindflow.nova.ui.screens.profile
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -36,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ProfileScreen(
-    onOpenTeacherPanel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -102,59 +96,6 @@ fun ProfileScreen(
                     text = "Ruta activa Primaria Alta",
                     color = NovaTextSecondary,
                     fontSize = 14.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(18.dp))
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenTeacherPanel),
-            shape = RoundedCornerShape(20.dp),
-            color = Color.White,
-            border = BorderStroke(1.dp, NovaBorder)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    modifier = Modifier.size(40.dp),
-                    shape = CircleShape,
-                    color = NovaLightPurple
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.Groups,
-                            contentDescription = null,
-                            tint = NovaPurple,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Panel docente",
-                        color = NovaText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = "Salas, alumnos y resultados",
-                        color = NovaTextSecondary,
-                        fontSize = 12.sp
-                    )
-                }
-
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = NovaTextSecondary
                 )
             }
         }
