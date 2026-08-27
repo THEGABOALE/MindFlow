@@ -2,13 +2,7 @@
 -- DATOS INICIALES PARA DESARROLLO
 -- =========================
 
--- Jerarquía de roles:
---   student     -> hace las lecciones
---   teacher     -> ve el progreso de los estudiantes de sus salas asignadas
---   coordinator -> jefe de los profesores dentro de la institución: ve el
---                  progreso general de todas las salas de su centro, crea
---                  cuentas y códigos de sala
---   admin       -> equipo de MindFlow, control total de la plataforma
+-- student < teacher < coordinator (jefe de profesores del centro) < admin (MindFlow)
 INSERT INTO roles (name) VALUES
 ('student'),
 ('teacher'),
@@ -20,15 +14,8 @@ INSERT INTO users (full_name, email, password_hash, role_id)
 VALUES
 ('Estudiante Demo', NULL, NULL, (SELECT id FROM roles WHERE name = 'student'));
 
--- =========================
--- CUENTAS DE PRUEBA PARA LOGIN
--- Contraseñas en texto plano (solo para desarrollo local, nunca en producción):
---   garciaga / 1234         -> alumno de primaria sin correo (login por ID)
---   coordinador / coord2026 -> coordinador de institución (login por ID)
---   profedemo / profe2026   -> profesor de la sala demo (login por ID)
--- Para probar el login con Google hace falta un usuario con email real y
--- GOOGLE_CLIENT_ID configurado; no se puede sembrar un id_token válido acá.
--- =========================
+-- Cuentas de prueba (login por ID, contraseñas en texto plano solo para dev):
+--   garciaga / 1234, coordinador / coord2026, profedemo / profe2026
 
 INSERT INTO users (full_name, login_id, password_hash, role_id)
 VALUES
@@ -72,11 +59,9 @@ INSERT INTO institution_types (name) VALUES
 INSERT INTO educational_centers (name, institution_type_id, department, municipality) VALUES
 ('Centro Educativo Demo', 1, 'Managua', 'Managua');
 
--- El coordinador de prueba se asigna al centro demo. Se hace acá y no en el
--- INSERT de users porque esa tabla se llena antes que educational_centers.
 UPDATE users
 SET center_id = (SELECT id FROM educational_centers WHERE name = 'Centro Educativo Demo')
-WHERE login_id = 'coordinador';
+WHERE login_id IN ('coordinador', 'profedemo');
 
 INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year, teacher_id)
 VALUES

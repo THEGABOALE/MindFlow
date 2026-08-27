@@ -139,9 +139,7 @@ CREATE TABLE educational_centers (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- users.center_id se declara arriba sin FK porque la tabla users se crea antes
--- que educational_centers; la restricción se agrega acá. Indica a qué centro
--- pertenece un coordinador o un profesor (los alumnos se asocian por sala).
+-- FK de users.center_id (se agrega acá porque users se crea antes que esta tabla)
 ALTER TABLE users
   ADD CONSTRAINT users_center_id_fkey
   FOREIGN KEY (center_id) REFERENCES educational_centers(id);
@@ -154,9 +152,7 @@ CREATE TABLE class_groups (
   grade VARCHAR(50) NOT NULL,
   section VARCHAR(20),
   school_year INTEGER NOT NULL,
-  -- Una sala = una sección de un año (ej. "6to grado A"), con un solo
-  -- profesor asignado. Un profesor no puede tener dos salas el mismo año.
-  teacher_id INTEGER REFERENCES users(id),
+  teacher_id INTEGER REFERENCES users(id), -- un profesor por sala
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (teacher_id, school_year)
