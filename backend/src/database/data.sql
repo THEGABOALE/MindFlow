@@ -2,16 +2,39 @@
 -- DATOS INICIALES PARA DESARROLLO
 -- =========================
 
+-- Jerarquía de roles:
+--   student     -> hace las lecciones
+--   teacher     -> ve el progreso de los estudiantes de sus salas asignadas
+--   coordinator -> jefe de los profesores dentro de la institución: ve el
+--                  progreso general de todas las salas de su centro, crea
+--                  cuentas y códigos de sala
+--   admin       -> equipo de MindFlow, control total de la plataforma
 INSERT INTO roles (name) VALUES
 ('student'),
 ('teacher'),
-('director'),
+('coordinator'),
 ('admin'),
 ('validator');
 
 INSERT INTO users (full_name, email, password_hash, role_id)
 VALUES
-('Estudiante Demo', NULL, NULL, 1);
+('Estudiante Demo', NULL, NULL, (SELECT id FROM roles WHERE name = 'student'));
+
+-- =========================
+-- CUENTAS DE PRUEBA PARA LOGIN
+-- Contraseñas en texto plano (solo para desarrollo local, nunca en producción):
+--   garciaga / 1234         -> alumno de primaria sin correo (login por ID)
+--   coordinador / coord2026 -> coordinador de institución (login por ID)
+--   profedemo / profe2026   -> profesor de la sala demo (login por ID)
+-- Para probar el login con Google hace falta un usuario con email real y
+-- GOOGLE_CLIENT_ID configurado; no se puede sembrar un id_token válido acá.
+-- =========================
+
+INSERT INTO users (full_name, login_id, password_hash, role_id)
+VALUES
+('Gabriela García', 'garciaga', '$2b$10$pP0jxzQU/ztVr6XUSwPOCusjAw.s6KC9pSW1slQ9BB0G2DnLQ3rU6', (SELECT id FROM roles WHERE name = 'student')),
+('Coordinador Demo', 'coordinador', '$2b$10$iMnPpGfJXiFdNk1K4uzbaOtrOtbjd19tEnNgfOu8CNRS2Z4MUGE1q', (SELECT id FROM roles WHERE name = 'coordinator')),
+('Profesor Demo', 'profedemo', '$2b$10$eouv/cWLBUMwE2uOrCKo5O9tkuVaGP/EYVQAkiAtOkg5vuXcHW1FS', (SELECT id FROM roles WHERE name = 'teacher'));
 
 INSERT INTO educational_levels (name, code, description, order_index)
 VALUES
@@ -49,9 +72,15 @@ INSERT INTO institution_types (name) VALUES
 INSERT INTO educational_centers (name, institution_type_id, department, municipality) VALUES
 ('Centro Educativo Demo', 1, 'Managua', 'Managua');
 
-INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year)
+-- El coordinador de prueba se asigna al centro demo. Se hace acá y no en el
+-- INSERT de users porque esa tabla se llena antes que educational_centers.
+UPDATE users
+SET center_id = (SELECT id FROM educational_centers WHERE name = 'Centro Educativo Demo')
+WHERE login_id = 'coordinador';
+
+INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year, teacher_id)
 VALUES
-(1, 1, 'Primaria alta A', '4to grado', 'A', 2026);
+(1, 1, 'Primaria alta A', '4to grado', 'A', 2026, (SELECT id FROM users WHERE login_id = 'profedemo'));
 
 INSERT INTO group_access_codes (group_id, code, expires_at, max_uses)
 VALUES
