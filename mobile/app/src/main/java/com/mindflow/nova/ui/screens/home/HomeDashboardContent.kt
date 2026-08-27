@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,7 +42,6 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun HomeDashboardContent(
     level: LevelResponse,
-    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val previewMissions = level.missions.take(2)
@@ -56,7 +54,12 @@ fun HomeDashboardContent(
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            NovaHeader(onMenuClick = onMenuClick)
+            Text(
+                text = "Bienvenido a NOVA",
+                color = NovaText,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black
+            )
         }
 
         item {
@@ -87,74 +90,6 @@ fun HomeDashboardContent(
         item {
             MotivationCard()
             Spacer(modifier = Modifier.height(22.dp))
-        }
-    }
-}
-
-@Composable
-private fun NovaHeader(onMenuClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "☰",
-            modifier = Modifier.clickable(onClick = onMenuClick),
-            fontSize = 28.sp,
-            color = NovaText,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Surface(
-            modifier = Modifier.size(42.dp),
-            shape = RoundedCornerShape(14.dp),
-            color = NovaPurple
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "◖",
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        Column {
-            Text(
-                text = "NOVA",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Black,
-                color = NovaPurple
-            )
-            Text(
-                text = "Aplicación educativa",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = NovaTextSecondary
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = Color.White,
-            border = BorderStroke(1.dp, NovaBorder)
-        ) {
-            Text(
-                text = "120 pts",
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                color = NovaPurple,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp
-            )
         }
     }
 }

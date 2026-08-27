@@ -161,7 +161,7 @@ fun HomeScreen() {
                     selectedTab = selectedTab,
                     level = levels.first(),
                     onMissionSelected = { mission -> activeLesson = routeForMission(mission) },
-                    onMenuClick = { showTeacherPanel = true },
+                    onOpenTeacherPanel = { showTeacherPanel = true },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -203,14 +203,13 @@ private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
     onMissionSelected: (MissionResponse) -> Unit,
-    onMenuClick: () -> Unit,
+    onOpenTeacherPanel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (selectedTab) {
         NovaTab.Home -> {
             HomeDashboardContent(
                 level = level,
-                onMenuClick = onMenuClick,
                 modifier = modifier
             )
         }
@@ -232,6 +231,7 @@ private fun NovaMainContent(
 
         NovaTab.Profile -> {
             ProfileScreen(
+                onOpenTeacherPanel = onOpenTeacherPanel,
                 modifier = modifier
             )
         }
