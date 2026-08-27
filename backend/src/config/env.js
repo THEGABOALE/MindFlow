@@ -10,6 +10,12 @@ const env = {
     name: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD
+  },
+
+  auth: {
+    googleClientId: process.env.GOOGLE_CLIENT_ID,
+    jwtSecret: process.env.JWT_SECRET || "dev-secret-cambiar-en-produccion",
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d"
   }
 };
 
