@@ -40,9 +40,14 @@ import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.screens.lessons.LessonMockData
 import com.mindflow.nova.ui.screens.lessons.LessonPlayScreen
 import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
+import com.mindflow.nova.ui.screens.lessons.MatchingLessonScreen
+import com.mindflow.nova.ui.screens.lessons.MatchingMockData
 import com.mindflow.nova.ui.screens.lessons.MiniGamePlaceholderScreen
+import com.mindflow.nova.ui.screens.lessons.TrueFalseLessonScreen
+import com.mindflow.nova.ui.screens.lessons.TrueFalseMockData
 import com.mindflow.nova.ui.screens.profile.ProfileScreen
 import com.mindflow.nova.ui.screens.progress.ProgressScreen
+import com.mindflow.nova.ui.screens.teacher.TeacherRoomsScreen
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -56,8 +61,8 @@ fun HomeScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
-    var selectedMissionForGame by remember { mutableStateOf<MissionResponse?>(null) }
-    var selectedLessonForPlay by remember { mutableStateOf<MissionResponse?>(null) }
+    var activeLesson by remember { mutableStateOf<LessonRoute?>(null) }
+    var showTeacherPanel by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         try {
@@ -74,24 +79,47 @@ fun HomeScreen() {
             isLoading = false
         }
     }
-    if (selectedLessonForPlay != null) {
-        LessonPlayScreen(
-            mission = selectedLessonForPlay!!,
-            questions = LessonMockData.lessonOneQuestions,
-            onExit = {
-                selectedLessonForPlay = null
-            }
-        )
+    if (showTeacherPanel) {
+        TeacherRoomsScreen(onBack = { showTeacherPanel = false })
         return
     }
-    if (selectedMissionForGame != null) {
-        MiniGamePlaceholderScreen(
-            mission = selectedMissionForGame!!,
-            onBack = {
-                selectedMissionForGame = null
-            }
-        )
-        return
+    when (val route = activeLesson) {
+        is LessonRoute.MultipleChoice -> {
+            LessonPlayScreen(
+                mission = route.mission,
+                questions = LessonMockData.lessonOneQuestions,
+                onExit = { activeLesson = null }
+            )
+            return
+        }
+
+        is LessonRoute.Matching -> {
+            MatchingLessonScreen(
+                mission = route.mission,
+                pairs = MatchingMockData.reconocerDerechosPairs,
+                onExit = { activeLesson = null }
+            )
+            return
+        }
+
+        is LessonRoute.TrueFalse -> {
+            TrueFalseLessonScreen(
+                mission = route.mission,
+                questions = TrueFalseMockData.decisionesConRespetoQuestions,
+                onExit = { activeLesson = null }
+            )
+            return
+        }
+
+        is LessonRoute.Placeholder -> {
+            MiniGamePlaceholderScreen(
+                mission = route.mission,
+                onBack = { activeLesson = null }
+            )
+            return
+        }
+
+        null -> Unit
     }
     Scaffold(
         containerColor = NovaBackground,
@@ -132,13 +160,8 @@ fun HomeScreen() {
                 NovaMainContent(
                     selectedTab = selectedTab,
                     level = levels.first(),
-                    onMissionSelected = { mission ->
-                        if (mission.orderIndex == LessonMockData.lessonOneMissionOrderIndex) {
-                            selectedLessonForPlay = mission
-                        } else {
-                            selectedMissionForGame = mission
-                        }
-                    },
+                    onMissionSelected = { mission -> activeLesson = routeForMission(mission) },
+                    onMenuClick = { showTeacherPanel = true },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -155,17 +178,39 @@ internal enum class NovaTab {
     Profile
 }
 
+/**
+ * A qué pantalla lleva tocar una misión, según su mecánica. Mientras el
+ * backend no exponga el tipo de contenido de cada misión, se resuelve por
+ * orderIndex: 1 = opción múltiple, 2 = relación de conceptos, 3 = verdadero/
+ * falso, el resto usa el placeholder de minijuego.
+ */
+private sealed class LessonRoute {
+    data class MultipleChoice(val mission: MissionResponse) : LessonRoute()
+    data class Matching(val mission: MissionResponse) : LessonRoute()
+    data class TrueFalse(val mission: MissionResponse) : LessonRoute()
+    data class Placeholder(val mission: MissionResponse) : LessonRoute()
+}
+
+private fun routeForMission(mission: MissionResponse): LessonRoute = when (mission.orderIndex) {
+    LessonMockData.lessonOneMissionOrderIndex -> LessonRoute.MultipleChoice(mission)
+    2 -> LessonRoute.Matching(mission)
+    3 -> LessonRoute.TrueFalse(mission)
+    else -> LessonRoute.Placeholder(mission)
+}
+
 @Composable
 private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
     onMissionSelected: (MissionResponse) -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (selectedTab) {
         NovaTab.Home -> {
             HomeDashboardContent(
                 level = level,
+                onMenuClick = onMenuClick,
                 modifier = modifier
             )
         }

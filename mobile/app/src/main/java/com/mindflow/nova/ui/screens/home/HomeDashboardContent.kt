@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,7 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun HomeDashboardContent(
     level: LevelResponse,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val previewMissions = level.missions.take(2)
@@ -54,7 +56,7 @@ fun HomeDashboardContent(
     ) {
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            NovaHeader()
+            NovaHeader(onMenuClick = onMenuClick)
         }
 
         item {
@@ -90,7 +92,7 @@ fun HomeDashboardContent(
 }
 
 @Composable
-private fun NovaHeader() {
+private fun NovaHeader(onMenuClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -99,6 +101,7 @@ private fun NovaHeader() {
     ) {
         Text(
             text = "☰",
+            modifier = Modifier.clickable(onClick = onMenuClick),
             fontSize = 28.sp,
             color = NovaText,
             fontWeight = FontWeight.Bold
