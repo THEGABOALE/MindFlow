@@ -6,6 +6,7 @@ const levelRoutes = require("./routes/level.routes");
 const groupRoutes = require("./routes/group.routes");
 const studentRoutes = require("./routes/student.routes");
 const authRoutes = require("./routes/auth.routes");
+const missionRoutes = require("./routes/mission.routes");
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.use("/api/levels", levelRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/missions", missionRoutes);
 
 module.exports = app;
