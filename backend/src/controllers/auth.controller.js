@@ -32,6 +32,28 @@ const findUserForLogin = async ({ email, loginId }) => {
   return result.rows[0] || null;
 };
 
+const findUserById = async (id) => {
+  const result = await pool.query(
+    `
+    SELECT
+      u.id,
+      u.full_name,
+      u.email,
+      u.login_id,
+      u.center_id,
+      u.is_active,
+      r.name AS role_name
+    FROM users u
+    JOIN roles r ON r.id = u.role_id
+    WHERE u.id = $1
+    LIMIT 1;
+    `,
+    [id]
+  );
+
+  return result.rows[0] || null;
+};
+
 const buildSessionResponse = (user) => {
   const token = signSessionToken({
     id: user.id,
@@ -178,6 +200,40 @@ const loginWithId = async (req, res) => {
   }
 };
 
+// Le permite a la app validar el token guardado y saber a que home
+// mandar al usuario (estudiante, docente, coordinador o admin).
+const getMe = async (req, res) => {
+  try {
+    const user = await findUserById(req.user.id);
+
+    if (!user || !user.is_active) {
+      return res.status(401).json({
+        message: "La sesión ya no es válida",
+        status: "ERROR"
+      });
+    }
+
+    return res.status(200).json({
+      message: "OK",
+      status: "OK",
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        loginId: user.login_id,
+        role: user.role_name,
+        centerId: user.center_id
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al obtener la sesión",
+      status: "ERROR",
+      error: error.message
+    });
+  }
+};
+
 // Un coordinador no puede crear coordinadores ni admins, para no poder
 // escalar sus propios permisos.
 const CREATABLE_ROLES_BY_ROLE = {
@@ -304,5 +360,6 @@ const createIdAccount = async (req, res) => {
 module.exports = {
   loginWithGoogle,
   loginWithId,
+  getMe,
   createIdAccount
 };
