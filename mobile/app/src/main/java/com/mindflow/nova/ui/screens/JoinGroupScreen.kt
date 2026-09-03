@@ -122,16 +122,19 @@ fun JoinGroupScreen(
                                         message = body?.message ?: "No se pudo unir al grupo"
                                     }
                                 } else {
-                                    val errorBody = response.errorBody()?.string()
-                                    message = if (errorBody.isNullOrEmpty()) {
+                                    val errorBodyText = response.errorBody()?.string()
+                                    message = if (!errorBodyText.isNullOrEmpty()) {
                                         try {
-                                            val jsonObject = JSONObject(errorBody)
-                                            jsonObject.optString("message", "Error HTTP: ${response.code()}")
+                                            val jsonObject = JSONObject(errorBodyText)
+                                            jsonObject.optString(
+                                                "message",
+                                                "Error HTTP: ${response.code()}"
+                                            )
                                         } catch (e: Exception) {
-                                            "Error HTTP: ${response.code()}"
+                                            "No se pudo validar el código del grupo"
                                         }
                                     } else {
-                                        "Error HTTP: ${response.code()}"
+                                        "No se pudo validar el código del grupo"
                                     }
                                 }
                             } catch (e: Exception) {

@@ -1,0 +1,83 @@
+const pool = require("../database/connection"); // importar la conexion a la base de datos
+const getStudentContext = async (req, res) => { // Funcion para obtener el contexto del estudiante
+    const { studentId} = req.params;
+
+    if (!studentId) { // Si no se proporciona el studentId, se devuelve un error 404
+        return res.status(404).json({
+            message: "El ID del estudiante no ha sido proporcionado",
+            status: "ERROR"
+        });
+    }
+
+    try {
+        const result = await pool.query(
+            `
+        SELECT
+            u.id AS student_id,
+            u.full_name AS student_full_name,
+            cg.id AS group_id,
+            cg.name AS group_name,
+            cg.grade,
+            cg.section,
+            cg.school_year,
+            el.id AS level_id,
+            el.name AS level_name,
+            el.code AS level_code,
+            el.description AS level_description
+        FROM users u
+        JOIN student_group_enrollments sge ON sge.user_id = u.id
+        JOIN class_groups cg ON cg.id = sge.group_id
+        JOIN educational_levels el ON el.id = cg.level_id
+        WHERE u.id = $1
+            AND u.is_active = TRUE
+            AND sge.is_active = TRUE
+            AND cg.is_active = TRUE
+        LIMIT 1;
+        `,
+        [studentId]
+        ); // Ejecutar la consulta para obtener el contexto del estudiante       
+        
+        if (result.rows.length === 0){
+            return res.status(404).json({
+                message: "No se encontró el contexto del estudiante",
+                status: "ERROR"
+            });
+        }
+
+        const studentContext = result.rows[0]; //Se almacena el contexto del estudiante en una variable
+
+        return res.status(200).json({ // se devuelve el contexto del estudiante en formato JSON
+            message: "Contexto del estudiante obtenido exitosamente",
+            status: "OK",
+            student: {
+                id: row.student_id,
+                fullName: row.student_full_name,
+                group: {
+                    id: row.group_id,
+                    name: row.group_name,
+                    grade: row.group_grade,
+                    section: row.group_section,
+                    schoolYear: row.group_school_year
+                },
+                level: {
+                    id: row.level_id,
+                    name: row.level_name,
+                    code: row.level_code,
+                    description: row.level_description
+                }
+            }
+        });
+    
+    } catch (error) { // Si ocurre un error durante la consulta, se devuelve un error 500
+        console.error("Hubo un error al obtener el contexto del estudiante", error);
+        return res.status(500).json({
+            message: "Hubo un error al obtener el contexto del estutiante",
+            status: "ERROR",
+            error: error.message
+        });
+    }
+};
+
+module.exports = {
+    getStudentContext
+};
