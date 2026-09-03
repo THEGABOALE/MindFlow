@@ -15,13 +15,14 @@ VALUES
 ('Estudiante Demo', NULL, NULL, (SELECT id FROM roles WHERE name = 'student'));
 
 -- Cuentas de prueba (login por ID, contraseñas en texto plano solo para dev):
---   garciaga / 1234, coordinador / coord2026, profedemo / profe2026
+--   garciaga / 1234, coordinador / coord2026, profedemo / profe2026, adminmindflow / admin2026
 
 INSERT INTO users (full_name, login_id, password_hash, role_id)
 VALUES
 ('Gabriela García', 'garciaga', '$2b$10$pP0jxzQU/ztVr6XUSwPOCusjAw.s6KC9pSW1slQ9BB0G2DnLQ3rU6', (SELECT id FROM roles WHERE name = 'student')),
 ('Coordinador Demo', 'coordinador', '$2b$10$iMnPpGfJXiFdNk1K4uzbaOtrOtbjd19tEnNgfOu8CNRS2Z4MUGE1q', (SELECT id FROM roles WHERE name = 'coordinator')),
-('Profesor Demo', 'profedemo', '$2b$10$eouv/cWLBUMwE2uOrCKo5O9tkuVaGP/EYVQAkiAtOkg5vuXcHW1FS', (SELECT id FROM roles WHERE name = 'teacher'));
+('Profesor Demo', 'profedemo', '$2b$10$eouv/cWLBUMwE2uOrCKo5O9tkuVaGP/EYVQAkiAtOkg5vuXcHW1FS', (SELECT id FROM roles WHERE name = 'teacher')),
+('Admin MindFlow', 'adminmindflow', '$2b$10$PN/uELq8v6uPEybxjQecpO5VJYtPFPGiW88qYhIgCdo9CwdwFYOq2', (SELECT id FROM roles WHERE name = 'admin'));
 
 INSERT INTO educational_levels (name, code, description, order_index)
 VALUES
