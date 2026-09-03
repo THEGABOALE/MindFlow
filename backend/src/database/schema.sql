@@ -32,7 +32,10 @@ CREATE TABLE users (
   full_name VARCHAR(150) NOT NULL,
   email VARCHAR(150) UNIQUE,
   password_hash TEXT,
+  login_id VARCHAR(50) UNIQUE,
   role_id INTEGER NOT NULL REFERENCES roles(id),
+  center_id INTEGER,
+  created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   is_active BOOLEAN DEFAULT TRUE
 );
@@ -136,6 +139,11 @@ CREATE TABLE educational_centers (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- FK de users.center_id (se agrega acá porque users se crea antes que esta tabla)
+ALTER TABLE users
+  ADD CONSTRAINT users_center_id_fkey
+  FOREIGN KEY (center_id) REFERENCES educational_centers(id);
+
 CREATE TABLE class_groups (
   id SERIAL PRIMARY KEY,
   center_id INTEGER REFERENCES educational_centers(id),
@@ -144,8 +152,10 @@ CREATE TABLE class_groups (
   grade VARCHAR(50) NOT NULL,
   section VARCHAR(20),
   school_year INTEGER NOT NULL,
+  teacher_id INTEGER REFERENCES users(id), -- un profesor por sala
   is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (teacher_id, school_year)
 );
 
 CREATE TABLE group_access_codes (

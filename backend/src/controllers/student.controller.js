@@ -1,10 +1,40 @@
 const pool = require("../database/connection"); // importar la conexion a la base de datos
+
+// El estudiante solo se ve a si mismo, el profesor solo a su sala y el
+// coordinador solo a su centro. El admin (equipo MindFlow) ve todo.
+const canViewStudent = (requester, row) => {
+    if (requester.role === "admin") {
+        return true;
+    }
+
+    if (requester.role === "student") {
+        return Number(requester.id) === row.student_id;
+    }
+
+    if (requester.role === "teacher") {
+        return Number(requester.id) === row.group_teacher_id;
+    }
+
+    if (requester.role === "coordinator") {
+        return requester.centerId !== null && Number(requester.centerId) === row.group_center_id;
+    }
+
+    return false;
+};
+
 const getStudentContext = async (req, res) => { // Funcion para obtener el contexto del estudiante
     const { studentId} = req.params;
 
     if (!studentId) { // Si no se proporciona el studentId, se devuelve un error 404
         return res.status(404).json({
             message: "El ID del estudiante no ha sido proporcionado",
+            status: "ERROR"
+        });
+    }
+
+    if (!/^\d+$/.test(studentId)) { // Sin esto un id no numerico revienta la consulta con un 500
+        return res.status(400).json({
+            message: "El ID del estudiante debe ser numérico",
             status: "ERROR"
         });
     }
@@ -17,9 +47,11 @@ const getStudentContext = async (req, res) => { // Funcion para obtener el conte
             u.full_name AS student_full_name,
             cg.id AS group_id,
             cg.name AS group_name,
-            cg.grade,
-            cg.section,
-            cg.school_year,
+            cg.grade AS group_grade,
+            cg.section AS group_section,
+            cg.school_year AS group_school_year,
+            cg.teacher_id AS group_teacher_id,
+            cg.center_id AS group_center_id,
             el.id AS level_id,
             el.name AS level_name,
             el.code AS level_code,
@@ -44,7 +76,14 @@ const getStudentContext = async (req, res) => { // Funcion para obtener el conte
             });
         }
 
-        const studentContext = result.rows[0]; //Se almacena el contexto del estudiante en una variable
+        const row = result.rows[0]; //Se almacena el contexto del estudiante en una variable
+
+        if (!canViewStudent(req.user, row)) {
+            return res.status(403).json({
+                message: "No tenés permiso para ver este estudiante",
+                status: "ERROR"
+            });
+        }
 
         return res.status(200).json({ // se devuelve el contexto del estudiante en formato JSON
             message: "Contexto del estudiante obtenido exitosamente",

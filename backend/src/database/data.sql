@@ -2,16 +2,26 @@
 -- DATOS INICIALES PARA DESARROLLO
 -- =========================
 
+-- student < teacher < coordinator (jefe de profesores del centro) < admin (MindFlow)
 INSERT INTO roles (name) VALUES
 ('student'),
 ('teacher'),
-('director'),
+('coordinator'),
 ('admin'),
 ('validator');
 
 INSERT INTO users (full_name, email, password_hash, role_id)
 VALUES
-('Estudiante Demo', NULL, NULL, 1);
+('Estudiante Demo', NULL, NULL, (SELECT id FROM roles WHERE name = 'student'));
+
+-- Cuentas de prueba (login por ID, contraseñas en texto plano solo para dev):
+--   garciaga / 1234, coordinador / coord2026, profedemo / profe2026
+
+INSERT INTO users (full_name, login_id, password_hash, role_id)
+VALUES
+('Gabriela García', 'garciaga', '$2b$10$pP0jxzQU/ztVr6XUSwPOCusjAw.s6KC9pSW1slQ9BB0G2DnLQ3rU6', (SELECT id FROM roles WHERE name = 'student')),
+('Coordinador Demo', 'coordinador', '$2b$10$iMnPpGfJXiFdNk1K4uzbaOtrOtbjd19tEnNgfOu8CNRS2Z4MUGE1q', (SELECT id FROM roles WHERE name = 'coordinator')),
+('Profesor Demo', 'profedemo', '$2b$10$eouv/cWLBUMwE2uOrCKo5O9tkuVaGP/EYVQAkiAtOkg5vuXcHW1FS', (SELECT id FROM roles WHERE name = 'teacher'));
 
 INSERT INTO educational_levels (name, code, description, order_index)
 VALUES
@@ -49,9 +59,17 @@ INSERT INTO institution_types (name) VALUES
 INSERT INTO educational_centers (name, institution_type_id, department, municipality) VALUES
 ('Centro Educativo Demo', 1, 'Managua', 'Managua');
 
-INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year)
+UPDATE users
+SET center_id = (SELECT id FROM educational_centers WHERE name = 'Centro Educativo Demo')
+WHERE login_id IN ('coordinador', 'profedemo', 'garciaga');
+
+INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year, teacher_id)
 VALUES
-(1, 1, 'Primaria alta A', '4to grado', 'A', 2026);
+(1, 1, 'Primaria alta A', '4to grado', 'A', 2026, (SELECT id FROM users WHERE login_id = 'profedemo'));
+
+INSERT INTO student_group_enrollments (user_id, group_id)
+VALUES
+((SELECT id FROM users WHERE login_id = 'garciaga'), 1);
 
 INSERT INTO group_access_codes (group_id, code, expires_at, max_uses)
 VALUES
