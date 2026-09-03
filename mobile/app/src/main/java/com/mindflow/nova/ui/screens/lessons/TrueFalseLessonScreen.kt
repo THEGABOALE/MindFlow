@@ -61,10 +61,14 @@ fun TrueFalseLessonScreen(
     questions: List<TrueFalseQuestion>,
     onExit: () -> Unit
 ) {
+    // Las plumas las define el backend por misión; la constante solo es
+    // respaldo por si la API todavía no manda el campo.
+    val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
+
     var currentIndex by remember { mutableStateOf(0) }
     var selectedAnswer by remember { mutableStateOf<Boolean?>(null) }
     var phase by remember { mutableStateOf(TruthPhase.ANSWERING) }
-    var plumas by remember { mutableStateOf(LESSON_MAX_PLUMAS) }
+    var plumas by remember { mutableStateOf(maxPlumas) }
     var correctCount by remember { mutableStateOf(0) }
     var stage by remember { mutableStateOf(TruthStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
@@ -73,7 +77,7 @@ fun TrueFalseLessonScreen(
         currentIndex = 0
         selectedAnswer = null
         phase = TruthPhase.ANSWERING
-        plumas = LESSON_MAX_PLUMAS
+        plumas = maxPlumas
         correctCount = 0
         stage = TruthStage.IN_PROGRESS
     }
@@ -120,7 +124,8 @@ fun TrueFalseLessonScreen(
                         progress = progress,
                         plumas = plumas,
                         justLostPluma = phase == TruthPhase.ANSWERED && !isCorrectSelection,
-                        onClose = { showExitConfirmation = true }
+                        onClose = { showExitConfirmation = true },
+                        maxPlumas = maxPlumas
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
