@@ -66,6 +66,9 @@ CREATE TABLE missions (
   -- La app lo usa para saber que pantalla abrir, antes lo adivinaba por order_index.
   mechanic VARCHAR(50) NOT NULL DEFAULT 'multiple_choice',
   time_limit_seconds INTEGER,
+  -- Plumas disponibles. Cada error gasta una; al quedarse sin plumas se pierde
+  -- la mision. Vive acá para que el servidor y la app no se desincronicen.
+  max_plumas INTEGER NOT NULL DEFAULT 3,
   is_published BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -31,11 +31,11 @@ VALUES
 
 INSERT INTO missions (level_id, title, description, topic, order_index, points_reward, mechanic, time_limit_seconds, is_published)
 VALUES
-(1, 'Bienvenida a NOVA', 'Primera misión introductoria sobre derechos y dignidad.', 'Introducción', 1, 10, 'multiple_choice', NULL, TRUE),
-(1, 'Reconocer mis derechos', 'Misión sobre derechos fundamentales y respeto.', 'Derechos', 2, 15, 'matching', 45, TRUE),
-(1, 'Decisiones con respeto', 'Caso práctico sobre toma de decisiones y dignidad.', 'Dignidad', 3, 20, 'true_false', NULL, TRUE),
-(2, 'Convivencia y equidad', 'Misión introductoria para secundaria baja.', 'Equidad', 1, 15, 'multiple_choice', NULL, TRUE),
-(3, 'Análisis de casos', 'Misión de reflexión para secundaria alta.', 'Casos prácticos', 1, 20, 'multiple_choice', NULL, TRUE);
+(1, 'Bienvenida a NOVA', 'Primera misión introductoria sobre derechos y dignidad.', 'Introducción', 1, 100, 'multiple_choice', NULL, TRUE),
+(1, 'Reconocer mis derechos', 'Misión sobre derechos fundamentales y respeto.', 'Derechos', 2, 150, 'matching', 45, TRUE),
+(1, 'Decisiones con respeto', 'Caso práctico sobre toma de decisiones y dignidad.', 'Dignidad', 3, 200, 'true_false', NULL, TRUE),
+(2, 'Convivencia y equidad', 'Misión introductoria para secundaria baja.', 'Equidad', 1, 250, 'multiple_choice', NULL, TRUE),
+(3, 'Análisis de casos', 'Misión de reflexión para secundaria alta.', 'Casos prácticos', 1, 300, 'multiple_choice', NULL, TRUE);
 
 INSERT INTO questions (mission_id, question_text, question_type, feedback, order_index, points)
 VALUES
