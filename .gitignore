@@ -12,3 +12,6 @@ backend/.env
 **/.gradle/
 **/local.properties
 *.iml
+
+# Configuración local del IDE (Android Studio la regenera sola)
+.idea/
