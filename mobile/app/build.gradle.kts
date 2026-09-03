@@ -39,6 +39,8 @@ android {
 dependencies {
     implementation("com.squareup.retrofit2:retrofit:3.0.0")
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    // Guarda el token de sesión cifrado en el dispositivo.
+    implementation("androidx.security:security-crypto:1.1.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
