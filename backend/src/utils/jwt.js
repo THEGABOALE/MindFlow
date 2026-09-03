@@ -5,7 +5,8 @@ const signSessionToken = (user) => {
   return jwt.sign(
     {
       sub: user.id,
-      role: user.roleName
+      role: user.roleName,
+      centerId: user.centerId || null
     },
     env.auth.jwtSecret,
     { expiresIn: env.auth.jwtExpiresIn }

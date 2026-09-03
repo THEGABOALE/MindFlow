@@ -17,7 +17,8 @@ const authenticate = (req, res, next) => {
 
     req.user = {
       id: payload.sub,
-      role: payload.role
+      role: payload.role,
+      centerId: payload.centerId || null
     };
 
     next();
