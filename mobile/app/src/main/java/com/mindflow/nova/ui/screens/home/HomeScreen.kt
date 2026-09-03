@@ -172,10 +172,9 @@ internal enum class NovaTab {
 }
 
 /**
- * A qué pantalla lleva tocar una misión, según su mecánica. Mientras el
- * backend no exponga el tipo de contenido de cada misión, se resuelve por
- * orderIndex: 1 = opción múltiple, 2 = relación de conceptos, 3 = verdadero/
- * falso, el resto usa el placeholder de minijuego.
+ * A qué pantalla lleva tocar una misión, según la mecánica que declara el
+ * backend. Las mecánicas que todavía no tienen pantalla propia (por ejemplo
+ * la sopa de letras) caen en el placeholder de minijuego.
  */
 private sealed class LessonRoute {
     data class MultipleChoice(val mission: MissionResponse) : LessonRoute()
@@ -184,10 +183,10 @@ private sealed class LessonRoute {
     data class Placeholder(val mission: MissionResponse) : LessonRoute()
 }
 
-private fun routeForMission(mission: MissionResponse): LessonRoute = when (mission.orderIndex) {
-    LessonMockData.lessonOneMissionOrderIndex -> LessonRoute.MultipleChoice(mission)
-    2 -> LessonRoute.Matching(mission)
-    3 -> LessonRoute.TrueFalse(mission)
+private fun routeForMission(mission: MissionResponse): LessonRoute = when (mission.mechanic) {
+    "multiple_choice" -> LessonRoute.MultipleChoice(mission)
+    "matching" -> LessonRoute.Matching(mission)
+    "true_false" -> LessonRoute.TrueFalse(mission)
     else -> LessonRoute.Placeholder(mission)
 }
 

@@ -16,5 +16,11 @@ data class MissionResponse(
     val topic: String?,
     val orderIndex: Int,
     val pointsReward: Int,
+    /** Qué minijuego es: multiple_choice, matching, true_false, word_search. */
+    val mechanic: String?,
+    /** Segundos límite de la misión, o null si no tiene contrarreloj. */
+    val timeLimitSeconds: Int?,
+    /** Plumas disponibles antes de perder la misión. */
+    val maxPlumas: Int?,
     val isPublished: Boolean
 )

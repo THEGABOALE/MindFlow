@@ -56,10 +56,14 @@ fun LessonPlayScreen(
     questions: List<LessonQuestion>,
     onExit: () -> Unit
 ) {
+    // Las plumas las define el backend por misión; la constante solo es
+    // respaldo por si la API todavía no manda el campo.
+    val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
+
     var currentIndex by remember { mutableStateOf(0) }
     var selectedOptionId by remember { mutableStateOf<Int?>(null) }
     var phase by remember { mutableStateOf(QuestionPhase.ANSWERING) }
-    var plumas by remember { mutableStateOf(LESSON_MAX_PLUMAS) }
+    var plumas by remember { mutableStateOf(maxPlumas) }
     var correctCount by remember { mutableStateOf(0) }
     var stage by remember { mutableStateOf(LessonStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
@@ -68,7 +72,7 @@ fun LessonPlayScreen(
         currentIndex = 0
         selectedOptionId = null
         phase = QuestionPhase.ANSWERING
-        plumas = LESSON_MAX_PLUMAS
+        plumas = maxPlumas
         correctCount = 0
         stage = LessonStage.IN_PROGRESS
     }
@@ -115,7 +119,8 @@ fun LessonPlayScreen(
                         progress = progress,
                         plumas = plumas,
                         justLostPluma = phase == QuestionPhase.ANSWERED && selectedOption?.isCorrect == false,
-                        onClose = { showExitConfirmation = true }
+                        onClose = { showExitConfirmation = true },
+                        maxPlumas = maxPlumas
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))

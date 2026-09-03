@@ -62,16 +62,21 @@ fun MatchingLessonScreen(
     pairs: List<MatchingPair>,
     onExit: () -> Unit
 ) {
+    // El límite de tiempo y las plumas los define el backend por misión; las
+    // constantes solo son respaldo por si la API todavía no manda los campos.
+    val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
+    val timeLimitSeconds = mission.timeLimitSeconds ?: MATCHING_TIME_SECONDS
+
     var resetKey by remember { mutableStateOf(0) }
     var matchedIds by remember(resetKey) { mutableStateOf(setOf<Int>()) }
     var selectedTermId by remember(resetKey) { mutableStateOf<Int?>(null) }
     var wrongPair by remember(resetKey) { mutableStateOf<Pair<Int, Int>?>(null) }
     var correctCount by remember(resetKey) { mutableStateOf(0) }
     var wrongCount by remember(resetKey) { mutableStateOf(0) }
-    var plumas by remember(resetKey) { mutableStateOf(LESSON_MAX_PLUMAS) }
+    var plumas by remember(resetKey) { mutableStateOf(maxPlumas) }
     var stage by remember(resetKey) { mutableStateOf(MatchingStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
-    var secondsLeft by remember(resetKey) { mutableStateOf(MATCHING_TIME_SECONDS) }
+    var secondsLeft by remember(resetKey) { mutableStateOf(timeLimitSeconds) }
     var feedback by remember(resetKey) { mutableStateOf("¡Vas bien! Elegí un par") }
     var justLostPluma by remember(resetKey) { mutableStateOf(false) }
 
@@ -178,6 +183,7 @@ fun MatchingLessonScreen(
                         plumas = plumas,
                         justLostPluma = justLostPluma,
                         onClose = { showExitConfirmation = true },
+                        maxPlumas = maxPlumas,
                         trailingBadge = { TimerBadge(secondsLeft = secondsLeft) }
                     )
 
