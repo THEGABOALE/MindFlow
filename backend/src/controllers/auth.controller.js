@@ -33,7 +33,11 @@ const findUserForLogin = async ({ email, loginId }) => {
 };
 
 const buildSessionResponse = (user) => {
-  const token = signSessionToken({ id: user.id, roleName: user.role_name });
+  const token = signSessionToken({
+    id: user.id,
+    roleName: user.role_name,
+    centerId: user.center_id
+  });
 
   return {
     message: "Sesión iniciada correctamente",
@@ -137,7 +141,8 @@ const loginWithId = async (req, res) => {
   }
 
   try {
-    const user = await findUserForLogin({ loginId: loginId.trim() });
+    // El ID se guarda en minúsculas al crear la cuenta, así que se normaliza igual acá.
+    const user = await findUserForLogin({ loginId: loginId.trim().toLowerCase() });
 
     // Mismo mensaje genérico si el ID no existe o la contraseña no coincide.
     if (!user || !user.password_hash) {
