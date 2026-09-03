@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS institution_types CASCADE;
 DROP TABLE IF EXISTS level_progress CASCADE;
 DROP TABLE IF EXISTS attempt_answers CASCADE;
 DROP TABLE IF EXISTS mission_attempts CASCADE;
+DROP TABLE IF EXISTS question_pairs CASCADE;
 DROP TABLE IF EXISTS answer_options CASCADE;
 DROP TABLE IF EXISTS questions CASCADE;
 DROP TABLE IF EXISTS missions CASCADE;
@@ -61,6 +62,13 @@ CREATE TABLE missions (
   topic VARCHAR(100),
   order_index INTEGER NOT NULL,
   points_reward INTEGER DEFAULT 0,
+  -- Que minijuego es: multiple_choice, matching, true_false, word_search.
+  -- La app lo usa para saber que pantalla abrir, antes lo adivinaba por order_index.
+  mechanic VARCHAR(50) NOT NULL DEFAULT 'multiple_choice',
+  time_limit_seconds INTEGER,
+  -- Plumas disponibles. Cada error gasta una; al quedarse sin plumas se pierde
+  -- la mision. Vive acá para que el servidor y la app no se desincronicen.
+  max_plumas INTEGER NOT NULL DEFAULT 3,
   is_published BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -85,10 +93,24 @@ CREATE TABLE answer_options (
   order_index INTEGER NOT NULL
 );
 
+-- Pares del minijuego de relacion de conceptos (Igualdad -> Mismos derechos).
+-- No caben en answer_options porque ahi no existe la nocion de par.
+CREATE TABLE question_pairs (
+  id SERIAL PRIMARY KEY,
+  question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  term TEXT NOT NULL,
+  match_text TEXT NOT NULL,
+  order_index INTEGER NOT NULL
+);
+
 -- =========================
 -- PROGRESO DEL ESTUDIANTE
 -- =========================
 
+-- Se guarda un intento por cada vez que el estudiante juega la mision.
+-- Los reintentos no borran ni pisan al anterior: los que llegan despues de
+-- haberla completado quedan marcados como repaso (is_review) y solo suman
+-- semillas extra, sin tocar el logro original ni la ruta de aprendizaje.
 CREATE TABLE mission_attempts (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -96,6 +118,8 @@ CREATE TABLE mission_attempts (
   score INTEGER DEFAULT 0,
   correct_answers INTEGER DEFAULT 0,
   wrong_answers INTEGER DEFAULT 0,
+  points_earned INTEGER DEFAULT 0,
+  is_review BOOLEAN DEFAULT FALSE,
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   finished_at TIMESTAMP,
   status VARCHAR(50) DEFAULT 'in_progress'
@@ -105,7 +129,10 @@ CREATE TABLE attempt_answers (
   id SERIAL PRIMARY KEY,
   attempt_id INTEGER NOT NULL REFERENCES mission_attempts(id) ON DELETE CASCADE,
   question_id INTEGER NOT NULL REFERENCES questions(id),
+  -- Opcion múltiple y verdadero/falso usan selected_option_id;
+  -- relacion de conceptos usa pair_id. Siempre va uno de los dos.
   selected_option_id INTEGER REFERENCES answer_options(id),
+  pair_id INTEGER REFERENCES question_pairs(id),
   is_correct BOOLEAN DEFAULT FALSE,
   answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

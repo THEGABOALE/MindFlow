@@ -55,11 +55,7 @@ const findUserById = async (id) => {
 };
 
 const buildSessionResponse = (user) => {
-  const token = signSessionToken({
-    id: user.id,
-    roleName: user.role_name,
-    centerId: user.center_id
-  });
+  const token = signSessionToken(user.id);
 
   return {
     message: "Sesión iniciada correctamente",
@@ -303,13 +299,9 @@ const createIdAccount = async (req, res) => {
       });
     }
 
-    // La cuenta nueva queda en el mismo centro que quien la crea.
-    const creatorResult = await client.query(
-      "SELECT center_id FROM users WHERE id = $1 LIMIT 1;",
-      [req.user.id]
-    );
-
-    const centerId = creatorResult.rows[0]?.center_id || null;
+    // La cuenta nueva queda en el mismo centro que quien la crea (ya viene
+    // fresco de la base gracias a authenticate).
+    const centerId = req.user.centerId || null;
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 

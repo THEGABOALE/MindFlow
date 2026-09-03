@@ -15,6 +15,9 @@ const getLevels = async (req, res) => {
         m.topic AS mission_topic,
         m.order_index AS mission_order,
         m.points_reward,
+        m.mechanic,
+        m.time_limit_seconds,
+        m.max_plumas,
         m.is_published
       FROM educational_levels el
       LEFT JOIN missions m 
@@ -44,6 +47,9 @@ const getLevels = async (req, res) => {
                 topic: row.mission_topic,
                 orderIndex: row.mission_order,
                 pointsReward: row.points_reward,
+                mechanic: row.mechanic,
+                timeLimitSeconds: row.time_limit_seconds,
+                maxPlumas: row.max_plumas,
                 isPublished: row.is_published
             });
         }
