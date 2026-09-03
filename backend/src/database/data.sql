@@ -61,11 +61,15 @@ INSERT INTO educational_centers (name, institution_type_id, department, municipa
 
 UPDATE users
 SET center_id = (SELECT id FROM educational_centers WHERE name = 'Centro Educativo Demo')
-WHERE login_id IN ('coordinador', 'profedemo');
+WHERE login_id IN ('coordinador', 'profedemo', 'garciaga');
 
 INSERT INTO class_groups (center_id, level_id, name, grade, section, school_year, teacher_id)
 VALUES
 (1, 1, 'Primaria alta A', '4to grado', 'A', 2026, (SELECT id FROM users WHERE login_id = 'profedemo'));
+
+INSERT INTO student_group_enrollments (user_id, group_id)
+VALUES
+((SELECT id FROM users WHERE login_id = 'garciaga'), 1);
 
 INSERT INTO group_access_codes (group_id, code, expires_at, max_uses)
 VALUES
