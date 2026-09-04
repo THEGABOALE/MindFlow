@@ -54,21 +54,54 @@ const findUserById = async (id) => {
   return result.rows[0] || null;
 };
 
-const buildSessionResponse = (user) => {
-  const token = signSessionToken(user.id);
+// Sala activa del estudiante. Si viene null, la app le muestra la pantalla
+// del código; si ya tiene sala, entra directo al home aunque haya cerrado
+// sesión antes, porque la matrícula vive en la base y no en el teléfono.
+const findActiveGroup = async (userId) => {
+  const result = await pool.query(
+    `
+    SELECT cg.id, cg.name, cg.grade, cg.section, cg.school_year, cg.level_id
+    FROM student_group_enrollments sge
+    JOIN class_groups cg ON cg.id = sge.group_id
+    WHERE sge.user_id = $1
+      AND sge.is_active = TRUE
+      AND cg.is_active = TRUE
+    ORDER BY cg.school_year DESC
+    LIMIT 1;
+    `,
+    [userId]
+  );
+
+  return result.rows[0] || null;
+};
+
+const buildSessionUser = (user, group) => ({
+  id: user.id,
+  fullName: user.full_name,
+  email: user.email,
+  loginId: user.login_id,
+  role: user.role_name,
+  centerId: user.center_id,
+  group: group && {
+    id: group.id,
+    name: group.name,
+    grade: group.grade,
+    section: group.section,
+    schoolYear: group.school_year,
+    levelId: group.level_id
+  }
+});
+
+const buildSessionResponse = async (user) => {
+  const group = user.role_name === "student"
+    ? await findActiveGroup(user.id)
+    : null;
 
   return {
     message: "Sesión iniciada correctamente",
     status: "OK",
-    token,
-    user: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      loginId: user.login_id,
-      role: user.role_name,
-      centerId: user.center_id
-    }
+    token: signSessionToken(user.id),
+    user: buildSessionUser(user, group)
   };
 };
 
@@ -138,7 +171,7 @@ const loginWithGoogle = async (req, res) => {
       });
     }
 
-    return res.status(200).json(buildSessionResponse(user));
+    return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
     return res.status(500).json({
       message: "Error al iniciar sesión con Google",
@@ -186,7 +219,7 @@ const loginWithId = async (req, res) => {
       });
     }
 
-    return res.status(200).json(buildSessionResponse(user));
+    return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
     return res.status(500).json({
       message: "Error al iniciar sesión",
@@ -209,17 +242,14 @@ const getMe = async (req, res) => {
       });
     }
 
+    const group = user.role_name === "student"
+      ? await findActiveGroup(user.id)
+      : null;
+
     return res.status(200).json({
       message: "OK",
       status: "OK",
-      user: {
-        id: user.id,
-        fullName: user.full_name,
-        email: user.email,
-        loginId: user.login_id,
-        role: user.role_name,
-        centerId: user.center_id
-      }
+      user: buildSessionUser(user, group)
     });
   } catch (error) {
     return res.status(500).json({
