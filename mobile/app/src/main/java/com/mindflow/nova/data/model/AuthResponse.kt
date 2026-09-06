@@ -11,6 +11,16 @@ data class LoginGoogleRequest(
     val idToken: String
 )
 
+/** Sala del estudiante, si ya está matriculado. Null = todavía no puso el código. */
+data class SessionGroup(
+    val id: Int,
+    val name: String,
+    val grade: String,
+    val section: String?,
+    val schoolYear: Int,
+    val levelId: Int
+)
+
 data class SessionUser(
     val id: Int,
     val fullName: String,
@@ -18,7 +28,9 @@ data class SessionUser(
     val loginId: String?,
     /** student, teacher, coordinator, admin o validator. */
     val role: String,
-    val centerId: Int?
+    val centerId: Int?,
+    /** Solo aplica a estudiantes. Decide si se muestra el código o se va directo al home. */
+    val group: SessionGroup?
 )
 
 /** Respuesta de los dos logins: trae el token de sesión y quién es la persona. */
