@@ -21,7 +21,16 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Alias especial que, dentro del emulador, apunta al localhost de la compu.
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:3000/\"")
+        }
         release {
+            // Reemplazar por la URL real una vez desplegado el backend en Railway.
+            buildConfigField("String", "BASE_URL", "\"https://REEMPLAZAR-CON-TU-URL-DE-RAILWAY.up.railway.app/\"")
+            // Firma con la clave de debug: alcanza para instalar en un teléfono
+            // de prueba o hacer una demo. NO usar para publicar en Play Store.
+            signingConfig = signingConfigs.getByName("debug")
             optimization {
                 enable = false
             }
@@ -33,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
