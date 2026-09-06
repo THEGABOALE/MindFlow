@@ -1,11 +1,14 @@
 package com.mindflow.nova.data.remote
 
+import com.mindflow.nova.BuildConfig
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    // Debug apunta al emulador local, release al backend de Railway.
+    // Ver app/build.gradle.kts.
+    private val BASE_URL = BuildConfig.BASE_URL
 
     /**
      * De dónde sale el token en cada petición. Lo setea NovaApplication al
