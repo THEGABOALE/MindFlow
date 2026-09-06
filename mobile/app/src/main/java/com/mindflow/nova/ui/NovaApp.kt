@@ -80,7 +80,12 @@ fun NovaApp(session: SessionRepository) {
             onJoined = { screen = AppScreen.StudentHome }
         )
 
-        AppScreen.StudentHome -> HomeScreen()
+        AppScreen.StudentHome -> HomeScreen(
+            onLogout = {
+                session.logout()
+                screen = AppScreen.Login
+            }
+        )
 
         AppScreen.TeacherHome -> TeacherRoomsScreen(
             onBack = {
