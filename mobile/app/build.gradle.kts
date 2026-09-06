@@ -27,7 +27,7 @@ android {
         }
         release {
             // Reemplazar por la URL real una vez desplegado el backend en Railway.
-            buildConfigField("String", "BASE_URL", "\"https://REEMPLAZAR-CON-TU-URL-DE-RAILWAY.up.railway.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://mindflow-production-e4b0.up.railway.app/\"")
             // Firma con la clave de debug: alcanza para instalar en un teléfono
             // de prueba o hacer una demo. NO usar para publicar en Play Store.
             signingConfig = signingConfigs.getByName("debug")
