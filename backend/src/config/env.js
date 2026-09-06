@@ -5,6 +5,9 @@ const env = {
   nodeEnv: process.env.NODE_ENV || "development",
 
   db: {
+    // Neon/Railway dan una sola cadena de conexion; el desarrollo local sigue
+    // usando las variables sueltas (ver database/connection.js).
+    connectionString: process.env.DATABASE_URL || null,
     host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT || 5432,
     name: process.env.DB_NAME,
