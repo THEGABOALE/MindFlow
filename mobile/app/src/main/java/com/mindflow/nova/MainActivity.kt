@@ -3,26 +3,16 @@ package com.mindflow.nova
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.*
-import com.mindflow.nova.ui.screens.home.HomeScreen
-import com.mindflow.nova.ui.screens.JoinGroupScreen
+import com.mindflow.nova.ui.NovaApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        setContent {
-            var isJoined by remember { mutableStateOf(false) }
+        val session = (application as NovaApplication).session
 
-            if (isJoined) {
-                HomeScreen()
-            } else {
-                JoinGroupScreen(
-                    onJoinSuccess = {
-                        isJoined = true
-                    }
-                )
-            }
+        setContent {
+            NovaApp(session)
         }
     }
 }

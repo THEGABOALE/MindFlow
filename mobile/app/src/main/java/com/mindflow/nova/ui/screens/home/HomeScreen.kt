@@ -55,7 +55,7 @@ import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onLogout: () -> Unit = {}) {
     var levels by remember { mutableStateOf<List<LevelResponse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -155,6 +155,7 @@ fun HomeScreen() {
                     selectedTab = selectedTab,
                     level = levels.first(),
                     onMissionSelected = { mission -> activeLesson = routeForMission(mission) },
+                    onLogout = onLogout,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -195,6 +196,7 @@ private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
     onMissionSelected: (MissionResponse) -> Unit,
+    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (selectedTab) {
@@ -222,7 +224,8 @@ private fun NovaMainContent(
 
         NovaTab.Profile -> {
             ProfileScreen(
-                modifier = modifier
+                modifier = modifier,
+                onLogout = onLogout
             )
         }
     }

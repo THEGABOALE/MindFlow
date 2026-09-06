@@ -12,3 +12,8 @@ val NovaBackground = Color(0xFFFCF8FD)
 val NovaBorder = Color(0xFFE7D8EA)
 val NovaDark = Color(0xFF211A2E)
 val NovaLocked = Color(0xFFD9D2DC)
+
+// Wireframe de Login/Splash: tonos propios de esa pantalla, distintos al morado del resto de la app.
+val NovaLoginCard = Color(0xFFDBC0F9)
+val NovaLoginButton = Color(0xFF160065)
+val NovaLoginFieldBorder = Color(0xFFCCCCD1)

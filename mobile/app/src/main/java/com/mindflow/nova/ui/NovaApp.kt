@@ -1,84 +1,131 @@
 package com.mindflow.nova.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Groups
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindflow.nova.data.model.SessionUser
+import com.mindflow.nova.data.session.SessionRepository
+import com.mindflow.nova.data.session.SessionResult
+import com.mindflow.nova.ui.screens.auth.LoginScreen
+import com.mindflow.nova.ui.screens.auth.OnboardingScreen
 import com.mindflow.nova.ui.screens.home.HomeScreen
 import com.mindflow.nova.ui.screens.teacher.TeacherRoomsScreen
 import com.mindflow.nova.ui.theme.NovaBackground
-import com.mindflow.nova.ui.theme.NovaBorder
-import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 
-private enum class AppRole { STUDENT, TEACHER }
-
 /**
- * Raíz de la app. Todavía no hay pantalla de login (falta el wireframe), así
- * que el rol se elige con [RoleSelectorScreen] como placeholder temporal.
- * Cuando exista el login real, esto se reemplaza por la consulta al backend
- * (por correo/id) que decide si la persona es alumno o docente y la manda
- * directo a su home correspondiente — [HomeScreen] o [TeacherRoomsScreen].
+ * Raíz de la app. Al arrancar valida el token guardado contra el backend
+ * (GET /api/auth/me) y decide a dónde mandar a la persona:
+ * - sin sesión válida -> [LoginScreen]
+ * - estudiante sin sala todavía -> [OnboardingScreen] (splash + código)
+ * - estudiante con sala -> [HomeScreen]
+ * - docente -> [TeacherRoomsScreen]
+ * - coordinador/admin -> todavía no tienen pantalla (falta su wireframe)
  */
-@Composable
-fun NovaApp() {
-    var role by remember { mutableStateOf<AppRole?>(null) }
+private sealed class AppScreen {
+    object Loading : AppScreen()
+    object Login : AppScreen()
+    object Onboarding : AppScreen()
+    object StudentHome : AppScreen()
+    object TeacherHome : AppScreen()
+    data class Unsupported(val role: String) : AppScreen()
+}
 
-    when (role) {
-        null -> RoleSelectorScreen(
-            onSelectStudent = { role = AppRole.STUDENT },
-            onSelectTeacher = { role = AppRole.TEACHER }
+private fun routeForUser(user: SessionUser): AppScreen = when (user.role) {
+    "student" -> if (user.group != null) AppScreen.StudentHome else AppScreen.Onboarding
+    "teacher" -> AppScreen.TeacherHome
+    else -> AppScreen.Unsupported(user.role)
+}
+
+@Composable
+fun NovaApp(session: SessionRepository) {
+    var screen by remember { mutableStateOf<AppScreen>(AppScreen.Loading) }
+
+    LaunchedEffect(Unit) {
+        screen = when (val result = session.restoreSession()) {
+            is SessionResult.Success -> routeForUser(result.user)
+            else -> AppScreen.Login
+        }
+    }
+
+    when (val current = screen) {
+        AppScreen.Loading -> LoadingScreen()
+
+        AppScreen.Login -> LoginScreen(
+            session = session,
+            onLoginSuccess = { user -> screen = routeForUser(user) }
         )
 
-        AppRole.STUDENT -> HomeScreen()
+        AppScreen.Onboarding -> OnboardingScreen(
+            onJoined = { screen = AppScreen.StudentHome }
+        )
 
-        AppRole.TEACHER -> TeacherRoomsScreen(onBack = { role = null })
+        AppScreen.StudentHome -> HomeScreen(
+            onLogout = {
+                session.logout()
+                screen = AppScreen.Login
+            }
+        )
+
+        AppScreen.TeacherHome -> TeacherRoomsScreen(
+            onBack = {
+                session.logout()
+                screen = AppScreen.Login
+            }
+        )
+
+        is AppScreen.Unsupported -> UnsupportedRoleScreen(
+            role = current.role,
+            onLogout = {
+                session.logout()
+                screen = AppScreen.Login
+            }
+        )
     }
 }
 
 @Composable
-private fun RoleSelectorScreen(
-    onSelectStudent: () -> Unit,
-    onSelectTeacher: () -> Unit
-) {
+private fun LoadingScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize().background(NovaBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = NovaPurple)
+    }
+}
+
+// Coordinador y admin todavía no tienen wireframe de pantalla propia.
+@Composable
+private fun UnsupportedRoleScreen(role: String, onLogout: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(NovaBackground)
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(120.dp))
+
         Text(
             text = "NOVA",
             color = NovaPurple,
@@ -86,84 +133,18 @@ private fun RoleSelectorScreen(
             fontWeight = FontWeight.Black
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "¿Cómo querés entrar? (esto es temporal, hasta que tengamos el login)",
+            text = "Todavía no hay una pantalla para el rol \"$role\".",
             color = NovaTextSecondary,
-            fontSize = 14.sp
+            fontSize = 15.sp
         )
 
-        Spacer(modifier = Modifier.height(28.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-        RoleOptionCard(
-            title = "Soy alumno",
-            subtitle = "Misiones, lecciones y progreso",
-            icon = Icons.Rounded.Person,
-            onClick = onSelectStudent
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        RoleOptionCard(
-            title = "Soy docente",
-            subtitle = "Salas, alumnos y resultados",
-            icon = Icons.Rounded.Groups,
-            onClick = onSelectTeacher
-        )
-    }
-}
-
-@Composable
-private fun RoleOptionCard(
-    title: String,
-    subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, NovaBorder),
-        shadowElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = NovaLightPurple
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = NovaPurple,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = NovaText,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = subtitle,
-                    color = NovaTextSecondary,
-                    fontSize = 13.sp
-                )
-            }
+        Button(onClick = onLogout) {
+            Text("Cerrar sesión")
         }
     }
 }
