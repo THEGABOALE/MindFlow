@@ -8,10 +8,12 @@ import com.mindflow.nova.data.model.LoginGoogleRequest
 import com.mindflow.nova.data.model.LoginIdRequest
 import com.mindflow.nova.data.model.LoginResponse
 import com.mindflow.nova.data.model.MeResponse
+import com.mindflow.nova.data.model.MissionContentResponse
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Path
 
 interface NovaApiService {
     @GET("/")
@@ -23,6 +25,10 @@ interface NovaApiService {
 
     @POST("api/groups/join")
     suspend fun joinGroupByCode(@Body request: JoinGroupRequest): Response<JoinGroupResponse>
+
+    /** Contenido jugable de una misión: preguntas con sus opciones o pares. */
+    @GET("api/missions/{missionId}")
+    suspend fun getMissionContent(@Path("missionId") missionId: Int): Response<MissionContentResponse>
 
     @POST("api/auth/login/id")
     suspend fun loginWithId(@Body request: LoginIdRequest): Response<LoginResponse>

@@ -37,14 +37,8 @@ import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.data.remote.RetrofitClient
-import com.mindflow.nova.ui.screens.lessons.LessonMockData
-import com.mindflow.nova.ui.screens.lessons.LessonPlayScreen
+import com.mindflow.nova.ui.screens.lessons.LessonHost
 import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
-import com.mindflow.nova.ui.screens.lessons.MatchingLessonScreen
-import com.mindflow.nova.ui.screens.lessons.MatchingMockData
-import com.mindflow.nova.ui.screens.lessons.MiniGamePlaceholderScreen
-import com.mindflow.nova.ui.screens.lessons.TrueFalseLessonScreen
-import com.mindflow.nova.ui.screens.lessons.TrueFalseMockData
 import com.mindflow.nova.ui.screens.profile.ProfileScreen
 import com.mindflow.nova.ui.screens.progress.ProgressScreen
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -60,7 +54,7 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
-    var activeLesson by remember { mutableStateOf<LessonRoute?>(null) }
+    var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
 
     LaunchedEffect(Unit) {
         try {
@@ -77,43 +71,12 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
             isLoading = false
         }
     }
-    when (val route = activeLesson) {
-        is LessonRoute.MultipleChoice -> {
-            LessonPlayScreen(
-                mission = route.mission,
-                questions = LessonMockData.lessonOneQuestions,
-                onExit = { activeLesson = null }
-            )
-            return
-        }
-
-        is LessonRoute.Matching -> {
-            MatchingLessonScreen(
-                mission = route.mission,
-                pairs = MatchingMockData.reconocerDerechosPairs,
-                onExit = { activeLesson = null }
-            )
-            return
-        }
-
-        is LessonRoute.TrueFalse -> {
-            TrueFalseLessonScreen(
-                mission = route.mission,
-                questions = TrueFalseMockData.decisionesConRespetoQuestions,
-                onExit = { activeLesson = null }
-            )
-            return
-        }
-
-        is LessonRoute.Placeholder -> {
-            MiniGamePlaceholderScreen(
-                mission = route.mission,
-                onBack = { activeLesson = null }
-            )
-            return
-        }
-
-        null -> Unit
+    activeMission?.let { mission ->
+        LessonHost(
+            mission = mission,
+            onExit = { activeMission = null }
+        )
+        return
     }
     Scaffold(
         containerColor = NovaBackground,
@@ -154,7 +117,7 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                 NovaMainContent(
                     selectedTab = selectedTab,
                     level = levels.first(),
-                    onMissionSelected = { mission -> activeLesson = routeForMission(mission) },
+                    onMissionSelected = { mission -> activeMission = mission },
                     onLogout = onLogout,
                     modifier = Modifier
                         .fillMaxSize()
@@ -170,25 +133,6 @@ internal enum class NovaTab {
     Lessons,
     Progress,
     Profile
-}
-
-/**
- * A qué pantalla lleva tocar una misión, según la mecánica que declara el
- * backend. Las mecánicas que todavía no tienen pantalla propia (por ejemplo
- * la sopa de letras) caen en el placeholder de minijuego.
- */
-private sealed class LessonRoute {
-    data class MultipleChoice(val mission: MissionResponse) : LessonRoute()
-    data class Matching(val mission: MissionResponse) : LessonRoute()
-    data class TrueFalse(val mission: MissionResponse) : LessonRoute()
-    data class Placeholder(val mission: MissionResponse) : LessonRoute()
-}
-
-private fun routeForMission(mission: MissionResponse): LessonRoute = when (mission.mechanic) {
-    "multiple_choice" -> LessonRoute.MultipleChoice(mission)
-    "matching" -> LessonRoute.Matching(mission)
-    "true_false" -> LessonRoute.TrueFalse(mission)
-    else -> LessonRoute.Placeholder(mission)
 }
 
 @Composable
