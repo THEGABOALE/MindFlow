@@ -276,6 +276,14 @@ const finishAttempt = async (req, res) => {
       });
     }
 
+    // Preguntas reales de la mision: la correccion recorre esta lista, no la
+    // que mande el cliente, para que omitir o duplicar respuestas no cambie
+    // el puntaje (cada pregunta/par sin responder cuenta como incorrecta).
+    const questionsResult = await client.query(
+      `SELECT id, question_type FROM questions WHERE mission_id = $1 ORDER BY order_index ASC;`,
+      [attempt.mission_id]
+    );
+
     const optionsResult = await client.query(
       `
       SELECT ao.id, ao.question_id, ao.is_correct
@@ -299,32 +307,64 @@ const finishAttempt = async (req, res) => {
     const optionsById = new Map(optionsResult.rows.map((row) => [row.id, row]));
     const pairsById = new Map(pairsResult.rows.map((row) => [row.id, row]));
 
+    // Se indexan las respuestas del cliente por pregunta (opcion multiple y
+    // verdadero/falso) o por par (relacion de conceptos), ignorando cualquier
+    // respuesta que apunte a una pregunta/par que no sea de esta mision. Si
+    // llega mas de una para la misma pregunta o par (reintentos en el
+    // minijuego de relacion de conceptos), gana la ultima: es el intento con
+    // el que el estudiante se quedo.
+    const answerByQuestionId = new Map();
+    const answerByPairId = new Map();
+
+    for (const answer of Array.isArray(answers) ? answers : []) {
+      const questionId = Number(answer.questionId);
+
+      if (answer.pairId != null) {
+        const pairId = Number(answer.pairId);
+        const pair = pairsById.get(pairId);
+
+        if (pair && pair.question_id === questionId) {
+          answerByPairId.set(pairId, answer);
+        }
+      } else if (answer.selectedOptionId != null) {
+        answerByQuestionId.set(questionId, answer);
+      }
+    }
+
     let correctAnswers = 0;
     let wrongAnswers = 0;
 
-    for (const answer of answers) {
-      const questionId = Number(answer.questionId);
-      let isCorrect = false;
-      let selectedOptionId = null;
-      let pairId = null;
+    for (const question of questionsResult.rows) {
+      if (question.question_type === "matching") {
+        const questionPairs = pairsResult.rows.filter((pair) => pair.question_id === question.id);
 
-      if (answer.selectedOptionId != null) {
-        const option = optionsById.get(Number(answer.selectedOptionId));
+        for (const pair of questionPairs) {
+          const answer = answerByPairId.get(pair.id);
+          // Acierta si unio el termino con su propio par; sin respuesta cuenta como fallo.
+          const isCorrect = answer != null && Number(answer.selectedPairId) === pair.id;
 
-        // La opcion tiene que pertenecer a la pregunta que dice el cliente.
-        if (option && option.question_id === questionId) {
-          selectedOptionId = option.id;
-          isCorrect = option.is_correct;
+          if (isCorrect) {
+            correctAnswers += 1;
+          } else {
+            wrongAnswers += 1;
+          }
+
+          await client.query(
+            `
+            INSERT INTO attempt_answers (attempt_id, question_id, selected_option_id, pair_id, is_correct)
+            VALUES ($1, $2, $3, $4, $5);
+            `,
+            [attemptId, question.id, null, pair.id, isCorrect]
+          );
         }
-      } else if (answer.pairId != null) {
-        const pair = pairsById.get(Number(answer.pairId));
 
-        if (pair && pair.question_id === questionId) {
-          pairId = pair.id;
-          // En relacion de conceptos acierta si unio el termino con su propio par.
-          isCorrect = Number(answer.selectedPairId) === pair.id;
-        }
+        continue;
       }
+
+      const answer = answerByQuestionId.get(question.id);
+      const option = answer ? optionsById.get(Number(answer.selectedOptionId)) : null;
+      const isValidOption = Boolean(option && option.question_id === question.id);
+      const isCorrect = isValidOption && option.is_correct;
 
       if (isCorrect) {
         correctAnswers += 1;
@@ -337,7 +377,7 @@ const finishAttempt = async (req, res) => {
         INSERT INTO attempt_answers (attempt_id, question_id, selected_option_id, pair_id, is_correct)
         VALUES ($1, $2, $3, $4, $5);
         `,
-        [attemptId, questionId, selectedOptionId, pairId, isCorrect]
+        [attemptId, question.id, isValidOption ? option.id : null, null, isCorrect]
       );
     }
 

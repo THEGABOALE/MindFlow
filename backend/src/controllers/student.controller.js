@@ -187,6 +187,18 @@ const getStudentProgress = async (req, res) => {
             [studentId]
         );
 
+        // IDs de las misiones ya completadas (sin contar repasos), para que la
+        // app sepa cuales marcar con check y cual es la siguiente desbloqueada
+        // sin tener que adivinarlo por posicion.
+        const completedMissionsResult = await pool.query(
+            `
+        SELECT DISTINCT mission_id
+        FROM mission_attempts
+        WHERE user_id = $1 AND status = 'completed';
+        `,
+            [studentId]
+        );
+
         const totals = totalsResult.rows[0];
 
         return res.status(200).json({
@@ -197,6 +209,7 @@ const getStudentProgress = async (req, res) => {
                 fullName: row.student_full_name,
                 totalPoints: Number(totals.total_points),
                 missionsCompleted: Number(totals.missions_completed),
+                completedMissionIds: completedMissionsResult.rows.map((attempt) => attempt.mission_id),
                 levels: levelsResult.rows.map((level) => ({
                     id: level.id,
                     name: level.name,
