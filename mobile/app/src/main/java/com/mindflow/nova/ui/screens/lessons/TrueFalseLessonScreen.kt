@@ -20,8 +20,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,10 +31,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
-import com.mindflow.nova.ui.screens.lessons.common.LESSON_SEMILLAS_REWARD
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
@@ -43,9 +46,10 @@ import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
+import kotlinx.coroutines.launch
 
 private enum class TruthPhase { ANSWERING, ANSWERED }
-private enum class TruthStage { IN_PROGRESS, OUT_OF_PLUMAS, COMPLETED }
+private enum class TruthStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR }
 
 private val TrueFalseIdle = Color(0xFFDCEBFB)
 private val TrueFalseSelected = Color(0xFF5B93C7)
@@ -59,11 +63,13 @@ private val TrueFalseWrong = Color(0xFFC0392B)
 fun TrueFalseLessonScreen(
     mission: MissionResponse,
     questions: List<TrueFalseQuestion>,
+    attempt: LessonAttempt,
     onExit: () -> Unit
 ) {
     // Las plumas las define el backend por misión; la constante solo es
     // respaldo por si la API todavía no manda el campo.
     val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
+    val scope = rememberCoroutineScope()
 
     var currentIndex by remember { mutableStateOf(0) }
     var selectedAnswer by remember { mutableStateOf<Boolean?>(null) }
@@ -72,14 +78,20 @@ fun TrueFalseLessonScreen(
     var correctCount by remember { mutableStateOf(0) }
     var stage by remember { mutableStateOf(TruthStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
+    var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
-    fun resetLesson() {
-        currentIndex = 0
-        selectedAnswer = null
-        phase = TruthPhase.ANSWERING
-        plumas = maxPlumas
-        correctCount = 0
-        stage = TruthStage.IN_PROGRESS
+    fun finish() {
+        stage = TruthStage.SUBMITTING
+        scope.launch {
+            val result = attempt.submit(answers.toList(), false)
+            if (result != null) {
+                attemptResult = result
+                stage = if (result.status == "completed") TruthStage.COMPLETED else TruthStage.OUT_OF_PLUMAS
+            } else {
+                stage = TruthStage.SUBMIT_ERROR
+            }
+        }
     }
 
     Box(
@@ -88,10 +100,14 @@ fun TrueFalseLessonScreen(
             .background(NovaBackground)
     ) {
         when (stage) {
+            TruthStage.SUBMITTING -> LessonSubmitting()
+
+            TruthStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
+
             TruthStage.COMPLETED -> {
                 LessonCompletedScreen(
-                    subtitle = "$correctCount de ${questions.size} afirmaciones correctas",
-                    rewardAmount = LESSON_SEMILLAS_REWARD,
+                    subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} afirmaciones correctas",
+                    rewardAmount = attemptResult?.pointsEarned ?: 0,
                     onContinue = onExit
                 )
             }
@@ -101,7 +117,7 @@ fun TrueFalseLessonScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en la lección",
                     primaryLabel = "Reintentar nivel",
-                    onPrimary = { resetLesson() },
+                    onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
                     onSecondary = onExit
                 )
@@ -230,6 +246,8 @@ fun TrueFalseLessonScreen(
                     Button(
                         onClick = {
                             if (phase == TruthPhase.ANSWERING) {
+                                val optionId = if (selectedAnswer == true) question.trueOptionId else question.falseOptionId
+                                answers.add(AnswerSubmission(questionId = question.id, selectedOptionId = optionId))
                                 if (isCorrectSelection) {
                                     correctCount++
                                 } else {
@@ -238,8 +256,8 @@ fun TrueFalseLessonScreen(
                                 phase = TruthPhase.ANSWERED
                             } else {
                                 when {
-                                    plumas == 0 -> stage = TruthStage.OUT_OF_PLUMAS
-                                    currentIndex == questions.lastIndex -> stage = TruthStage.COMPLETED
+                                    plumas == 0 -> finish()
+                                    currentIndex == questions.lastIndex -> finish()
                                     else -> {
                                         currentIndex++
                                         selectedAnswer = null

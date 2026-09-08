@@ -22,8 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
@@ -44,52 +48,71 @@ import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val MATCHING_TIME_SECONDS = 45
-private const val SEMILLAS_PER_ACIERTO = 5
 
-private enum class MatchingStage { IN_PROGRESS, OUT_OF_PLUMAS, TIME_UP, COMPLETED }
+private enum class MatchingStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, TIME_UP, COMPLETED, SUBMIT_ERROR }
 
 private enum class ItemState { IDLE, SELECTED, CORRECT, WRONG }
 
 /**
  * Minijuego de relación de conceptos ("Reconocer mis derechos"): emparejar
  * cada término con su palabra, contra un cronómetro y con plumas de vida.
+ * Cada intento de par se manda al backend al cerrar el intento; el puntaje
+ * final y si se aprobó lo decide el servidor.
  */
 @Composable
 fun MatchingLessonScreen(
     mission: MissionResponse,
     pairs: List<MatchingPair>,
+    questionId: Int,
+    attempt: LessonAttempt,
     onExit: () -> Unit
 ) {
     // El límite de tiempo y las plumas los define el backend por misión; las
     // constantes solo son respaldo por si la API todavía no manda los campos.
     val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
     val timeLimitSeconds = mission.timeLimitSeconds ?: MATCHING_TIME_SECONDS
+    val scope = rememberCoroutineScope()
 
-    var resetKey by remember { mutableStateOf(0) }
-    var matchedIds by remember(resetKey) { mutableStateOf(setOf<Int>()) }
-    var selectedTermId by remember(resetKey) { mutableStateOf<Int?>(null) }
-    var wrongPair by remember(resetKey) { mutableStateOf<Pair<Int, Int>?>(null) }
-    var correctCount by remember(resetKey) { mutableStateOf(0) }
-    var wrongCount by remember(resetKey) { mutableStateOf(0) }
-    var plumas by remember(resetKey) { mutableStateOf(maxPlumas) }
-    var stage by remember(resetKey) { mutableStateOf(MatchingStage.IN_PROGRESS) }
+    var matchedIds by remember { mutableStateOf(setOf<Int>()) }
+    var selectedTermId by remember { mutableStateOf<Int?>(null) }
+    var wrongPair by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var correctCount by remember { mutableStateOf(0) }
+    var wrongCount by remember { mutableStateOf(0) }
+    var plumas by remember { mutableStateOf(maxPlumas) }
+    var stage by remember { mutableStateOf(MatchingStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
-    var secondsLeft by remember(resetKey) { mutableStateOf(timeLimitSeconds) }
-    var feedback by remember(resetKey) { mutableStateOf("¡Vas bien! Elegí un par") }
-    var justLostPluma by remember(resetKey) { mutableStateOf(false) }
+    var secondsLeft by remember { mutableStateOf(timeLimitSeconds) }
+    var feedback by remember { mutableStateOf("¡Vas bien! Elegí un par") }
+    var justLostPluma by remember { mutableStateOf(false) }
+    var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
-    val shuffledTerms = remember(resetKey) { pairs.shuffled() }
-    val shuffledMatches = remember(resetKey) { pairs.shuffled() }
+    val shuffledTerms = remember { pairs.shuffled() }
+    val shuffledMatches = remember { pairs.shuffled() }
 
-    LaunchedEffect(resetKey) {
+    fun finish(timedOut: Boolean, targetStage: MatchingStage) {
+        stage = MatchingStage.SUBMITTING
+        scope.launch {
+            val result = attempt.submit(answers.toList(), timedOut)
+            if (result != null) {
+                attemptResult = result
+                stage = targetStage
+            } else {
+                stage = MatchingStage.SUBMIT_ERROR
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
         while (secondsLeft > 0 && stage == MatchingStage.IN_PROGRESS) {
             delay(1000)
             secondsLeft -= 1
         }
         if (secondsLeft <= 0 && stage == MatchingStage.IN_PROGRESS) {
-            stage = MatchingStage.TIME_UP
+            finish(timedOut = true, targetStage = MatchingStage.TIME_UP)
         }
     }
 
@@ -103,13 +126,15 @@ fun MatchingLessonScreen(
 
     fun onMatchTap(matchPairId: Int) {
         val termId = selectedTermId ?: return
+        answers.add(AnswerSubmission(questionId = questionId, pairId = termId, selectedPairId = matchPairId))
+
         if (termId == matchPairId) {
             matchedIds = matchedIds + termId
             correctCount++
             feedback = "¡Correcto!"
             selectedTermId = null
             if (matchedIds.size == pairs.size) {
-                stage = MatchingStage.COMPLETED
+                finish(timedOut = false, targetStage = MatchingStage.COMPLETED)
             }
         } else {
             wrongCount++
@@ -118,7 +143,7 @@ fun MatchingLessonScreen(
             feedback = "Casi... -1 pluma"
             wrongPair = termId to matchPairId
             if (plumas == 0) {
-                stage = MatchingStage.OUT_OF_PLUMAS
+                finish(timedOut = false, targetStage = MatchingStage.OUT_OF_PLUMAS)
             }
         }
     }
@@ -135,16 +160,20 @@ fun MatchingLessonScreen(
             .background(NovaBackground)
     ) {
         when (stage) {
+            MatchingStage.SUBMITTING -> LessonSubmitting()
+
+            MatchingStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
+
             MatchingStage.COMPLETED -> {
                 LessonCompletedScreen(
                     subtitle = "Emparejaste ${pairs.size} de ${pairs.size} conceptos",
-                    rewardAmount = correctCount * SEMILLAS_PER_ACIERTO,
+                    rewardAmount = attemptResult?.pointsEarned ?: 0,
                     rewardLabel = "semillas (según tus aciertos)",
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ResultStat(label = "aciertos", value = correctCount, color = NovaPurple, background = Color(0xFFE6F7EA))
-                            ResultStat(label = "fallos", value = wrongCount, color = Color(0xFFC0392B), background = Color(0xFFFBE7E5))
+                            ResultStat(label = "aciertos", value = attemptResult?.correctAnswers ?: correctCount, color = NovaPurple, background = Color(0xFFE6F7EA))
+                            ResultStat(label = "fallos", value = attemptResult?.wrongAnswers ?: wrongCount, color = Color(0xFFC0392B), background = Color(0xFFFBE7E5))
                         }
                     }
                 )
@@ -155,7 +184,7 @@ fun MatchingLessonScreen(
                     title = "¡Se acabó el tiempo!",
                     message = "Completaste ${matchedIds.size} de ${pairs.size} pares antes de que se acabara",
                     primaryLabel = "Reintentar minijuego",
-                    onPrimary = { resetKey++ },
+                    onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
                     onSecondary = onExit
                 )
@@ -166,7 +195,7 @@ fun MatchingLessonScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en el minijuego",
                     primaryLabel = "Reintentar minijuego",
-                    onPrimary = { resetKey++ },
+                    onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
                     onSecondary = onExit
                 )
