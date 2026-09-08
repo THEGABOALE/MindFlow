@@ -14,6 +14,8 @@ data class StudentProgress(
     val totalPoints: Int,
     /** Misiones completadas (sin contar repasos) en toda la ruta, no solo un nivel. */
     val missionsCompleted: Int,
+    /** IDs de todas las misiones completadas, de cualquier nivel. */
+    val completedMissionIds: List<Int> = emptyList(),
     val levels: List<StudentLevelProgress>
 )
 
