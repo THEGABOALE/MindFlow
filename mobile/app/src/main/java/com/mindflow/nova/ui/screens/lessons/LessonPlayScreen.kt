@@ -21,8 +21,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,9 +32,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
-import com.mindflow.nova.ui.screens.lessons.common.LESSON_SEMILLAS_REWARD
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
@@ -43,22 +46,28 @@ import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
+import kotlinx.coroutines.launch
 
 private enum class QuestionPhase { ANSWERING, ANSWERED }
-private enum class LessonStage { IN_PROGRESS, OUT_OF_PLUMAS, COMPLETED }
+private enum class LessonStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR }
 
 /**
  * Lección de preguntas de opción múltiple (Lección 1 - "Bienvenida a NOVA").
+ * Las respuestas se acumulan localmente y, al terminar (o quedarse sin
+ * plumas), se cierran contra el backend: la corrección y el puntaje final son
+ * los que devuelve el servidor, no los que calcula esta pantalla.
  */
 @Composable
 fun LessonPlayScreen(
     mission: MissionResponse,
     questions: List<LessonQuestion>,
+    attempt: LessonAttempt,
     onExit: () -> Unit
 ) {
     // Las plumas las define el backend por misión; la constante solo es
     // respaldo por si la API todavía no manda el campo.
     val maxPlumas = mission.maxPlumas ?: LESSON_MAX_PLUMAS
+    val scope = rememberCoroutineScope()
 
     var currentIndex by remember { mutableStateOf(0) }
     var selectedOptionId by remember { mutableStateOf<Int?>(null) }
@@ -67,14 +76,20 @@ fun LessonPlayScreen(
     var correctCount by remember { mutableStateOf(0) }
     var stage by remember { mutableStateOf(LessonStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
+    var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
-    fun resetLesson() {
-        currentIndex = 0
-        selectedOptionId = null
-        phase = QuestionPhase.ANSWERING
-        plumas = maxPlumas
-        correctCount = 0
-        stage = LessonStage.IN_PROGRESS
+    fun finish() {
+        stage = LessonStage.SUBMITTING
+        scope.launch {
+            val result = attempt.submit(answers.toList(), false)
+            if (result != null) {
+                attemptResult = result
+                stage = if (result.status == "completed") LessonStage.COMPLETED else LessonStage.OUT_OF_PLUMAS
+            } else {
+                stage = LessonStage.SUBMIT_ERROR
+            }
+        }
     }
 
     Box(
@@ -83,10 +98,14 @@ fun LessonPlayScreen(
             .background(NovaBackground)
     ) {
         when (stage) {
+            LessonStage.SUBMITTING -> LessonSubmitting()
+
+            LessonStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
+
             LessonStage.COMPLETED -> {
                 LessonCompletedScreen(
-                    subtitle = "$correctCount de ${questions.size} preguntas correctas",
-                    rewardAmount = LESSON_SEMILLAS_REWARD,
+                    subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} preguntas correctas",
+                    rewardAmount = attemptResult?.pointsEarned ?: 0,
                     onContinue = onExit
                 )
             }
@@ -96,7 +115,7 @@ fun LessonPlayScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en la lección",
                     primaryLabel = "Reintentar nivel",
-                    onPrimary = { resetLesson() },
+                    onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
                     onSecondary = onExit
                 )
@@ -157,16 +176,19 @@ fun LessonPlayScreen(
                     Button(
                         onClick = {
                             if (phase == QuestionPhase.ANSWERING) {
-                                if (selectedOption?.isCorrect == true) {
-                                    correctCount++
-                                } else {
-                                    plumas = (plumas - 1).coerceAtLeast(0)
+                                selectedOption?.let { option ->
+                                    answers.add(AnswerSubmission(questionId = question.id, selectedOptionId = option.id))
+                                    if (option.isCorrect) {
+                                        correctCount++
+                                    } else {
+                                        plumas = (plumas - 1).coerceAtLeast(0)
+                                    }
                                 }
                                 phase = QuestionPhase.ANSWERED
                             } else {
                                 when {
-                                    plumas == 0 -> stage = LessonStage.OUT_OF_PLUMAS
-                                    currentIndex == questions.lastIndex -> stage = LessonStage.COMPLETED
+                                    plumas == 0 -> finish()
+                                    currentIndex == questions.lastIndex -> finish()
                                     else -> {
                                         currentIndex++
                                         selectedOptionId = null

@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -22,9 +23,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.model.FinishAttemptRequest
 import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -56,7 +61,10 @@ data class TrueFalseQuestion(
     val id: Int,
     val statement: String,
     val correctAnswer: Boolean,
-    val explanation: String
+    val explanation: String,
+    /** IDs reales de las opciones "Verdadero"/"Falso", para poder enviar la respuesta. */
+    val trueOptionId: Int?,
+    val falseOptionId: Int?
 )
 
 // --- Mappers del contenido del backend a los tipos de cada mecánica ---
@@ -85,6 +93,9 @@ fun MissionContent.toMatchingPairs(): List<MatchingPair> =
         MatchingPair(id = pair.id, term = pair.term, match = pair.match)
     }
 
+/** Id de la única pregunta de relación de conceptos (para enviar las respuestas). */
+fun MissionContent.matchingQuestionId(): Int? = questions.firstOrNull()?.id
+
 /**
  * Verdadero/falso: el enunciado es el prompt, la explicación va en el feedback
  * de la pregunta, y cuál es la respuesta correcta se deduce de qué opción
@@ -92,6 +103,8 @@ fun MissionContent.toMatchingPairs(): List<MatchingPair> =
  */
 fun MissionContent.toTrueFalseQuestions(): List<TrueFalseQuestion> =
     questions.map { question ->
+        val trueOption = question.options.firstOrNull { it.text.trim().equals("Verdadero", ignoreCase = true) }
+        val falseOption = question.options.firstOrNull { it.text.trim().equals("Falso", ignoreCase = true) }
         val correctIsTrue = question.options
             .firstOrNull { it.isCorrect }
             ?.text
@@ -102,9 +115,22 @@ fun MissionContent.toTrueFalseQuestions(): List<TrueFalseQuestion> =
             id = question.id,
             statement = question.prompt,
             correctAnswer = correctIsTrue,
-            explanation = question.feedback.orEmpty()
+            explanation = question.feedback.orEmpty(),
+            trueOptionId = trueOption?.id,
+            falseOptionId = falseOption?.id
         )
     }
+
+/**
+ * Todo lo que una pantalla de lección necesita para reportar el resultado de
+ * un intento al backend: con qué intento está jugando y cómo cerrarlo o
+ * empezar uno nuevo (reintentar).
+ */
+class LessonAttempt(
+    val id: Int,
+    val onRetry: () -> Unit,
+    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> AttemptResult?
+)
 
 private sealed class LessonContentState {
     object Loading : LessonContentState()
@@ -149,26 +175,94 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
 
         is LessonContentState.Error -> LessonContentError(message = current.message, onExit = onExit)
 
-        is LessonContentState.Ready -> when (mechanic) {
-            "multiple_choice" -> LessonPlayScreen(
-                mission = mission,
-                questions = current.content.toLessonQuestions(),
-                onExit = onExit
+        is LessonContentState.Ready -> LessonAttemptHost(missionId = mission.id, onExit = onExit) { attempt ->
+            when (mechanic) {
+                "multiple_choice" -> LessonPlayScreen(
+                    mission = mission,
+                    questions = current.content.toLessonQuestions(),
+                    attempt = attempt,
+                    onExit = onExit
+                )
+
+                "matching" -> MatchingLessonScreen(
+                    mission = mission,
+                    pairs = current.content.toMatchingPairs(),
+                    questionId = current.content.matchingQuestionId() ?: 0,
+                    attempt = attempt,
+                    onExit = onExit
+                )
+
+                "true_false" -> TrueFalseLessonScreen(
+                    mission = mission,
+                    questions = current.content.toTrueFalseQuestions(),
+                    attempt = attempt,
+                    onExit = onExit
+                )
+
+                else -> MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
+            }
+        }
+    }
+}
+
+private sealed class AttemptState {
+    object Loading : AttemptState()
+    data class Ready(val attemptId: Int) : AttemptState()
+    data class Error(val message: String) : AttemptState()
+}
+
+/**
+ * Abre un intento (POST .../attempts) y expone cómo cerrarlo o reintentar.
+ * "Reintentar" no reinicia el estado local: pide un intento nuevo y, gracias
+ * al key(retryKey), vuelve a montar la pantalla de lección desde cero.
+ */
+@Composable
+private fun LessonAttemptHost(
+    missionId: Int,
+    onExit: () -> Unit,
+    content: @Composable (LessonAttempt) -> Unit
+) {
+    var retryKey by remember(missionId) { mutableStateOf(0) }
+    var state by remember(missionId, retryKey) { mutableStateOf<AttemptState>(AttemptState.Loading) }
+
+    LaunchedEffect(missionId, retryKey) {
+        state = try {
+            val response = RetrofitClient.api.startAttempt(missionId)
+            val attempt = response.body()?.attempt
+
+            if (response.isSuccessful && attempt != null) {
+                AttemptState.Ready(attempt.id)
+            } else {
+                AttemptState.Error("No se pudo iniciar el intento (HTTP ${response.code()})")
+            }
+        } catch (e: Exception) {
+            AttemptState.Error("Error de conexión: ${e.message}")
+        }
+    }
+
+    when (val current = state) {
+        AttemptState.Loading -> LessonContentLoading()
+
+        is AttemptState.Error -> LessonContentError(message = current.message, onExit = onExit)
+
+        is AttemptState.Ready -> key(retryKey) {
+            val attempt = LessonAttempt(
+                id = current.attemptId,
+                onRetry = { retryKey++ },
+                submit = { answers, timedOut ->
+                    try {
+                        val response = RetrofitClient.api.finishAttempt(
+                            current.attemptId,
+                            FinishAttemptRequest(answers, timedOut)
+                        )
+                        if (response.isSuccessful) response.body()?.attempt else null
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
             )
 
-            "matching" -> MatchingLessonScreen(
-                mission = mission,
-                pairs = current.content.toMatchingPairs(),
-                onExit = onExit
-            )
-
-            "true_false" -> TrueFalseLessonScreen(
-                mission = mission,
-                questions = current.content.toTrueFalseQuestions(),
-                onExit = onExit
-            )
-
-            else -> MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
+            content(attempt)
         }
     }
 }
@@ -228,4 +322,40 @@ private fun LessonContentError(message: String, onExit: () -> Unit) {
             }
         }
     }
+}
+
+/** Se muestra mientras el backend corrige y guarda el intento recién cerrado. */
+@Composable
+fun LessonSubmitting() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(NovaBackground),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = NovaPurple)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Guardando tu resultado...",
+                color = NovaTextSecondary,
+                fontSize = 15.sp
+            )
+        }
+    }
+}
+
+/** Pantalla compartida: se perdió la conexión al querer guardar el resultado del intento. */
+@Composable
+fun LessonSubmitError(onRetry: () -> Unit, onExit: () -> Unit) {
+    LessonEndScreen(
+        title = "No se pudo guardar tu resultado",
+        message = "Revisá tu conexión e intentá de nuevo. Si volvés a intentar, empieza un intento nuevo.",
+        primaryLabel = "Reintentar",
+        onPrimary = onRetry,
+        secondaryLabel = "Salir",
+        onSecondary = onExit
+    )
 }
