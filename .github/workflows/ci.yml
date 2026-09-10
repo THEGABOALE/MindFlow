@@ -1,0 +1,57 @@
+name: CI
+
+# Corre los tests del backend y del móvil en cada push/PR a main, para que un
+# cambio que rompe algo se note antes de mergear en vez de después.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Backend (tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+
+  mobile-tests:
+    name: Mobile (tests unitarios)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      # Sin esto, Gradle no puede descargar sola la plataforma/build-tools que
+      # falten (compileSdk se actualiza seguido y no siempre viene preinstalada
+      # en el runner).
+      - name: Aceptar licencias del SDK de Android
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Dar permiso de ejecución al wrapper
+        run: chmod +x gradlew
+
+      # Solo tests de JVM (sin emulador): son los que no necesitan un
+      # dispositivo Android para correr, así que alcanzan para CI.
+      - run: ./gradlew testDebugUnitTest --stacktrace
