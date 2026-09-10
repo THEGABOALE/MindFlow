@@ -1,26 +1,5 @@
 const pool = require("../database/connection");
-
-// Semillas que gana el estudiante al terminar una mision.
-//
-// Cada pluma perdida descuenta 1/(max_plumas + 1) de la recompensa base, asi
-// que con las 3 plumas de siempre queda: 0 errores 100%, 1 error 75%,
-// 2 errores 50%, y al tercer error se pierde la mision y no gana nada.
-// El repaso (volver a jugar una mision ya completada) da la mitad, para que
-// repetir hasta hacerlo perfecto siga valiendo la pena sin regalar semillas.
-const REVIEW_FACTOR = 0.5;
-
-const calculatePoints = ({ pointsReward, wrongAnswers, maxPlumas, isReview }) => {
-  const plumasLeft = maxPlumas - wrongAnswers;
-
-  if (plumasLeft <= 0) {
-    return 0;
-  }
-
-  const penalty = wrongAnswers / (maxPlumas + 1);
-  const earned = pointsReward * (1 - penalty);
-
-  return Math.round(isReview ? earned * REVIEW_FACTOR : earned);
-};
+const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
 
 // Devuelve el contenido jugable de una mision: preguntas con sus opciones
 // (opcion multiple y verdadero/falso) o con sus pares (relacion de conceptos).
@@ -304,80 +283,20 @@ const finishAttempt = async (req, res) => {
       [attempt.mission_id]
     );
 
-    const optionsById = new Map(optionsResult.rows.map((row) => [row.id, row]));
-    const pairsById = new Map(pairsResult.rows.map((row) => [row.id, row]));
+    const { correctAnswers, wrongAnswers, answerRows } = gradeAttempt({
+      questions: questionsResult.rows,
+      options: optionsResult.rows,
+      pairs: pairsResult.rows,
+      answers
+    });
 
-    // Se indexan las respuestas del cliente por pregunta (opcion multiple y
-    // verdadero/falso) o por par (relacion de conceptos), ignorando cualquier
-    // respuesta que apunte a una pregunta/par que no sea de esta mision. Si
-    // llega mas de una para la misma pregunta o par (reintentos en el
-    // minijuego de relacion de conceptos), gana la ultima: es el intento con
-    // el que el estudiante se quedo.
-    const answerByQuestionId = new Map();
-    const answerByPairId = new Map();
-
-    for (const answer of Array.isArray(answers) ? answers : []) {
-      const questionId = Number(answer.questionId);
-
-      if (answer.pairId != null) {
-        const pairId = Number(answer.pairId);
-        const pair = pairsById.get(pairId);
-
-        if (pair && pair.question_id === questionId) {
-          answerByPairId.set(pairId, answer);
-        }
-      } else if (answer.selectedOptionId != null) {
-        answerByQuestionId.set(questionId, answer);
-      }
-    }
-
-    let correctAnswers = 0;
-    let wrongAnswers = 0;
-
-    for (const question of questionsResult.rows) {
-      if (question.question_type === "matching") {
-        const questionPairs = pairsResult.rows.filter((pair) => pair.question_id === question.id);
-
-        for (const pair of questionPairs) {
-          const answer = answerByPairId.get(pair.id);
-          // Acierta si unio el termino con su propio par; sin respuesta cuenta como fallo.
-          const isCorrect = answer != null && Number(answer.selectedPairId) === pair.id;
-
-          if (isCorrect) {
-            correctAnswers += 1;
-          } else {
-            wrongAnswers += 1;
-          }
-
-          await client.query(
-            `
-            INSERT INTO attempt_answers (attempt_id, question_id, selected_option_id, pair_id, is_correct)
-            VALUES ($1, $2, $3, $4, $5);
-            `,
-            [attemptId, question.id, null, pair.id, isCorrect]
-          );
-        }
-
-        continue;
-      }
-
-      const answer = answerByQuestionId.get(question.id);
-      const option = answer ? optionsById.get(Number(answer.selectedOptionId)) : null;
-      const isValidOption = Boolean(option && option.question_id === question.id);
-      const isCorrect = isValidOption && option.is_correct;
-
-      if (isCorrect) {
-        correctAnswers += 1;
-      } else {
-        wrongAnswers += 1;
-      }
-
+    for (const row of answerRows) {
       await client.query(
         `
         INSERT INTO attempt_answers (attempt_id, question_id, selected_option_id, pair_id, is_correct)
         VALUES ($1, $2, $3, $4, $5);
         `,
-        [attemptId, question.id, isValidOption ? option.id : null, null, isCorrect]
+        [attemptId, row.questionId, row.selectedOptionId, row.pairId, row.isCorrect]
       );
     }
 
