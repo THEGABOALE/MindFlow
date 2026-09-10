@@ -43,8 +43,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.mindflow.nova.BuildConfig
 import com.mindflow.nova.R
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.session.SessionRepository
@@ -62,10 +73,11 @@ import kotlinx.coroutines.launch
  * Cubre los 6 estados del wireframe: vacío, campos completos, error de
  * validación, cargando, conectando con Google y error con Google.
  *
- * El botón de Google todavía no tiene a dónde conectarse de verdad: no existe
- * el GOOGLE_CLIENT_ID ni la dependencia de Google Sign-In en el proyecto
- * (decisión pendiente, ver conversación). Por ahora el botón intenta y
- * termina siempre en el estado de error del wireframe, sin inventar un éxito.
+ * El botón de Google usa Credential Manager para pedirle a la cuenta de Google
+ * del dispositivo un idToken, que se manda tal cual a POST /api/auth/login/google
+ * (mismo backend que ya usa el login por ID). Si el dispositivo no tiene cuenta
+ * de Google, el usuario cancela, o el correo no está registrado en ninguna
+ * institución, cae en el estado de error del wireframe con un mensaje puntual.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -81,6 +93,8 @@ fun LoginScreen(
     var googleErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val credentialManager = remember { CredentialManager.create(context) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val passwordFocusRequester = remember { FocusRequester() }
     val canSubmit = loginId.isNotBlank() && password.isNotBlank() && !isSubmitting
@@ -107,12 +121,45 @@ fun LoginScreen(
         googleErrorMessage = null
 
         scope.launch {
-            // TODO: reemplazar por Credential Manager / Google Sign-In real
-            // cuando exista GOOGLE_CLIENT_ID. Hasta entonces no hay forma real
-            // de conseguir un idToken, así que el intento siempre termina acá.
-            kotlinx.coroutines.delay(900)
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    // false: que muestre cualquier cuenta de Google del dispositivo,
+                    // no solo las que ya usaron esta app antes (recién estrenando).
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                val response = credentialManager.getCredential(context = context, request = request)
+                val credential = response.credential
+
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+
+                    when (val result = session.loginWithGoogle(idToken)) {
+                        is SessionResult.Success -> onLoginSuccess(result.user)
+                        is SessionResult.Rejected -> googleErrorMessage = result.message
+                        is SessionResult.Failure -> googleErrorMessage = result.message
+                    }
+                } else {
+                    googleErrorMessage = "No se pudo leer la cuenta de Google."
+                }
+            } catch (e: GoogleIdTokenParsingException) {
+                googleErrorMessage = "No se pudo leer la cuenta de Google."
+            } catch (e: GetCredentialCancellationException) {
+                googleErrorMessage = "Cancelaste el inicio de sesión con Google."
+            } catch (e: NoCredentialException) {
+                googleErrorMessage = "No se encontró ninguna cuenta de Google en este dispositivo."
+            } catch (e: GetCredentialException) {
+                googleErrorMessage = "No se pudo conectar con Google. Intentá de nuevo."
+            }
+
             isGoogleConnecting = false
-            googleErrorMessage = "No se pudo conectar con Google. Intentá de nuevo."
         }
     }
 

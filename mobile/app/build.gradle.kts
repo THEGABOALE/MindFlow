@@ -18,6 +18,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Client ID de tipo "Aplicacion web" en Google Cloud (Google Auth Platform > Clientes).
+        // No es secreto: es el mismo que el backend usa como GOOGLE_CLIENT_ID para
+        // verificar el idToken. Hay ademas un cliente tipo "Android" (paquete +
+        // huella SHA-1 del certificado de firma) que no se referencia en código:
+        // solo tiene que existir para que Google confie en el APK que pide el token.
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"205907758061-vb4ehb8gu7fcps0mc85l4tsiq2qm4c5j.apps.googleusercontent.com\""
+        )
     }
 
     buildTypes {
@@ -51,6 +62,12 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:3.0.0")
     // Guarda el token de sesión cifrado en el dispositivo.
     implementation("androidx.security:security-crypto:1.1.0")
+    // Login con Google: Credential Manager es la API recomendada actual
+    // (reemplaza al viejo GoogleSignInClient), y necesita el puente a
+    // Play Services más la librería que arma el GoogleIdTokenCredential.
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
