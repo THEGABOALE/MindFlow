@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaBlue
+import com.mindflow.nova.ui.theme.NovaGold
+import com.mindflow.nova.ui.theme.NovaGoldLight
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -241,12 +243,12 @@ fun LessonCompletedScreen(
 
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = NovaLightPurple
+            color = NovaGoldLight
         ) {
             Text(
                 text = "+$rewardAmount",
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                color = NovaPurple,
+                color = NovaGold,
                 fontWeight = FontWeight.Black,
                 fontSize = 20.sp
             )

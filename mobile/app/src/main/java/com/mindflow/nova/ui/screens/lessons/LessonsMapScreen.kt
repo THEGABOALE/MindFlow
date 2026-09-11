@@ -27,7 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,7 +39,9 @@ import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaDark
+import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLocked
+import com.mindflow.nova.ui.theme.NovaNeutralCard
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaSoftPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -46,11 +50,25 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun LessonsMapScreen(
     level: LevelResponse,
+    completedMissionIds: Set<Int>,
     onMissionSelected: (MissionResponse) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val missions = level.missions
     val total = missions.size
+    // Desbloqueo secuencial: una mision se puede jugar si ya esta completada,
+    // o si la anterior en el orden ya lo esta (la primera siempre se puede).
+    // La "actual" es la primera todavia sin completar que ya esta desbloqueada.
+    var previousCompleted = true
+
+    val missionStates = missions.map { mission ->
+        val isCompleted = mission.id in completedMissionIds
+        val isUnlocked = isCompleted || previousCompleted
+        previousCompleted = isCompleted
+
+        MissionState(isCompleted = isCompleted, isUnlocked = isUnlocked)
+    }
+    val currentIndex = missionStates.indexOfFirst { it.isUnlocked && !it.isCompleted }
 
     LazyColumn(
         modifier = modifier
@@ -79,10 +97,14 @@ fun LessonsMapScreen(
 
         itemsIndexed(missions.reversed()) { reversedIndex, mission ->
             val index = total - 1 - reversedIndex
+            val state = missionStates[index]
             LessonPathNodeRow(
                 mission = mission,
                 index = index,
                 total = total,
+                isCompleted = state.isCompleted,
+                isCurrent = index == currentIndex,
+                isLocked = !state.isUnlocked,
                 onMissionSelected = onMissionSelected
             )
         }
@@ -93,16 +115,18 @@ fun LessonsMapScreen(
     }
 }
 
+private data class MissionState(val isCompleted: Boolean, val isUnlocked: Boolean)
+
 @Composable
 private fun LessonPathNodeRow(
     mission: MissionResponse,
     index: Int,
     total: Int,
+    isCompleted: Boolean,
+    isCurrent: Boolean,
+    isLocked: Boolean,
     onMissionSelected: (MissionResponse) -> Unit
 ) {
-    val isCompleted = index == 0
-    val isCurrent = index == 1
-    val isLocked = index > 1
     val alignRight = index % 2 == 1
 
     Row(
@@ -193,11 +217,13 @@ private fun LessonPathNode(
 ) {
     val nodeSize = if (isCurrent) 82.dp else 70.dp
 
-    val background = when {
-        isCompleted -> NovaPurple
-        isCurrent -> NovaBlue
-        isLocked -> NovaLocked
-        else -> NovaDark
+    // La misión "actual" lleva el degradé hero para que salte a la vista
+    // como el próximo paso obvio; el resto son colores planos.
+    val background: Brush = when {
+        isCompleted -> SolidColor(NovaPurple)
+        isCurrent -> NovaHeroGradient
+        isLocked -> SolidColor(NovaLocked)
+        else -> SolidColor(NovaDark)
     }
 
     val border = if (isCurrent) NovaPurple else Color.White
@@ -244,7 +270,7 @@ private fun LessonPathInfoCard(
     val statusBackground = when {
         isCompleted -> NovaSoftPurple
         isCurrent -> Color(0xFFEDEAFF)
-        else -> Color(0xFFF0EDF2)
+        else -> NovaNeutralCard
     }
 
     val statusColor = when {
