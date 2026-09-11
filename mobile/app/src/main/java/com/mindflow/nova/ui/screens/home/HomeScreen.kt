@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
+import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.screens.lessons.LessonHost
 import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
@@ -55,6 +56,11 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
+    var progress by remember { mutableStateOf<StudentProgress?>(null) }
+    // Cambia cada vez que se sale de una lección, para volver a pedir el
+    // progreso: así el mapa de lecciones refleja al toque la misión recién
+    // completada, sin esperar a cerrar y volver a abrir la app.
+    var progressRefreshKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
         try {
@@ -71,10 +77,30 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
             isLoading = false
         }
     }
+
+    LaunchedEffect(progressRefreshKey) {
+        try {
+            val me = RetrofitClient.api.getMe()
+            val userId = me.body()?.user?.id
+
+            if (me.isSuccessful && userId != null) {
+                val response = RetrofitClient.api.getStudentProgress(userId)
+                if (response.isSuccessful) {
+                    progress = response.body()?.student
+                }
+            }
+        } catch (e: Exception) {
+            // Sin conexión: el mapa de lecciones sigue con el progreso que ya tenía.
+        }
+    }
+
     activeMission?.let { mission ->
         LessonHost(
             mission = mission,
-            onExit = { activeMission = null }
+            onExit = {
+                activeMission = null
+                progressRefreshKey++
+            }
         )
         return
     }
@@ -117,6 +143,7 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                 NovaMainContent(
                     selectedTab = selectedTab,
                     level = levels.first(),
+                    progress = progress,
                     onMissionSelected = { mission -> activeMission = mission },
                     onLogout = onLogout,
                     modifier = Modifier
@@ -139,6 +166,7 @@ internal enum class NovaTab {
 private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
+    progress: StudentProgress?,
     onMissionSelected: (MissionResponse) -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
@@ -147,6 +175,7 @@ private fun NovaMainContent(
         NovaTab.Home -> {
             HomeDashboardContent(
                 level = level,
+                progress = progress,
                 modifier = modifier
             )
         }
@@ -154,6 +183,7 @@ private fun NovaMainContent(
         NovaTab.Lessons -> {
             LessonsMapScreen(
                 level = level,
+                completedMissionIds = progress?.completedMissionIds?.toSet().orEmpty(),
                 onMissionSelected = onMissionSelected,
                 modifier = modifier
             )
