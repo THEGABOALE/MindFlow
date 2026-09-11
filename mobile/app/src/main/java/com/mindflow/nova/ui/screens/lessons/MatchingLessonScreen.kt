@@ -44,7 +44,11 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
-import com.mindflow.nova.ui.theme.NovaPurple
+import com.mindflow.nova.ui.theme.NovaError
+import com.mindflow.nova.ui.theme.NovaErrorBackground
+import com.mindflow.nova.ui.theme.NovaNeutralCard
+import com.mindflow.nova.ui.theme.NovaSuccess
+import com.mindflow.nova.ui.theme.NovaSuccessBackground
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 import kotlinx.coroutines.delay
@@ -172,8 +176,8 @@ fun MatchingLessonScreen(
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            ResultStat(label = "aciertos", value = attemptResult?.correctAnswers ?: correctCount, color = NovaPurple, background = Color(0xFFE6F7EA))
-                            ResultStat(label = "fallos", value = attemptResult?.wrongAnswers ?: wrongCount, color = Color(0xFFC0392B), background = Color(0xFFFBE7E5))
+                            ResultStat(label = "aciertos", value = attemptResult?.correctAnswers ?: correctCount, color = NovaSuccess, background = NovaSuccessBackground)
+                            ResultStat(label = "fallos", value = attemptResult?.wrongAnswers ?: wrongCount, color = NovaError, background = NovaErrorBackground)
                         }
                     }
                 )
@@ -278,7 +282,7 @@ fun MatchingLessonScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
-                        color = Color(0xFFF0EDF2)
+                        color = NovaNeutralCard
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -314,12 +318,12 @@ private fun TimerBadge(secondsLeft: Int) {
     Surface(
         shape = RoundedCornerShape(50.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, if (secondsLeft <= 10) Color(0xFFC0392B) else NovaBorder)
+        border = BorderStroke(1.dp, if (secondsLeft <= 10) NovaError else NovaBorder)
     ) {
         Text(
             text = "%d:%02d".format(minutes, seconds),
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            color = if (secondsLeft <= 10) Color(0xFFC0392B) else NovaText,
+            color = if (secondsLeft <= 10) NovaError else NovaText,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -333,13 +337,13 @@ private fun MatchingItemCard(
     onClick: () -> Unit
 ) {
     val background = when (state) {
-        ItemState.CORRECT -> Color(0xFFE6F7EA)
-        ItemState.WRONG -> Color(0xFFFBE7E5)
+        ItemState.CORRECT -> NovaSuccessBackground
+        ItemState.WRONG -> NovaErrorBackground
         else -> Color.White
     }
     val border = when (state) {
-        ItemState.CORRECT -> Color(0xFF2E9E5B)
-        ItemState.WRONG -> Color(0xFFC0392B)
+        ItemState.CORRECT -> NovaSuccess
+        ItemState.WRONG -> NovaError
         ItemState.SELECTED -> NovaText
         ItemState.IDLE -> NovaBorder
     }
@@ -369,8 +373,8 @@ private fun MatchingItemCard(
                     .size(18.dp)
                     .background(
                         when (state) {
-                            ItemState.CORRECT -> Color(0xFF2E9E5B)
-                            ItemState.WRONG -> Color(0xFFC0392B)
+                            ItemState.CORRECT -> NovaSuccess
+                            ItemState.WRONG -> NovaError
                             else -> Color.Transparent
                         },
                         CircleShape

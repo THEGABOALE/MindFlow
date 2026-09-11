@@ -27,7 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,7 +39,9 @@ import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaDark
+import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLocked
+import com.mindflow.nova.ui.theme.NovaNeutralCard
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaSoftPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -213,11 +217,13 @@ private fun LessonPathNode(
 ) {
     val nodeSize = if (isCurrent) 82.dp else 70.dp
 
-    val background = when {
-        isCompleted -> NovaPurple
-        isCurrent -> NovaBlue
-        isLocked -> NovaLocked
-        else -> NovaDark
+    // La misión "actual" lleva el degradé hero para que salte a la vista
+    // como el próximo paso obvio; el resto son colores planos.
+    val background: Brush = when {
+        isCompleted -> SolidColor(NovaPurple)
+        isCurrent -> NovaHeroGradient
+        isLocked -> SolidColor(NovaLocked)
+        else -> SolidColor(NovaDark)
     }
 
     val border = if (isCurrent) NovaPurple else Color.White
@@ -264,7 +270,7 @@ private fun LessonPathInfoCard(
     val statusBackground = when {
         isCompleted -> NovaSoftPurple
         isCurrent -> Color(0xFFEDEAFF)
-        else -> Color(0xFFF0EDF2)
+        else -> NovaNeutralCard
     }
 
     val statusColor = when {
