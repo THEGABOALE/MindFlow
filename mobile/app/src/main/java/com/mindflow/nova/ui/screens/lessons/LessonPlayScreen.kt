@@ -43,6 +43,7 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
+import com.mindflow.nova.ui.theme.NovaNeutralCard
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -232,7 +233,7 @@ private fun QuestionHeader(prompt: String) {
         Surface(
             modifier = Modifier.weight(1f),
             shape = RoundedCornerShape(18.dp),
-            color = Color(0xFFF0EDF2)
+            color = NovaNeutralCard
         ) {
             Text(
                 text = prompt,
@@ -257,7 +258,7 @@ private fun AnswerOptionRow(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(18.dp),
-        color = if (isSelected) NovaText else Color(0xFFF0EDF2)
+        color = if (isSelected) NovaText else NovaNeutralCard
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
@@ -297,7 +298,7 @@ private fun LessonResultReveal(
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(18.dp),
-                color = Color(0xFFF0EDF2)
+                color = NovaNeutralCard
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
@@ -332,7 +333,7 @@ private fun LessonResultReveal(
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = Color(0xFFF0EDF2)
+                    color = NovaNeutralCard
                 ) {
                     Text(
                         text = "${option.text} — $suffix",

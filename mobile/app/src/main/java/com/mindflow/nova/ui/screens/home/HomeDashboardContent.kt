@@ -28,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.ui.components.NovaProgressBar
@@ -35,6 +38,7 @@ import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaDark
+import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -103,11 +107,12 @@ fun HomeDashboardContent(
 
 @Composable
 private fun WelcomeBanner() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
-        color = NovaPurple,
-        shadowElevation = 5.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(5.dp, RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(26.dp))
+            .background(NovaHeroGradient)
     ) {
         Row(
             modifier = Modifier.padding(22.dp),

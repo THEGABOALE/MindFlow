@@ -29,6 +29,8 @@ import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaBorder
+import com.mindflow.nova.ui.theme.NovaGold
+import com.mindflow.nova.ui.theme.NovaGoldLight
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -138,6 +140,10 @@ fun ProgressScreen(
             ProgressStatCard(
                 title = "semillas",
                 value = (progress?.totalPoints ?: 0).toString(),
+                // Dorado en vez de morado: las semillas son la "moneda" del
+                // juego, conviene que se distingan de una tarjeta mas.
+                accentColor = NovaGold,
+                backgroundColor = NovaGoldLight,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -148,12 +154,14 @@ fun ProgressScreen(
 private fun ProgressStatCard(
     title: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accentColor: Color = NovaPurple,
+    backgroundColor: Color = NovaLightPurple
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        color = NovaLightPurple,
+        color = backgroundColor,
         border = BorderStroke(1.dp, NovaBorder)
     ) {
         Column(
@@ -162,7 +170,7 @@ private fun ProgressStatCard(
         ) {
             Text(
                 text = value,
-                color = NovaPurple,
+                color = accentColor,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black
             )
