@@ -41,7 +41,14 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
+      # "packages" fijo a solo platform-tools: el default de esta action
+      # (que sigue el tag movil @v3) llego a pedir tambien el paquete "tools",
+      # que Google descontinuo del repositorio del SDK hace anios y ya no
+      # existe — eso rompe el setup entero con "Failed to find package
+      # 'tools'" apenas la action se actualiza con ese default.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools"
 
       # Sin esto, Gradle no puede descargar sola la plataforma/build-tools que
       # falten (compileSdk se actualiza seguido y no siempre viene preinstalada
