@@ -46,11 +46,25 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun LessonsMapScreen(
     level: LevelResponse,
+    completedMissionIds: Set<Int>,
     onMissionSelected: (MissionResponse) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val missions = level.missions
     val total = missions.size
+    // Desbloqueo secuencial: una mision se puede jugar si ya esta completada,
+    // o si la anterior en el orden ya lo esta (la primera siempre se puede).
+    // La "actual" es la primera todavia sin completar que ya esta desbloqueada.
+    var previousCompleted = true
+
+    val missionStates = missions.map { mission ->
+        val isCompleted = mission.id in completedMissionIds
+        val isUnlocked = isCompleted || previousCompleted
+        previousCompleted = isCompleted
+
+        MissionState(isCompleted = isCompleted, isUnlocked = isUnlocked)
+    }
+    val currentIndex = missionStates.indexOfFirst { it.isUnlocked && !it.isCompleted }
 
     LazyColumn(
         modifier = modifier
@@ -79,10 +93,14 @@ fun LessonsMapScreen(
 
         itemsIndexed(missions.reversed()) { reversedIndex, mission ->
             val index = total - 1 - reversedIndex
+            val state = missionStates[index]
             LessonPathNodeRow(
                 mission = mission,
                 index = index,
                 total = total,
+                isCompleted = state.isCompleted,
+                isCurrent = index == currentIndex,
+                isLocked = !state.isUnlocked,
                 onMissionSelected = onMissionSelected
             )
         }
@@ -93,16 +111,18 @@ fun LessonsMapScreen(
     }
 }
 
+private data class MissionState(val isCompleted: Boolean, val isUnlocked: Boolean)
+
 @Composable
 private fun LessonPathNodeRow(
     mission: MissionResponse,
     index: Int,
     total: Int,
+    isCompleted: Boolean,
+    isCurrent: Boolean,
+    isLocked: Boolean,
     onMissionSelected: (MissionResponse) -> Unit
 ) {
-    val isCompleted = index == 0
-    val isCurrent = index == 1
-    val isLocked = index > 1
     val alignRight = index % 2 == 1
 
     Row(

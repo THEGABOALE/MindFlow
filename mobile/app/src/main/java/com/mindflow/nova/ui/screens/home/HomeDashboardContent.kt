@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
+import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBlue
@@ -42,9 +43,15 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun HomeDashboardContent(
     level: LevelResponse,
+    progress: StudentProgress?,
     modifier: Modifier = Modifier
 ) {
     val previewMissions = level.missions.take(2)
+    val completedMissionIds = progress?.completedMissionIds.orEmpty()
+    val levelProgressPercentage = progress?.levels
+        ?.firstOrNull { it.id == level.id }
+        ?.progressPercentage
+        ?: 0.0
 
     LazyColumn(
         modifier = modifier
@@ -67,7 +74,7 @@ fun HomeDashboardContent(
         }
 
         item {
-            CurrentLevelCard(level = level)
+            CurrentLevelCard(level = level, progressPercentage = levelProgressPercentage)
         }
 
         item {
@@ -82,7 +89,7 @@ fun HomeDashboardContent(
                 MissionPreviewRow(
                     mission = mission,
                     index = index,
-                    isCompleted = index == 0
+                    isCompleted = mission.id in completedMissionIds
                 )
             }
         }
@@ -154,7 +161,7 @@ private fun MascotaBadge() {
 }
 
 @Composable
-private fun CurrentLevelCard(level: LevelResponse) {
+private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -204,13 +211,13 @@ private fun CurrentLevelCard(level: LevelResponse) {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                NovaProgressBar(progress = 0.25f)
+                NovaProgressBar(progress = (progressPercentage / 100.0).toFloat())
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Text(
-                text = "25%",
+                text = "${progressPercentage.toInt()}%",
                 color = NovaPurple,
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp
