@@ -1,5 +1,9 @@
 package com.mindflow.nova.ui.screens.lessons.common
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,15 +29,22 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.delay
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaGold
@@ -241,7 +252,35 @@ fun LessonCompletedScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // El chip de recompensa entra con un rebote leve un momento después
+        // de la pantalla, para que se sienta como un premio y no un dato más.
+        // Se anima con graphicsLayer (no AnimatedVisibility) para que ocupe su
+        // espacio desde el inicio y el resto de la pantalla no se re-centre.
+        var rewardVisible by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            delay(250L)
+            rewardVisible = true
+        }
+        val rewardScale by animateFloatAsState(
+            targetValue = if (rewardVisible) 1f else 0.6f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "rewardScale"
+        )
+        val rewardAlpha by animateFloatAsState(
+            targetValue = if (rewardVisible) 1f else 0f,
+            animationSpec = tween(250),
+            label = "rewardAlpha"
+        )
+
         Surface(
+            modifier = Modifier.graphicsLayer {
+                scaleX = rewardScale
+                scaleY = rewardScale
+                alpha = rewardAlpha
+            },
             shape = RoundedCornerShape(18.dp),
             color = NovaGoldLight
         ) {
