@@ -49,6 +49,12 @@ val NovaNeutralCard: Color @Composable @ReadOnlyComposable get() = LocalNovaPale
 // Boton "Verdadero"/"Falso" sin elegir.
 val NovaChoiceIdle: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.choiceIdle
 
+// Racha: fondo y texto del marcador cuando esta activa (fuego) o congelada (hielo).
+val NovaFireBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.fireBackground
+val NovaFireAccent: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.fireAccent
+val NovaIceBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.iceBackground
+val NovaIceAccent: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.iceAccent
+
 // Wireframe de Login/Splash: tonos propios de esa pantalla (siempre en claro), distintos al morado del resto de la app.
 val NovaLoginCard = Color(0xFFDBC0F9)
 val NovaLoginButton = Color(0xFF160065)

@@ -37,7 +37,11 @@ class NovaPalette(
     val errorBackground: Color,
     val neutralCard: Color,
     val infoBackground: Color,
-    val choiceIdle: Color
+    val choiceIdle: Color,
+    val fireBackground: Color,
+    val fireAccent: Color,
+    val iceBackground: Color,
+    val iceAccent: Color
 )
 
 val LightNovaPalette = NovaPalette(
@@ -63,7 +67,11 @@ val LightNovaPalette = NovaPalette(
     errorBackground = Color(0xFFFBE7E5),
     neutralCard = Color(0xFFF0EDF2),
     infoBackground = Color(0xFFEDEAFF),
-    choiceIdle = Color(0xFFDCEBFB)
+    choiceIdle = Color(0xFFDCEBFB),
+    fireBackground = Color(0xFFFFF1E0),
+    fireAccent = Color(0xFFB93A0A),
+    iceBackground = Color(0xFFE3F2FD),
+    iceAccent = Color(0xFF0B5FA5)
 )
 
 // Morado y azul más claros que los de marca: los de marca casi no se distinguen
@@ -91,7 +99,11 @@ val DarkNovaPalette = NovaPalette(
     errorBackground = Color(0xFF40201D),
     neutralCard = Color(0xFF2A252E),
     infoBackground = Color(0xFF2B2850),
-    choiceIdle = Color(0xFF263547)
+    choiceIdle = Color(0xFF263547),
+    fireBackground = Color(0xFF3B2410),
+    fireAccent = Color(0xFFFF9A57),
+    iceBackground = Color(0xFF16303F),
+    iceAccent = Color(0xFF8CCBFF)
 )
 
 val LocalNovaPalette = staticCompositionLocalOf { LightNovaPalette }
