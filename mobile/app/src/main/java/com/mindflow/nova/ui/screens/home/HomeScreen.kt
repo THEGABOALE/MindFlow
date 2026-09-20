@@ -40,6 +40,7 @@ import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.screens.lessons.LessonHost
 import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
+import com.mindflow.nova.ui.screens.lessons.common.StartLessonDialog
 import com.mindflow.nova.ui.screens.profile.ProfileScreen
 import com.mindflow.nova.ui.screens.progress.ProgressScreen
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -56,6 +57,8 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
+    // Misión elegida que todavía espera la confirmación "¿Quieres comenzar?".
+    var pendingMission by remember { mutableStateOf<MissionResponse?>(null) }
     var progress by remember { mutableStateOf<StudentProgress?>(null) }
     // Cambia cada vez que se sale de una lección, para volver a pedir el
     // progreso: así el mapa de lecciones refleja al toque la misión recién
@@ -144,7 +147,8 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                     selectedTab = selectedTab,
                     level = levels.first(),
                     progress = progress,
-                    onMissionSelected = { mission -> activeMission = mission },
+                    onMissionSelected = { mission -> pendingMission = mission },
+                    onOpenLessons = { selectedTab = NovaTab.Lessons },
                     onLogout = onLogout,
                     modifier = Modifier
                         .fillMaxSize()
@@ -152,6 +156,18 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                 )
             }
         }
+    }
+
+    pendingMission?.let { mission ->
+        StartLessonDialog(
+            mission = mission,
+            isReplay = mission.id in progress?.completedMissionIds.orEmpty(),
+            onConfirm = {
+                pendingMission = null
+                activeMission = mission
+            },
+            onDismiss = { pendingMission = null }
+        )
     }
 }
 
@@ -168,6 +184,7 @@ private fun NovaMainContent(
     level: LevelResponse,
     progress: StudentProgress?,
     onMissionSelected: (MissionResponse) -> Unit,
+    onOpenLessons: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -176,6 +193,8 @@ private fun NovaMainContent(
             HomeDashboardContent(
                 level = level,
                 progress = progress,
+                onMissionSelected = onMissionSelected,
+                onOpenLessons = onOpenLessons,
                 modifier = modifier
             )
         }

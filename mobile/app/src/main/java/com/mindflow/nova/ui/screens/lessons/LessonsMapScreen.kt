@@ -38,6 +38,7 @@ import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaDark
 import com.mindflow.nova.ui.theme.NovaHeroGradient
+import com.mindflow.nova.ui.theme.NovaInfoBackground
 import com.mindflow.nova.ui.theme.NovaLocked
 import com.mindflow.nova.ui.theme.NovaNeutralCard
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -54,19 +55,8 @@ fun LessonsMapScreen(
 ) {
     val missions = level.missions
     val total = missions.size
-    // Desbloqueo secuencial: una mision se puede jugar si ya esta completada,
-    // o si la anterior en el orden ya lo esta (la primera siempre se puede).
-    // La "actual" es la primera todavia sin completar que ya esta desbloqueada.
-    var previousCompleted = true
-
-    val missionStates = missions.map { mission ->
-        val isCompleted = mission.id in completedMissionIds
-        val isUnlocked = isCompleted || previousCompleted
-        previousCompleted = isCompleted
-
-        MissionState(isCompleted = isCompleted, isUnlocked = isUnlocked)
-    }
-    val currentIndex = missionStates.indexOfFirst { it.isUnlocked && !it.isCompleted }
+    val missionStates = computeMissionStates(missions, completedMissionIds)
+    val currentIndex = currentMissionIndex(missionStates)
 
     LazyColumn(
         modifier = modifier
@@ -112,8 +102,6 @@ fun LessonsMapScreen(
         }
     }
 }
-
-private data class MissionState(val isCompleted: Boolean, val isUnlocked: Boolean)
 
 @Composable
 private fun LessonPathNodeRow(
@@ -267,7 +255,7 @@ private fun LessonPathInfoCard(
 
     val statusBackground = when {
         isCompleted -> NovaSoftPurple
-        isCurrent -> Color(0xFFEDEAFF)
+        isCurrent -> NovaInfoBackground
         else -> NovaNeutralCard
     }
 
