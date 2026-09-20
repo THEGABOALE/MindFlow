@@ -47,11 +47,16 @@ import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 
 @Composable
-fun HomeScreen(onLogout: () -> Unit = {}) {
+fun HomeScreen(
+    darkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    onLogout: () -> Unit = {}
+) {
     var levels by remember { mutableStateOf<List<LevelResponse>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -149,6 +154,8 @@ fun HomeScreen(onLogout: () -> Unit = {}) {
                     progress = progress,
                     onMissionSelected = { mission -> pendingMission = mission },
                     onOpenLessons = { selectedTab = NovaTab.Lessons },
+                    darkMode = darkMode,
+                    onDarkModeChange = onDarkModeChange,
                     onLogout = onLogout,
                     modifier = Modifier
                         .fillMaxSize()
@@ -185,6 +192,8 @@ private fun NovaMainContent(
     progress: StudentProgress?,
     onMissionSelected: (MissionResponse) -> Unit,
     onOpenLessons: () -> Unit,
+    darkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -217,8 +226,11 @@ private fun NovaMainContent(
 
         NovaTab.Profile -> {
             ProfileScreen(
-                modifier = modifier,
-                onLogout = onLogout
+                progress = progress,
+                darkMode = darkMode,
+                onDarkModeChange = onDarkModeChange,
+                onLogout = onLogout,
+                modifier = modifier
             )
         }
     }
@@ -230,7 +242,7 @@ private fun NovaBottomNavigation(
     onTabSelected: (NovaTab) -> Unit
 ) {
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = NovaSurface,
         tonalElevation = 8.dp
     ) {
         NavigationBarItem(
@@ -352,7 +364,7 @@ private fun ErrorState(
     ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White,
+            color = NovaSurface,
             border = BorderStroke(1.dp, NovaBorder)
         ) {
             Column(

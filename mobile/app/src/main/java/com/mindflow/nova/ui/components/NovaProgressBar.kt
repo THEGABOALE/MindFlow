@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.mindflow.nova.ui.theme.NovaTrack
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 
 @Composable
@@ -31,7 +32,7 @@ fun NovaProgressBar(progress: Float) {
             .fillMaxWidth()
             .height(9.dp)
             .clip(RoundedCornerShape(50.dp))
-            .background(Color(0xFFEDE6EF))
+            .background(NovaTrack)
     ) {
         Box(
             modifier = Modifier

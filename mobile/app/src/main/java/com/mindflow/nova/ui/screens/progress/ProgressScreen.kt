@@ -29,6 +29,7 @@ import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.components.NovaProgressBar
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -87,7 +88,7 @@ fun ProgressScreen(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(26.dp),
-            color = Color.White,
+            color = NovaSurface,
             shadowElevation = 4.dp
         ) {
             Column(

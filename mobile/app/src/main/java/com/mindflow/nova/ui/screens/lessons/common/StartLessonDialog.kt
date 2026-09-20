@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.mechanicLabel
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -58,7 +59,7 @@ fun StartLessonDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White,
+            color = NovaSurface,
             shadowElevation = 6.dp
         ) {
             Column(
