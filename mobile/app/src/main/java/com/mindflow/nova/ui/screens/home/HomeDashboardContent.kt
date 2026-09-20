@@ -1,5 +1,7 @@
 package com.mindflow.nova.ui.screens.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +23,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,18 +38,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.ui.components.NovaProgressBar
-import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBlue
-import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaDark
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeDashboardContent(
@@ -64,16 +71,7 @@ fun HomeDashboardContent(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Bienvenido a NOVA",
-                color = NovaText,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black
-            )
-        }
-
-        item {
+            Spacer(modifier = Modifier.height(16.dp))
             WelcomeBanner()
         }
 
@@ -167,12 +165,14 @@ private fun MascotaBadge() {
 
 @Composable
 private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
+    // Fondo lila suave en vez de blanco: distingue esta tarjeta "resumen" de
+    // las filas de misión de abajo, que sí son blancas — si no, todo el
+    // dashboard es la misma tarjeta blanca repetida.
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, NovaBorder),
-        shadowElevation = 3.dp
+        color = NovaLightPurple,
+        shadowElevation = 2.dp
     ) {
         Row(
             modifier = Modifier.padding(18.dp),
@@ -181,7 +181,7 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
             Surface(
                 modifier = Modifier.size(58.dp),
                 shape = RoundedCornerShape(18.dp),
-                color = NovaLightPurple
+                color = Color.White
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -258,11 +258,29 @@ private fun MissionPreviewRow(
     index: Int,
     isCompleted: Boolean
 ) {
+    // Cada fila entra con un pequeño retraso escalonado según su posición.
+    // Se anima con graphicsLayer (y no con AnimatedVisibility) para que la
+    // fila ocupe su espacio desde el inicio y el resto no "salte" al aparecer.
+    var visible by remember(mission.id) { mutableStateOf(false) }
+    LaunchedEffect(mission.id) {
+        delay(index * 70L)
+        visible = true
+    }
+    val enter by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(300),
+        label = "missionRowEnter"
+    )
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = enter
+                translationY = (1f - enter) * size.height / 4f
+            },
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, NovaBorder),
         shadowElevation = 2.dp
     ) {
         Row(
@@ -327,7 +345,6 @@ private fun MotivationCard() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, NovaBorder),
         shadowElevation = 3.dp
     ) {
         Row(

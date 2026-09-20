@@ -64,7 +64,7 @@ fun ProfileScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -87,8 +87,7 @@ fun ProfileScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             color = Color.White,
-            border = BorderStroke(1.dp, NovaBorder),
-            shadowElevation = 3.dp
+            shadowElevation = 4.dp
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -146,6 +145,6 @@ fun ProfileScreen(
             Text(text = "Cerrar sesión", fontWeight = FontWeight.Bold)
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }

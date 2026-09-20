@@ -1,6 +1,7 @@
 package com.mindflow.nova.ui.screens.progress
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,7 +29,6 @@ import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.components.NovaProgressBar
-import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -65,7 +65,7 @@ fun ProgressScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(horizontal = 20.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -88,8 +88,7 @@ fun ProgressScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(26.dp),
             color = Color.White,
-            border = BorderStroke(1.dp, NovaBorder),
-            shadowElevation = 3.dp
+            shadowElevation = 4.dp
         ) {
             Column(
                 modifier = Modifier.padding(22.dp)
@@ -133,13 +132,13 @@ fun ProgressScreen(
         ) {
             ProgressStatCard(
                 title = "misiones completadas",
-                value = (progress?.missionsCompleted ?: 0).toString(),
+                value = progress?.missionsCompleted ?: 0,
                 modifier = Modifier.weight(1f)
             )
 
             ProgressStatCard(
                 title = "semillas",
-                value = (progress?.totalPoints ?: 0).toString(),
+                value = progress?.totalPoints ?: 0,
                 // Dorado en vez de morado: las semillas son la "moneda" del
                 // juego, conviene que se distingan de una tarjeta mas.
                 accentColor = NovaGold,
@@ -153,23 +152,30 @@ fun ProgressScreen(
 @Composable
 private fun ProgressStatCard(
     title: String,
-    value: String,
+    value: Int,
     modifier: Modifier = Modifier,
     accentColor: Color = NovaPurple,
     backgroundColor: Color = NovaLightPurple
 ) {
+    // Cuenta hacia arriba en vez de aparecer directo en el valor final, para
+    // que la tarjeta se sienta menos estática al cargar el progreso.
+    val animatedValue by animateIntAsState(
+        targetValue = value,
+        animationSpec = tween(durationMillis = 700),
+        label = "statValue"
+    )
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        color = backgroundColor,
-        border = BorderStroke(1.dp, NovaBorder)
+        color = backgroundColor
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = value,
+                text = animatedValue.toString(),
                 color = accentColor,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Black

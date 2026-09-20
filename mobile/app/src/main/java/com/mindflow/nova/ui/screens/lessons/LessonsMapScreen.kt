@@ -1,6 +1,5 @@
 package com.mindflow.nova.ui.screens.lessons
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.theme.NovaBlue
-import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaDark
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLocked
@@ -81,7 +79,7 @@ fun LessonsMapScreen(
 
             Text(
                 text = "Lecciones",
-                color = NovaText,
+                color = NovaPurple,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Black
             )
@@ -283,11 +281,7 @@ private fun LessonPathInfoCard(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
         color = Color.White,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isCurrent) NovaPurple.copy(alpha = 0.45f) else NovaBorder
-        ),
-        shadowElevation = if (isCurrent) 4.dp else 2.dp
+        shadowElevation = if (isCurrent) 6.dp else 2.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
