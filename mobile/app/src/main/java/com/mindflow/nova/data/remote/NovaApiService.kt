@@ -18,6 +18,7 @@ import retrofit2.http.POST
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface NovaApiService {
     @GET("/")
@@ -45,9 +46,16 @@ interface NovaApiService {
         @Body request: FinishAttemptRequest
     ): Response<FinishAttemptResponse>
 
-    /** Progreso acumulado del estudiante: semillas totales, misiones completadas y % por nivel. */
+    /**
+     * Progreso acumulado del estudiante: semillas totales, misiones completadas, % por
+     * nivel y racha. El desfase del huso es para que el backend cuente los dias de la
+     * racha en la fecha local de la persona y no en la de su servidor.
+     */
     @GET("api/students/{studentId}/progress")
-    suspend fun getStudentProgress(@Path("studentId") studentId: Int): Response<StudentProgressResponse>
+    suspend fun getStudentProgress(
+        @Path("studentId") studentId: Int,
+        @Query("tzOffsetMinutes") tzOffsetMinutes: Int = currentTzOffsetMinutes()
+    ): Response<StudentProgressResponse>
 
     @POST("api/auth/login/id")
     suspend fun loginWithId(@Body request: LoginIdRequest): Response<LoginResponse>

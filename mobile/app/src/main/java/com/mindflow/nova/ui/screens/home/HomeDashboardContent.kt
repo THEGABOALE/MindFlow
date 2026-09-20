@@ -23,8 +23,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -50,6 +52,8 @@ import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.ui.components.NovaProgressBar
+import com.mindflow.nova.ui.components.StreakBadge
+import com.mindflow.nova.ui.components.StreakInfoDialog
 import com.mindflow.nova.ui.screens.lessons.MissionState
 import com.mindflow.nova.ui.screens.lessons.common.MechanicChip
 import com.mindflow.nova.ui.screens.lessons.computeMissionStates
@@ -57,7 +61,6 @@ import com.mindflow.nova.ui.screens.lessons.currentMissionIndex
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaHeroGradient
-import com.mindflow.nova.ui.theme.NovaInfoBackground
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaLocked
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -84,6 +87,9 @@ fun HomeDashboardContent(
         ?.progressPercentage
         ?: 0.0
 
+    var showStreakInfo by remember { mutableStateOf(false) }
+    val streak = progress?.streak
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -92,6 +98,20 @@ fun HomeDashboardContent(
     ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Sin racha todavía (cargando) no se muestra nada, para que no
+            // parpadee un hielo que enseguida se vuelve llama.
+            if (streak != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    StreakBadge(streak = streak, onClick = { showStreakInfo = true })
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             WelcomeBanner()
         }
 
@@ -100,22 +120,9 @@ fun HomeDashboardContent(
         }
 
         item {
-            ContinueCard(
-                nextMission = nextMission,
-                nextNumber = currentIndex + 1,
-                completedCount = completedCount,
-                total = missions.size,
-                onClick = {
-                    if (nextMission != null) onMissionSelected(nextMission) else onOpenLessons()
-                }
-            )
-        }
-
-        item {
             SectionHeader(
                 title = "Ruta de aprendizaje",
-                subtitle = "Completa retos y desbloquea nuevas lecciones",
-                badge = "$completedCount/${missions.size}"
+                subtitle = "$completedCount de ${missions.size} misiones completadas"
             )
         }
 
@@ -129,9 +136,19 @@ fun HomeDashboardContent(
             )
         }
 
+        if (nextMission == null && missions.isNotEmpty()) {
+            item {
+                RouteCompleteCard(onClick = onOpenLessons)
+            }
+        }
+
         item {
             Spacer(modifier = Modifier.height(22.dp))
         }
+    }
+
+    if (showStreakInfo && streak != null) {
+        StreakInfoDialog(streak = streak, onDismiss = { showStreakInfo = false })
     }
 }
 
@@ -263,19 +280,30 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
     }
 }
 
-/**
- * Llamado a la acción del home: lleva directo a la siguiente misión (con la
- * confirmación de inicio) y resume el avance. Si ya no queda ninguna misión
- * pendiente, manda al mapa de lecciones para repasar.
- */
 @Composable
-private fun ContinueCard(
-    nextMission: MissionResponse?,
-    nextNumber: Int,
-    completedCount: Int,
-    total: Int,
-    onClick: () -> Unit
+private fun SectionHeader(
+    title: String,
+    subtitle: String
 ) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            color = NovaText,
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Black
+        )
+
+        Text(
+            text = subtitle,
+            color = NovaTextSecondary,
+            fontSize = 13.sp
+        )
+    }
+}
+
+/** Cierre de la ruta cuando ya no queda ninguna misión pendiente: lleva al mapa para repasar. */
+@Composable
+private fun RouteCompleteCard(onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -295,7 +323,7 @@ private fun ContinueCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
+                    imageVector = Icons.Rounded.EmojiEvents,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(30.dp)
@@ -306,11 +334,7 @@ private fun ContinueCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (nextMission != null) {
-                        "Sigue transformando tu aprendizaje"
-                    } else {
-                        "¡Completaste toda la ruta!"
-                    },
+                    text = "¡Completaste toda la ruta!",
                     color = NovaPurple,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -318,33 +342,11 @@ private fun ContinueCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                if (nextMission != null) {
-                    Text(
-                        text = "Siguiente: $nextNumber. ${nextMission.title}",
-                        color = NovaText,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        lineHeight = 19.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    MechanicChip(mechanic = nextMission.mechanic)
-                } else {
-                    Text(
-                        text = "Repasa las lecciones cuando quieras.",
-                        color = NovaTextSecondary,
-                        fontSize = 13.sp,
-                        lineHeight = 18.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
-                    text = "$completedCount de $total misiones completadas",
+                    text = "Repasa las lecciones cuando quieras.",
                     color = NovaTextSecondary,
-                    fontSize = 12.sp
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
                 )
             }
 
@@ -353,48 +355,6 @@ private fun ContinueCard(
                 contentDescription = null,
                 tint = NovaBlue,
                 modifier = Modifier.size(30.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-    badge: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = NovaText,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Black
-            )
-
-            Text(
-                text = subtitle,
-                color = NovaTextSecondary,
-                fontSize = 13.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = NovaLightPurple
-        ) {
-            Text(
-                text = badge,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                color = NovaPurple,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black
             )
         }
     }
@@ -433,17 +393,31 @@ private fun MissionRouteRow(
             },
         shape = RoundedCornerShape(20.dp),
         color = NovaSurface,
-        shadowElevation = if (isCurrent) 4.dp else 2.dp
+        // La misión que sigue se distingue con un borde degradé (sin sombra, para
+        // no juntar borde y sombra en la misma tarjeta); las demás, solo sombra.
+        border = if (isCurrent) BorderStroke(2.dp, NovaHeroGradient) else null,
+        shadowElevation = if (isCurrent) 0.dp else 2.dp
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             MissionRouteIndicator(index = index, state = state, isCurrent = isCurrent)
 
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                if (isCurrent) {
+                    Text(
+                        text = "Sigue transformando tu aprendizaje",
+                        color = NovaPurple,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
                 Text(
                     text = "${index + 1}. ${mission.title}",
                     color = if (state.isUnlocked) NovaText else NovaTextSecondary,
@@ -461,19 +435,22 @@ private fun MissionRouteRow(
                 )
 
                 if (isCurrent) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = NovaInfoBackground
+                    MechanicChip(mechanic = mission.mechanic)
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NovaPurple,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        Text(
-                            text = "Siguiente",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            color = NovaBlue,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(text = "Continuar", fontWeight = FontWeight.Bold)
                     }
                 }
             }
