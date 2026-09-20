@@ -175,6 +175,7 @@ fun MatchingLessonScreen(
                     subtitle = "Emparejaste ${pairs.size} de ${pairs.size} conceptos",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
                     rewardLabel = "semillas (según tus aciertos)",
+                    streak = attemptResult?.streak,
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

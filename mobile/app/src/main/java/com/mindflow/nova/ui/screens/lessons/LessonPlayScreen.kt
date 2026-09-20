@@ -108,6 +108,7 @@ fun LessonPlayScreen(
                 LessonCompletedScreen(
                     subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} preguntas correctas",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
+                    streak = attemptResult?.streak,
                     onContinue = onExit
                 )
             }

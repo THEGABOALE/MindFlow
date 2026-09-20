@@ -1,5 +1,7 @@
 package com.mindflow.nova.data.model
 
+import com.mindflow.nova.data.remote.currentTzOffsetMinutes
+
 /**
  * Una respuesta al cerrar un intento. Opción múltiple y verdadero/falso usan
  * `selectedOptionId`; relación de conceptos usa `pairId` (el término que se
@@ -14,7 +16,9 @@ data class AnswerSubmission(
 
 data class FinishAttemptRequest(
     val answers: List<AnswerSubmission>,
-    val timedOut: Boolean
+    val timedOut: Boolean,
+    /** Huso del dispositivo, para que el backend cuente el día de la racha en la fecha local. */
+    val tzOffsetMinutes: Int = currentTzOffsetMinutes()
 )
 
 data class StartAttemptResponse(
@@ -36,7 +40,8 @@ data class FinishAttemptResponse(
     val message: String?,
     val status: String?,
     val attempt: AttemptResult,
-    val levelProgress: LevelProgressResult?
+    val levelProgress: LevelProgressResult?,
+    val streak: AttemptStreak? = null
 )
 
 data class AttemptResult(
@@ -49,11 +54,20 @@ data class AttemptResult(
     val pointsEarned: Int,
     val isReview: Boolean,
     /** "completed" o "failed", segun lo decidio el backend. */
-    val status: String
+    val status: String,
+    /** La racha después de cerrar el intento; la pone la app desde la respuesta, no viene dentro de `attempt`. */
+    val streak: AttemptStreak? = null
 )
 
 data class LevelProgressResult(
     val levelId: Int,
     val progressPercentage: Double,
     val status: String
+)
+
+data class AttemptStreak(
+    val days: Int,
+    val isActive: Boolean,
+    /** True si este fue el primer intento del día: el que encendió o descongeló la racha. */
+    val justActivated: Boolean
 )

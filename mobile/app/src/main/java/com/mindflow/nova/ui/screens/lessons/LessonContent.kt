@@ -255,7 +255,11 @@ private fun LessonAttemptHost(
                             current.attemptId,
                             FinishAttemptRequest(answers, timedOut)
                         )
-                        if (response.isSuccessful) response.body()?.attempt else null
+                        if (response.isSuccessful) {
+                            response.body()?.let { body -> body.attempt.copy(streak = body.streak) }
+                        } else {
+                            null
+                        }
                     } catch (e: Exception) {
                         null
                     }

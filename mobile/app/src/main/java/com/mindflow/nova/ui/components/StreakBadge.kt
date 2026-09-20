@@ -109,8 +109,8 @@ private val Twinkles = listOf(
 @Composable
 fun StreakBadge(
     streak: StudentStreak,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     val message = streakMessage(streak)
     val accent = if (streak.isActive) NovaFireAccent else NovaIceAccent
@@ -130,11 +130,17 @@ fun StreakBadge(
         modifier = modifier
             .semantics { contentDescription = "${streak.days} ${message.caption}" }
             .background(background, RoundedCornerShape(22.dp))
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
+            .let { base ->
+                if (onClick != null) {
+                    base.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick
+                    )
+                } else {
+                    base
+                }
+            }
             .padding(start = 6.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
