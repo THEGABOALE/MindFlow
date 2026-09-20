@@ -54,6 +54,7 @@ import com.mindflow.nova.ui.screens.lessons.MissionState
 import com.mindflow.nova.ui.screens.lessons.common.MechanicChip
 import com.mindflow.nova.ui.screens.lessons.computeMissionStates
 import com.mindflow.nova.ui.screens.lessons.currentMissionIndex
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaInfoBackground
@@ -212,7 +213,7 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
             Surface(
                 modifier = Modifier.size(58.dp),
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White
+                color = NovaSurface
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -279,7 +280,7 @@ private fun ContinueCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = Color.White,
+        color = NovaSurface,
         shadowElevation = 3.dp
     ) {
         Row(
@@ -431,7 +432,7 @@ private fun MissionRouteRow(
                 translationY = (1f - enter) * size.height / 4f
             },
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
+        color = NovaSurface,
         shadowElevation = if (isCurrent) 4.dp else 2.dp
     ) {
         Row(

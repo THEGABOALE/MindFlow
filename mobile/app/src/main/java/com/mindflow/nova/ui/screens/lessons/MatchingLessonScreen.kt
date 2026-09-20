@@ -42,6 +42,8 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
+import com.mindflow.nova.ui.theme.NovaOnText
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaError
@@ -317,7 +319,7 @@ private fun TimerBadge(secondsLeft: Int) {
     val seconds = secondsLeft % 60
     Surface(
         shape = RoundedCornerShape(50.dp),
-        color = Color.White,
+        color = NovaSurface,
         border = BorderStroke(1.dp, if (secondsLeft <= 10) NovaError else NovaBorder)
     ) {
         Text(
@@ -339,7 +341,7 @@ private fun MatchingItemCard(
     val background = when (state) {
         ItemState.CORRECT -> NovaSuccessBackground
         ItemState.WRONG -> NovaErrorBackground
-        else -> Color.White
+        else -> NovaSurface
     }
     val border = when (state) {
         ItemState.CORRECT -> NovaSuccess
@@ -389,9 +391,9 @@ private fun MatchingItemCard(
                             .background(NovaText, CircleShape)
                     )
                 } else if (state == ItemState.CORRECT) {
-                    Text(text = "✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "✓", color = NovaOnText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 } else if (state == ItemState.WRONG) {
-                    Text(text = "✕", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "✕", color = NovaOnText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

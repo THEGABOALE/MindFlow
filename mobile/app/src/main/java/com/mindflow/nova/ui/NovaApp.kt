@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +13,27 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.session.SessionRepository
 import com.mindflow.nova.data.session.SessionResult
+import com.mindflow.nova.data.session.ThemePreferences
 import com.mindflow.nova.ui.screens.auth.LoginScreen
 import com.mindflow.nova.ui.screens.auth.OnboardingScreen
 import com.mindflow.nova.ui.screens.home.HomeScreen
 import com.mindflow.nova.ui.screens.teacher.TeacherRoomsScreen
+import com.mindflow.nova.ui.theme.NOVATheme
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -58,8 +64,9 @@ private fun routeForUser(user: SessionUser): AppScreen = when (user.role) {
 }
 
 @Composable
-fun NovaApp(session: SessionRepository) {
+fun NovaApp(session: SessionRepository, themePreferences: ThemePreferences) {
     var screen by remember { mutableStateOf<AppScreen>(AppScreen.Loading) }
+    var darkMode by remember { mutableStateOf(themePreferences.isDarkMode()) }
 
     LaunchedEffect(Unit) {
         screen = when (val result = session.restoreSession()) {
@@ -68,39 +75,59 @@ fun NovaApp(session: SessionRepository) {
         }
     }
 
-    when (val current = screen) {
-        AppScreen.Loading -> LoadingScreen()
+    // El modo oscuro solo aplica al área del estudiante: login, onboarding y
+    // docente siguen en claro porque su diseño (wireframe) es solo claro.
+    val darkActive = darkMode && screen is AppScreen.StudentHome
 
-        AppScreen.Login -> LoginScreen(
-            session = session,
-            onLoginSuccess = { user -> screen = routeForUser(user) }
-        )
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        // Sobre las pantallas con arte oscuro (login/onboarding) los iconos de la
+        // barra de estado van claros; sobre las demás, oscuros en claro y claros en oscuro.
+        val lightIcons = screen is AppScreen.Login || screen is AppScreen.Onboarding || darkActive
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !lightIcons
+    }
 
-        AppScreen.Onboarding -> OnboardingScreen(
-            onJoined = { screen = AppScreen.StudentHome }
-        )
+    NOVATheme(darkTheme = darkActive) {
+        when (val current = screen) {
+            AppScreen.Loading -> LoadingScreen()
 
-        AppScreen.StudentHome -> HomeScreen(
-            onLogout = {
-                session.logout()
-                screen = AppScreen.Login
-            }
-        )
+            AppScreen.Login -> LoginScreen(
+                session = session,
+                onLoginSuccess = { user -> screen = routeForUser(user) }
+            )
 
-        AppScreen.TeacherHome -> TeacherRoomsScreen(
-            onBack = {
-                session.logout()
-                screen = AppScreen.Login
-            }
-        )
+            AppScreen.Onboarding -> OnboardingScreen(
+                onJoined = { screen = AppScreen.StudentHome }
+            )
 
-        is AppScreen.Unsupported -> UnsupportedRoleScreen(
-            role = current.role,
-            onLogout = {
-                session.logout()
-                screen = AppScreen.Login
-            }
-        )
+            AppScreen.StudentHome -> HomeScreen(
+                darkMode = darkMode,
+                onDarkModeChange = { enabled ->
+                    darkMode = enabled
+                    themePreferences.setDarkMode(enabled)
+                },
+                onLogout = {
+                    session.logout()
+                    screen = AppScreen.Login
+                }
+            )
+
+            AppScreen.TeacherHome -> TeacherRoomsScreen(
+                onBack = {
+                    session.logout()
+                    screen = AppScreen.Login
+                }
+            )
+
+            is AppScreen.Unsupported -> UnsupportedRoleScreen(
+                role = current.role,
+                onLogout = {
+                    session.logout()
+                    screen = AppScreen.Login
+                }
+            )
+        }
     }
 }
 

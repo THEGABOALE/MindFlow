@@ -9,10 +9,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val session = (application as NovaApplication).session
+        val app = application as NovaApplication
 
         setContent {
-            NovaApp(session)
+            NovaApp(session = app.session, themePreferences = app.themePreferences)
         }
     }
 }

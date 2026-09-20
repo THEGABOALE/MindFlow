@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaDark
 import com.mindflow.nova.ui.theme.NovaHeroGradient
@@ -182,9 +183,11 @@ private fun LessonPathNodeRow(
 
 @Composable
 private fun VerticalConnector(modifier: Modifier = Modifier) {
+    val lineColor = NovaSoftPurple
+
     Canvas(modifier = modifier.width(8.dp)) {
         drawLine(
-            color = NovaSoftPurple,
+            color = lineColor,
             start = center.copy(y = 0f),
             end = center.copy(y = size.height),
             strokeWidth = 8f,
@@ -212,7 +215,7 @@ private fun LessonPathNode(
         else -> SolidColor(NovaDark)
     }
 
-    val border = if (isCurrent) NovaPurple else Color.White
+    val border = if (isCurrent) NovaPurple else NovaSurface
 
     Box(
         modifier = Modifier
@@ -268,7 +271,7 @@ private fun LessonPathInfoCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
-        color = Color.White,
+        color = NovaSurface,
         shadowElevation = if (isCurrent) 6.dp else 2.dp
     ) {
         Column(

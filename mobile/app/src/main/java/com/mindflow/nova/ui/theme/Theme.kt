@@ -1,58 +1,52 @@
 package com.mindflow.nova.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun NOVATheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val palette = if (darkTheme) DarkNovaPalette else LightNovaPalette
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    // Los componentes de Material que no reciben color explícito (texto por
+    // defecto, ripples, contentColorFor de las Surface) toman el de la paleta.
+    val colorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = palette.purple,
+            onPrimary = Color.White,
+            background = palette.background,
+            onBackground = palette.text,
+            surface = palette.surface,
+            onSurface = palette.text,
+            onSurfaceVariant = palette.textSecondary,
+            outline = palette.border,
+            surfaceTint = palette.surface
+        )
+    } else {
+        lightColorScheme(
+            primary = palette.purple,
+            onPrimary = Color.White,
+            background = palette.background,
+            onBackground = palette.text,
+            surface = palette.surface,
+            onSurface = palette.text,
+            onSurfaceVariant = palette.textSecondary,
+            outline = palette.border,
+            surfaceTint = palette.surface
+        )
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalNovaPalette provides palette) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

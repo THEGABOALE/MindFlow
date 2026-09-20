@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import com.mindflow.nova.ui.components.NovaProgressBar
+import com.mindflow.nova.ui.theme.NovaOnText
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
@@ -158,7 +160,7 @@ fun ExitConfirmationDialog(
     Dialog(onDismissRequest = onStay) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White
+            color = NovaSurface
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -198,7 +200,7 @@ fun ExitConfirmationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NovaText,
-                        contentColor = Color.White
+                        contentColor = NovaOnText
                     ),
                     shape = RoundedCornerShape(20.dp)
                 ) {

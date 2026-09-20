@@ -1,39 +1,55 @@
 package com.mindflow.nova.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
-val NovaPurple = Color(0xFF82368C)
-val NovaBlue = Color(0xFF1600B5)
-val NovaLightPurple = Color(0xFFF5ECF7)
-val NovaSoftPurple = Color(0xFFE9D8EE)
-val NovaText = Color(0xFF211A24)
-val NovaTextSecondary = Color(0xFF6F6473)
-val NovaBackground = Color(0xFFFCF8FD)
-val NovaBorder = Color(0xFFE7D8EA)
-val NovaDark = Color(0xFF211A2E)
-val NovaLocked = Color(0xFFD9D2DC)
+// Tokens que cambian con el tema (claro/oscuro): leen de la paleta activa.
+// Los valores concretos viven en NovaPalette.kt.
+val NovaPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.purple
+val NovaBlue: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.blue
+val NovaLightPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.lightPurple
+val NovaSoftPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.softPurple
+val NovaText: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.text
+
+/** Color de lo que va encima de un relleno [NovaText] (ej. texto de un botón oscuro; en modo oscuro el botón es claro). */
+val NovaOnText: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.onText
+val NovaTextSecondary: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.textSecondary
+val NovaBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.background
+
+/** Fondo de tarjetas y diálogos (blanco en claro). */
+val NovaSurface: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.surface
+val NovaBorder: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.border
+
+/** Parte vacía de las barras de progreso. */
+val NovaTrack: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.track
+val NovaDark: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.dark
+val NovaLocked: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.locked
 
 // Semillas/recompensas: un dorado calido, para que la moneda del juego se
 // distinga del morado de marca en vez de perderse como "un morado mas".
-val NovaGold = Color(0xFFB8860B)
-val NovaGoldLight = Color(0xFFFBF0DC)
+val NovaGold: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.gold
+val NovaGoldLight: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.goldLight
 
 // Acierto/error dentro de las lecciones. Antes vivian sueltos y duplicados
 // como Color(0xFF...) en cada pantalla de mecanica (opcion multiple,
 // relacion de conceptos, verdadero/falso); centralizados aca para que sean
 // un solo lugar si hay que ajustar el tono.
-val NovaSuccess = Color(0xFF2E9E5B)
-val NovaSuccessBackground = Color(0xFFE6F7EA)
-val NovaError = Color(0xFFC0392B)
-val NovaErrorBackground = Color(0xFFFBE7E5)
+val NovaSuccess: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.success
+val NovaSuccessBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.successBackground
+val NovaError: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.error
+val NovaErrorBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.errorBackground
 
 // Fondo de la etiqueta "en curso" / "siguiente" (texto en NovaBlue).
-val NovaInfoBackground = Color(0xFFEDEAFF)
+val NovaInfoBackground: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.infoBackground
 
 // Fondo neutro de las burbujas y opciones sin elegir dentro de una leccion.
-val NovaNeutralCard = Color(0xFFF0EDF2)
+val NovaNeutralCard: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.neutralCard
 
-// Wireframe de Login/Splash: tonos propios de esa pantalla, distintos al morado del resto de la app.
+// Boton "Verdadero"/"Falso" sin elegir.
+val NovaChoiceIdle: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.choiceIdle
+
+// Wireframe de Login/Splash: tonos propios de esa pantalla (siempre en claro), distintos al morado del resto de la app.
 val NovaLoginCard = Color(0xFFDBC0F9)
 val NovaLoginButton = Color(0xFF160065)
 val NovaLoginFieldBorder = Color(0xFFCCCCD1)
