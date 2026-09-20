@@ -1,5 +1,6 @@
 const pool = require("../database/connection"); // importar la conexion a la base de datos
-const { calculateStreak, localDay, normalizeTzOffset } = require("../services/streak.service");
+const { normalizeTzOffset } = require("../services/streak.service");
+const { loadStreak } = require("../services/streak-query.service");
 
 // El estudiante solo se ve a si mismo, el profesor solo a su sala y el
 // coordinador solo a su centro. El admin (equipo MindFlow) ve todo.
@@ -200,25 +201,9 @@ const getStudentProgress = async (req, res) => {
             [studentId]
         );
 
-        // Dias en que termino al menos un intento (pasado o no), en la fecha
-        // local de su huso: la app manda su desfase en tzOffsetMinutes y el dia
-        // se arma con el, para que no cambie a las 7 de la tarde por usar UTC.
-        // finished_at se guarda en UTC (asi corre la base en Neon/Railway).
-        const tzOffsetMinutes = normalizeTzOffset(req.query.tzOffsetMinutes);
-
-        const activityResult = await pool.query(
-            `
-        SELECT DISTINCT to_char(finished_at + make_interval(mins => $2), 'YYYY-MM-DD') AS day
-        FROM mission_attempts
-        WHERE user_id = $1 AND finished_at IS NOT NULL;
-        `,
-            [studentId, tzOffsetMinutes]
-        );
-
-        const streak = calculateStreak(
-            activityResult.rows.map((activity) => activity.day),
-            localDay(new Date(), tzOffsetMinutes)
-        );
+        // La app manda el desfase de su huso en tzOffsetMinutes para que el dia
+        // de la racha sea el local y no cambie a las 7 de la tarde por usar UTC.
+        const { streak } = await loadStreak(pool, studentId, normalizeTzOffset(req.query.tzOffsetMinutes));
 
         const totals = totalsResult.rows[0];
 
