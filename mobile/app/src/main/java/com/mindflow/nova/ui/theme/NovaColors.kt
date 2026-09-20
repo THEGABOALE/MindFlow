@@ -27,6 +27,9 @@ val NovaSuccessBackground = Color(0xFFE6F7EA)
 val NovaError = Color(0xFFC0392B)
 val NovaErrorBackground = Color(0xFFFBE7E5)
 
+// Fondo de la etiqueta "en curso" / "siguiente" (texto en NovaBlue).
+val NovaInfoBackground = Color(0xFFEDEAFF)
+
 // Fondo neutro de las burbujas y opciones sin elegir dentro de una leccion.
 val NovaNeutralCard = Color(0xFFF0EDF2)
 
