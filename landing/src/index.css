@@ -1,13 +1,143 @@
 @import "tailwindcss";
 
+/*
+  NOVA
+  Tipografía principal: Chillax Semibold
+  Tipografía secundaria: Agenor Neue Regular
+
+  Cuando tengas los archivos de las fuentes, colócalos en:
+  src/assets/fonts/
+*/
+
+/*
+@font-face {
+  font-family: "Chillax";
+  src: url("./assets/fonts/Chillax-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Agenor Neue";
+  src: url("./assets/fonts/AgenorNeue-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+:root {
+  --nova-purple: #82368c;
+  --nova-blue: #1600b5;
+
+  --nova-purple-soft: rgb(130 54 140 / 0.08);
+  --nova-purple-light: rgb(130 54 140 / 0.14);
+  --nova-blue-soft: rgb(22 0 181 / 0.08);
+
+  --nova-text: #25172a;
+}
+
 html {
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
+  background: #ffffff;
+  color: var(--nova-text);
+
+  /*
+    Mientras no tengas los archivos reales,
+    estas fuentes funcionan como fallback.
+  */
+  font-family: "Agenor Neue", Arial, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.font-display {
+  font-family: "Chillax", "Trebuchet MS", Arial, sans-serif;
+  font-weight: 600;
+}
+
+.eyebrow {
+  font-family: "Chillax", "Trebuchet MS", Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* Animaciones suaves */
+
+@keyframes novaFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+@keyframes novaFloatReverse {
+  0%,
+  100% {
+    transform: translateY(0) rotate(2deg);
+  }
+
+  50% {
+    transform: translateY(8px) rotate(-2deg);
+  }
+}
+
+@keyframes novaPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.nova-float {
+  animation: novaFloat 5s ease-in-out infinite;
+}
+
+.nova-float-reverse {
+  animation: novaFloatReverse 6s ease-in-out infinite;
+}
+
+.nova-pulse {
+  animation: novaPulse 4s ease-in-out infinite;
+}
+
+.reveal-card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+.reveal-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-grid > article:nth-child(even) {
+  border-right: 0;
+}
+
+@media (max-width: 639px) {
+  .feature-grid > article:nth-child(even) {
+    border-right: 0;
+  }
 }
