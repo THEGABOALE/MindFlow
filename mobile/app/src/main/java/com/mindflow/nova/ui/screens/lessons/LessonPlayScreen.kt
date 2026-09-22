@@ -41,6 +41,7 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
+import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaNeutralCard
@@ -107,6 +108,7 @@ fun LessonPlayScreen(
                 LessonCompletedScreen(
                     subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} preguntas correctas",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
+                    streak = attemptResult?.streak,
                     onContinue = onExit
                 )
             }
@@ -202,7 +204,7 @@ fun LessonPlayScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NovaText,
-                            contentColor = Color.White,
+                            contentColor = NovaOnText,
                             disabledContainerColor = NovaBorder,
                             disabledContentColor = NovaTextSecondary
                         ),
@@ -267,14 +269,14 @@ private fun AnswerOptionRow(
             Box(
                 modifier = Modifier
                     .size(14.dp)
-                    .background(if (isSelected) Color.White else NovaTextSecondary, CircleShape)
+                    .background(if (isSelected) NovaOnText else NovaTextSecondary, CircleShape)
             )
 
             Spacer(modifier = Modifier.width(14.dp))
 
             Text(
                 text = text,
-                color = if (isSelected) Color.White else NovaText,
+                color = if (isSelected) NovaOnText else NovaText,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 15.sp
             )

@@ -1,5 +1,7 @@
 const pool = require("../database/connection");
 const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
+const { normalizeTzOffset } = require("../services/streak.service");
+const { loadStreak } = require("../services/streak-query.service");
 
 // Devuelve el contenido jugable de una mision: preguntas con sus opciones
 // (opcion multiple y verdadero/falso) o con sus pares (relacion de conceptos).
@@ -194,6 +196,7 @@ const startAttempt = async (req, res) => {
 const finishAttempt = async (req, res) => {
   const { attemptId } = req.params;
   const { answers, timedOut } = req.body || {};
+  const tzOffsetMinutes = normalizeTzOffset((req.body || {}).tzOffsetMinutes);
 
   if (!/^\d+$/.test(attemptId)) {
     return res.status(400).json({
@@ -373,6 +376,11 @@ const finishAttempt = async (req, res) => {
       };
     }
 
+    // Terminar un intento (pasado o no) cuenta para la racha. Si es el primero
+    // del dia, este intento fue el que la encendio o la descongelo: la app lo
+    // usa para mostrar la animacion de hielo a llama.
+    const { streak, attemptsToday } = await loadStreak(client, req.user.id, tzOffsetMinutes);
+
     await client.query("COMMIT");
 
     return res.status(200).json({
@@ -389,7 +397,12 @@ const finishAttempt = async (req, res) => {
         isReview: attempt.is_review,
         status: failed ? "failed" : "completed"
       },
-      levelProgress
+      levelProgress,
+      streak: {
+        days: streak.days,
+        isActive: streak.isActive,
+        justActivated: attemptsToday === 1
+      }
     });
   } catch (error) {
     await client.query("ROLLBACK");

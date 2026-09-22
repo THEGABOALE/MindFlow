@@ -3,6 +3,8 @@ package com.mindflow.nova.ui.screens.home
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,22 +38,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.background
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.graphicsLayer
 import com.mindflow.nova.data.model.LevelResponse
+import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.ui.components.NovaProgressBar
+import com.mindflow.nova.ui.components.StreakBadge
+import com.mindflow.nova.ui.components.StreakInfoDialog
+import com.mindflow.nova.ui.screens.lessons.MissionState
+import com.mindflow.nova.ui.screens.lessons.common.MechanicChip
+import com.mindflow.nova.ui.screens.lessons.computeMissionStates
+import com.mindflow.nova.ui.screens.lessons.currentMissionIndex
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
-import com.mindflow.nova.ui.theme.NovaDark
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 import com.mindflow.nova.ui.theme.NovaLightPurple
+import com.mindflow.nova.ui.theme.NovaLocked
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -55,14 +72,23 @@ import kotlinx.coroutines.delay
 fun HomeDashboardContent(
     level: LevelResponse,
     progress: StudentProgress?,
+    onMissionSelected: (MissionResponse) -> Unit,
+    onOpenLessons: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val previewMissions = level.missions.take(2)
-    val completedMissionIds = progress?.completedMissionIds.orEmpty()
+    val missions = level.missions
+    val completedMissionIds = progress?.completedMissionIds?.toSet().orEmpty()
+    val missionStates = computeMissionStates(missions, completedMissionIds)
+    val currentIndex = currentMissionIndex(missionStates)
+    val nextMission = missions.getOrNull(currentIndex)
+    val completedCount = missionStates.count { it.isCompleted }
     val levelProgressPercentage = progress?.levels
         ?.firstOrNull { it.id == level.id }
         ?.progressPercentage
         ?: 0.0
+
+    var showStreakInfo by remember { mutableStateOf(false) }
+    val streak = progress?.streak
 
     LazyColumn(
         modifier = modifier
@@ -72,6 +98,20 @@ fun HomeDashboardContent(
     ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Sin racha todavía (cargando) no se muestra nada, para que no
+            // parpadee un hielo que enseguida se vuelve llama.
+            if (streak != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    StreakBadge(streak = streak, onClick = { showStreakInfo = true })
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
             WelcomeBanner()
         }
 
@@ -82,24 +122,33 @@ fun HomeDashboardContent(
         item {
             SectionHeader(
                 title = "Ruta de aprendizaje",
-                subtitle = "Completa retos y desbloquea nuevas lecciones"
+                subtitle = "$completedCount de ${missions.size} misiones completadas"
             )
         }
 
-        previewMissions.forEachIndexed { index, mission ->
+        itemsIndexed(missions) { index, mission ->
+            MissionRouteRow(
+                mission = mission,
+                index = index,
+                state = missionStates[index],
+                isCurrent = index == currentIndex,
+                onClick = { onMissionSelected(mission) }
+            )
+        }
+
+        if (nextMission == null && missions.isNotEmpty()) {
             item {
-                MissionPreviewRow(
-                    mission = mission,
-                    index = index,
-                    isCompleted = mission.id in completedMissionIds
-                )
+                RouteCompleteCard(onClick = onOpenLessons)
             }
         }
 
         item {
-            MotivationCard()
             Spacer(modifier = Modifier.height(22.dp))
         }
+    }
+
+    if (showStreakInfo && streak != null) {
+        StreakInfoDialog(streak = streak, onDismiss = { showStreakInfo = false })
     }
 }
 
@@ -181,7 +230,7 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
             Surface(
                 modifier = Modifier.size(58.dp),
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White
+                color = NovaSurface
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
@@ -252,11 +301,72 @@ private fun SectionHeader(
     }
 }
 
+/** Cierre de la ruta cuando ya no queda ninguna misión pendiente: lleva al mapa para repasar. */
 @Composable
-private fun MissionPreviewRow(
-    mission: com.mindflow.nova.data.model.MissionResponse,
+private fun RouteCompleteCard(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = NovaSurface,
+        shadowElevation = 3.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(NovaHeroGradient),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.EmojiEvents,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "¡Completaste toda la ruta!",
+                    color = NovaPurple,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Repasa las lecciones cuando quieras.",
+                    color = NovaTextSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = NovaBlue,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MissionRouteRow(
+    mission: MissionResponse,
     index: Int,
-    isCompleted: Boolean
+    state: MissionState,
+    isCurrent: Boolean,
+    onClick: () -> Unit
 ) {
     // Cada fila entra con un pequeño retraso escalonado según su posición.
     // Se anima con graphicsLayer (y no con AnimatedVisibility) para que la
@@ -273,6 +383,8 @@ private fun MissionPreviewRow(
     )
 
     Surface(
+        onClick = onClick,
+        enabled = state.isUnlocked,
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
@@ -280,21 +392,35 @@ private fun MissionPreviewRow(
                 translationY = (1f - enter) * size.height / 4f
             },
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        shadowElevation = 2.dp
+        color = NovaSurface,
+        // La misión que sigue se distingue con un borde degradé (sin sombra, para
+        // no juntar borde y sombra en la misma tarjeta); las demás, solo sombra.
+        border = if (isCurrent) BorderStroke(2.dp, NovaHeroGradient) else null,
+        shadowElevation = if (isCurrent) 0.dp else 2.dp
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            MissionPreviewIndicator(index = index, isCompleted = isCompleted)
+            MissionRouteIndicator(index = index, state = state, isCurrent = isCurrent)
 
             Spacer(modifier = Modifier.width(14.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                if (isCurrent) {
+                    Text(
+                        text = "Sigue transformando tu aprendizaje",
+                        color = NovaPurple,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
                 Text(
                     text = "${index + 1}. ${mission.title}",
-                    color = NovaText,
+                    color = if (state.isUnlocked) NovaText else NovaTextSecondary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
@@ -307,90 +433,70 @@ private fun MissionPreviewRow(
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
-            }
-        }
-    }
-}
 
-@Composable
-private fun MissionPreviewIndicator(index: Int, isCompleted: Boolean) {
-    Surface(
-        modifier = Modifier.size(44.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = if (isCompleted) NovaLightPurple else NovaDark,
-        border = if (isCompleted) BorderStroke(1.5.dp, NovaPurple) else null
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            if (isCompleted) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = "Misión completada",
-                    tint = NovaPurple
-                )
-            } else {
-                Text(
-                    text = "%02d".format(index + 1),
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 15.sp
-                )
-            }
-        }
-    }
-}
+                if (isCurrent) {
+                    Spacer(modifier = Modifier.height(10.dp))
 
-@Composable
-private fun MotivationCard() {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = Color.White,
-        shadowElevation = 3.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(52.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = NovaLightPurple
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "✦",
-                        color = NovaPurple,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    MechanicChip(mechanic = mission.mechanic)
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NovaPurple,
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(text = "Continuar", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.width(14.dp))
+@Composable
+private fun MissionRouteIndicator(index: Int, state: MissionState, isCurrent: Boolean) {
+    val shape = RoundedCornerShape(12.dp)
+    val background: Brush = when {
+        state.isCompleted -> SolidColor(NovaLightPurple)
+        isCurrent -> NovaHeroGradient
+        state.isUnlocked -> SolidColor(NovaPurple)
+        else -> SolidColor(NovaLocked)
+    }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Sigue transformando tu aprendizaje",
-                    color = NovaPurple,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(shape)
+            .background(background)
+            .let { base ->
+                if (state.isCompleted) base.border(1.5.dp, NovaPurple, shape) else base
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            state.isCompleted -> Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = "Misión completada",
+                tint = NovaPurple
+            )
 
-                Spacer(modifier = Modifier.height(4.dp))
+            !state.isUnlocked -> Icon(
+                imageVector = Icons.Rounded.Lock,
+                contentDescription = "Misión bloqueada",
+                tint = NovaTextSecondary,
+                modifier = Modifier.size(20.dp)
+            )
 
-                Text(
-                    text = "Completa misiones para avanzar en tu ruta educativa.",
-                    color = NovaTextSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
-                )
-            }
-
-            Text(
-                text = "›",
-                color = NovaBlue,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Black
+            else -> Text(
+                text = "%02d".format(index + 1),
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                fontSize = 15.sp
             )
         }
     }

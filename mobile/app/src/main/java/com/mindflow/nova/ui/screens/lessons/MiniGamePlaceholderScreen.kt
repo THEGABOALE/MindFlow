@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.MissionResponse
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -74,7 +75,7 @@ fun MiniGamePlaceholderScreen(
                     .fillMaxWidth()
                     .height(360.dp),
                 shape = RoundedCornerShape(28.dp),
-                color = Color.White,
+                color = NovaSurface,
                 shadowElevation = 4.dp,
                 border = BorderStroke(1.dp, NovaBorder)
             ) {

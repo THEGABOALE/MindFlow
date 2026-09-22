@@ -40,6 +40,8 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
+import com.mindflow.nova.ui.theme.NovaChoiceIdle
+import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaError
@@ -54,7 +56,6 @@ import kotlinx.coroutines.launch
 private enum class TruthPhase { ANSWERING, ANSWERED }
 private enum class TruthStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR }
 
-private val TrueFalseIdle = Color(0xFFDCEBFB)
 private val TrueFalseSelected = Color(0xFF5B93C7)
 
 /**
@@ -109,6 +110,7 @@ fun TrueFalseLessonScreen(
                 LessonCompletedScreen(
                     subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} afirmaciones correctas",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
+                    streak = attemptResult?.streak,
                     onContinue = onExit
                 )
             }
@@ -271,7 +273,7 @@ fun TrueFalseLessonScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NovaText,
-                            contentColor = Color.White,
+                            contentColor = NovaOnText,
                             disabledContainerColor = NovaBorder,
                             disabledContentColor = NovaTextSecondary
                         ),
@@ -315,12 +317,12 @@ private fun TrueFalseButton(
     modifier: Modifier = Modifier
 ) {
     val background = when (state) {
-        TrueFalseButtonState.IDLE -> TrueFalseIdle
+        TrueFalseButtonState.IDLE -> NovaChoiceIdle
         TrueFalseButtonState.SELECTED -> TrueFalseSelected
         TrueFalseButtonState.CORRECT -> NovaSuccess
         TrueFalseButtonState.WRONG -> NovaError
     }
-    val contentColor = if (state == TrueFalseButtonState.IDLE) NovaText else Color.White
+    val contentColor = if (state == TrueFalseButtonState.IDLE) NovaText else NovaOnText
 
     Surface(
         modifier = modifier.clickable(onClick = onClick),

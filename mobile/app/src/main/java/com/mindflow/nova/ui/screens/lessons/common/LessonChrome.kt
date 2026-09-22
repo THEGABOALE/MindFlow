@@ -45,7 +45,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
+import com.mindflow.nova.data.model.AttemptStreak
+import com.mindflow.nova.data.model.StudentStreak
 import com.mindflow.nova.ui.components.NovaProgressBar
+import com.mindflow.nova.ui.components.StreakBadge
+import com.mindflow.nova.ui.components.StreakCelebrationScreen
+import com.mindflow.nova.ui.theme.NovaOnText
+import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
@@ -158,7 +164,7 @@ fun ExitConfirmationDialog(
     Dialog(onDismissRequest = onStay) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White
+            color = NovaSurface
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -198,7 +204,7 @@ fun ExitConfirmationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NovaText,
-                        contentColor = Color.White
+                        contentColor = NovaOnText
                     ),
                     shape = RoundedCornerShape(20.dp)
                 ) {
@@ -216,8 +222,20 @@ fun LessonCompletedScreen(
     onContinue: () -> Unit,
     title: String = "¡Nivel completado!",
     rewardLabel: String = "semillas",
+    streak: AttemptStreak? = null,
     extraContent: (@Composable () -> Unit)? = null
 ) {
+    // Si esta misión fue la primera del día, encendió (o descongeló) la racha:
+    // antes de salir se muestra el momento de la llamarada. Si la racha ya
+    // estaba activa de hoy, solo se muestra el marcador en esta pantalla.
+    val ignitesStreak = streak != null && streak.isActive && streak.justActivated
+    var showStreakMoment by remember { mutableStateOf(false) }
+
+    if (showStreakMoment && streak != null) {
+        StreakCelebrationScreen(days = streak.days, onContinue = onContinue)
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -301,10 +319,16 @@ fun LessonCompletedScreen(
             fontSize = 12.sp
         )
 
+        if (streak != null && streak.isActive && !streak.justActivated) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StreakBadge(streak = StudentStreak(days = streak.days, isActive = true, lastActivityDate = null))
+        }
+
         Spacer(modifier = Modifier.height(28.dp))
 
         Button(
-            onClick = onContinue,
+            onClick = { if (ignitesStreak) showStreakMoment = true else onContinue() },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NovaPurple,

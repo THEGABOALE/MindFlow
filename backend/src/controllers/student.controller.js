@@ -1,4 +1,6 @@
 const pool = require("../database/connection"); // importar la conexion a la base de datos
+const { normalizeTzOffset } = require("../services/streak.service");
+const { loadStreak } = require("../services/streak-query.service");
 
 // El estudiante solo se ve a si mismo, el profesor solo a su sala y el
 // coordinador solo a su centro. El admin (equipo MindFlow) ve todo.
@@ -199,6 +201,10 @@ const getStudentProgress = async (req, res) => {
             [studentId]
         );
 
+        // La app manda el desfase de su huso en tzOffsetMinutes para que el dia
+        // de la racha sea el local y no cambie a las 7 de la tarde por usar UTC.
+        const { streak } = await loadStreak(pool, studentId, normalizeTzOffset(req.query.tzOffsetMinutes));
+
         const totals = totalsResult.rows[0];
 
         return res.status(200).json({
@@ -209,6 +215,7 @@ const getStudentProgress = async (req, res) => {
                 fullName: row.student_full_name,
                 totalPoints: Number(totals.total_points),
                 missionsCompleted: Number(totals.missions_completed),
+                streak,
                 completedMissionIds: completedMissionsResult.rows.map((attempt) => attempt.mission_id),
                 levels: levelsResult.rows.map((level) => ({
                     id: level.id,
