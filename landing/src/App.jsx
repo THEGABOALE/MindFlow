@@ -115,8 +115,8 @@ function LessonCard() {
 function App() {
   return (
     <main className="min-h-screen bg-[#fff7fd] text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-[#82368c]/10 bg-white/80 backdrop-blur-xl">
-        <div className="flex items-center justify-between px-8 py-4">
+      <header className="sticky top-0 z-50 border-b border-[#82368c]/10 bg-[#fff7fd]/95">
+        <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between px-6 py-4 md:px-10 xl:px-12">
           <img src={novaLogo} alt="NOVA Aplicación Educativa" className="h-14 w-auto" />
 
           <nav className="hidden items-center gap-8 text-sm font-bold text-slate-700 md:flex">
@@ -135,18 +135,15 @@ function App() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden px-8 py-14 lg:py-20">
-        <div className="absolute -right-24 top-10 h-96 w-96 rounded-full bg-[#82368c]/20 blur-3xl" />
-        <div className="absolute -left-24 bottom-0 h-96 w-96 rounded-full bg-[#1600b5]/10 blur-3xl" />
-
-        <div className="relative grid items-center gap-12 lg:grid-cols-[1fr_0.9fr]">
+      <section className="relative overflow-hidden py-14 lg:py-20">
+        <div className="relative mx-auto grid w-full max-w-[1500px] items-center gap-12 px-6 md:px-10 xl:px-12 lg:grid-cols-[1fr_0.9fr]">
           <div className="max-w-4xl">
             <p className="mb-6 inline-flex rounded-full bg-white px-5 py-3 text-sm font-black text-[#82368c] shadow-md shadow-[#82368c]/10">
               Plataforma educativa gamificada
             </p>
 
             <h1 className="text-6xl font-black leading-[0.98] tracking-tight md:text-7xl xl:text-8xl">
-              Emprende tu vuelo hacia una educación más justa.
+              Emprende tu vuelo hacia una educación más justa
             </h1>
 
             <p className="mt-7 max-w-3xl text-xl leading-9 text-slate-700 md:text-2xl">
@@ -180,11 +177,11 @@ function App() {
         </div>
       </section>
 
-      <section id="funciona" className="bg-white px-8 py-16">
-        <div className="mx-auto max-w-7xl">
+      <section id="funciona" className="py-16">
+        <div className="relative mx-auto w-full max-w-[1500px] px-6 md:px-10 xl:px-12">
           <div className="mb-10 max-w-3xl">
             <p className="text-sm font-black uppercase tracking-wide text-[#82368c]">
-              Cómo funciona
+              Cómo funciona 
             </p>
             <h2 className="mt-3 text-5xl font-black tracking-tight">
               Una ruta educativa simple, guiada y medible.
@@ -210,8 +207,8 @@ function App() {
         </div>
       </section>
 
-      <section id="usuarios" className="px-8 py-16">
-        <div className="grid gap-8 lg:grid-cols-3">
+      <section id="usuarios" className="py-16">
+        <div className="mx-auto grid w-full max-w-[1500px] gap-8 px-6 md:px-10 xl:px-12 lg:grid-cols-3">
           <article className="rounded-[2.5rem] bg-white p-8 shadow-xl shadow-[#82368c]/10">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#82368c] text-3xl text-white">
               ✦
@@ -253,8 +250,8 @@ function App() {
         </div>
       </section>
 
-      <section id="funciones" className="bg-[#82368c] px-8 py-16 text-white">
-        <div className="grid items-start gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+      <section id="funciones" className="bg-[#82368c] py-16 text-white">
+        <div className="mx-auto grid w-full max-w-[1500px] items-start gap-10 px-6 md:px-10 xl:px-12 lg:grid-cols-[0.8fr_1.2fr]">
           <div>
             <p className="text-sm font-black uppercase tracking-wide text-white/70">
               Funcionalidades
@@ -281,9 +278,9 @@ function App() {
         </div>
       </section>
 
-      <section id="demo" className="px-8 py-16">
-        <div className="grid items-center gap-10 rounded-[3rem] bg-gradient-to-br from-[#1600b5] to-[#82368c] p-10 text-white shadow-2xl shadow-[#1600b5]/20 lg:grid-cols-[1fr_0.8fr]">
-          <div>
+      <section id="demo" className="py-16">
+        <div className="mx-auto w-full max-w-[1500px] px-6 md:px-10 xl:px-12">
+          <div className="grid items-center gap-10 rounded-[3rem] bg-gradient-to-br from-[#1600b5] to-[#82368c] p-8 text-white shadow-2xl shadow-[#1600b5]/20 md:p-10 lg:grid-cols-[1fr_0.8fr]">
             <p className="text-sm font-black uppercase tracking-wide text-white/70">
               Demo visual
             </p>
