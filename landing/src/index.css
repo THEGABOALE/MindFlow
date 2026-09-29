@@ -63,6 +63,18 @@ body {
   font-weight: 600;
 }
 
+.nova-logo {
+  display: block;
+  width: auto;
+  height: 3rem;
+  object-fit: contain;
+}
+
+.nova-mark {
+  display: block;
+  object-fit: contain;
+}
+
 .eyebrow {
   font-family: "Chillax", "Trebuchet MS", Arial, sans-serif;
   font-size: 0.75rem;

@@ -47,6 +47,99 @@ const features = [
   },
 ];
 
+function removeWhiteBackground(event) {
+  const image = event.currentTarget;
+
+  if (image.dataset.cleaned === "true") {
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) {
+    return;
+  }
+
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  context.drawImage(image, 0, 0);
+
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = pixels;
+  const queue = [];
+  const visited = new Uint8Array(width * height);
+
+  const enqueue = (x, y) => {
+    const index = y * width + x;
+
+    if (visited[index]) {
+      return;
+    }
+
+    const pixel = index * 4;
+    const isWhite =
+      data[pixel] > 238 &&
+      data[pixel + 1] > 238 &&
+      data[pixel + 2] > 238 &&
+      data[pixel + 3] > 0;
+
+    if (!isWhite) {
+      return;
+    }
+
+    visited[index] = 1;
+    queue.push([x, y]);
+  };
+
+  for (let x = 0; x < width; x += 1) {
+    enqueue(x, 0);
+    enqueue(x, height - 1);
+  }
+
+  for (let y = 1; y < height - 1; y += 1) {
+    enqueue(0, y);
+    enqueue(width - 1, y);
+  }
+
+  while (queue.length > 0) {
+    const [x, y] = queue.pop();
+    const pixel = (y * width + x) * 4;
+    data[pixel + 3] = 0;
+
+    if (x > 0) enqueue(x - 1, y);
+    if (x < width - 1) enqueue(x + 1, y);
+    if (y > 0) enqueue(x, y - 1);
+    if (y < height - 1) enqueue(x, y + 1);
+  }
+
+  context.putImageData(pixels, 0, 0);
+  image.src = canvas.toDataURL("image/png");
+  image.dataset.cleaned = "true";
+}
+
+function NovaMark({ className = "" }) {
+  return (
+    <img
+      src={novaIcon}
+      alt=""
+      className={`nova-mark ${className}`}
+      onLoad={removeWhiteBackground}
+    />
+  );
+}
+
+function NovaLogo({ className = "" }) {
+  return (
+    <img
+      src={novaLogo}
+      alt="NOVA Aplicación Educativa"
+      className={`nova-logo ${className}`}
+      onLoad={removeWhiteBackground}
+    />
+  );
+}
+
 function NovaSpark({ className = "" }) {
   return (
     <svg
@@ -181,13 +274,7 @@ function LearningPreview() {
         </div>
 
         <div className="mt-4 flex items-center gap-4 rounded-[1.5rem] border-2 border-[#82368c]/10 p-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#82368c] text-xl text-white">
-            <img
-              src={novaIcon}
-              alt=""
-              className="h-full w-full object-contain"
-            />
-          </div>
+          <NovaMark className="h-12 w-12 shrink-0 text-[#82368c]" />
 
           <div>
             <p className="font-display text-lg text-[#25172a]">
@@ -211,11 +298,7 @@ function App() {
       <header className="sticky top-0 z-50 border-b border-[#82368c]/10 bg-[#f7f3f8]/95 backdrop-blur">
         <div className="mx-auto flex w-full max-w-[88rem] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <a href="#inicio" aria-label="Ir al inicio">
-            <img
-              src={novaLogo}
-              alt="NOVA Aplicación Educativa"
-              className="h-12 w-auto"
-            />
+            <NovaLogo />
           </a>
 
           <nav className="hidden items-center gap-8 text-sm font-bold text-[#82368c] md:flex">
@@ -425,13 +508,7 @@ function App() {
             </div>
 
             <div>
-              <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-[1.4rem] bg-[#82368c] text-5xl text-[#82368c]">
-                <img
-                  src={novaIcon}
-                  alt=""
-                  className="h-full w-full scale-[1.08] object-cover"
-                />
-              </div>
+              <NovaMark className="mx-auto h-28 w-28 text-white" />
 
               <p className="font-display mt-6 text-3xl">
                 ¡Vamos, puedes hacerlo!
@@ -449,11 +526,7 @@ function App() {
       <section id="comenzar" className="py-14 sm:py-16">
         <div className="mx-auto w-full max-w-[72rem] px-4 text-center sm:px-6 lg:px-8">
           <div className="mx-auto h-14 w-14 text-[#82368c] nova-pulse">
-            <img
-              src={novaIcon}
-              alt=""
-              className="h-6 w-6 object-contain"
-            />
+            <NovaMark className="h-14 w-14 text-[#82368c]" />
           </div>
 
           <p className="eyebrow mt-6 text-[#82368c]">
@@ -485,11 +558,7 @@ function App() {
 
       <footer className="border-t border-[#82368c]/10 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-[88rem] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <img
-            src={novaLogo}
-            alt="NOVA"
-            className="h-11 w-auto"
-          />
+          <NovaLogo />
 
           <p className="max-w-xl text-sm leading-6 text-[#614666]">
             Una experiencia educativa para aprender sobre igualdad,
