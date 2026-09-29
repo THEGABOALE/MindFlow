@@ -1,6 +1,7 @@
 package com.mindflow.nova
 
 import android.app.Application
+import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.data.session.SessionRepository
 import com.mindflow.nova.data.session.SessionStorage
 import com.mindflow.nova.data.session.ThemePreferences
@@ -22,5 +23,6 @@ class NovaApplication : Application() {
         super.onCreate()
         session = SessionRepository(SessionStorage(this))
         themePreferences = ThemePreferences(this)
+        RetrofitClient.warmUp()
     }
 }
