@@ -1,42 +1,25 @@
 @import "tailwindcss";
 
 /*
-  NOVA
-  Tipografía principal: Chillax Semibold
-  Tipografía secundaria: Agenor Neue Regular
-
-  Cuando tengas los archivos de las fuentes, colócalos en:
-  src/assets/fonts/
+  Colores de marca de NOVA, los mismos de la app móvil (NovaPalette.kt).
+  Se usan como clases de Tailwind: text-nova-purple, bg-nova-blue/10, etc.
 */
+@theme {
+  --color-nova-purple: #82368c;
+  --color-nova-blue: #1600b5;
+  --color-nova-ink: #25172a;
+  --color-nova-body: #503755;
+  --color-nova-muted: #614666;
+  --color-nova-mist: #f7f3f8;
+}
 
 /*
-@font-face {
-  font-family: "Chillax";
-  src: url("./assets/fonts/Chillax-Semibold.woff2") format("woff2");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Agenor Neue";
-  src: url("./assets/fonts/AgenorNeue-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+  Tipografía
+  - Principal (títulos): Chillax Semibold, se carga desde Fontshare en index.html.
+  - Secundaria (texto): Agenor Neue Regular. Todavía no está en el proyecto;
+    mientras tanto se usa la fuente del sistema. Cuando esté el archivo, se
+    agrega aquí con @font-face (src/assets/fonts/AgenorNeue-Regular.woff2).
 */
-
-:root {
-  --nova-purple: #82368c;
-  --nova-blue: #1600b5;
-
-  --nova-purple-soft: rgb(130 54 140 / 0.08);
-  --nova-purple-light: rgb(130 54 140 / 0.14);
-  --nova-blue-soft: rgb(22 0 181 / 0.08);
-
-  --nova-text: #25172a;
-}
 
 html {
   scroll-behavior: smooth;
@@ -44,14 +27,10 @@ html {
 
 body {
   margin: 0;
-  background: #ffffff;
-  color: var(--nova-text);
-
-  /*
-    Mientras no tengas los archivos reales,
-    estas fuentes funcionan como fallback.
-  */
-  font-family: "Agenor Neue", Arial, sans-serif;
+  background: var(--color-nova-mist);
+  color: var(--color-nova-ink);
+  font-family: "Agenor Neue", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -82,6 +61,12 @@ body {
   letter-spacing: 0.12em;
   line-height: 1.2;
   text-transform: uppercase;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--color-nova-blue);
+  outline-offset: 3px;
+  border-radius: 9999px;
 }
 
 /* Animaciones suaves */
@@ -148,8 +133,21 @@ body {
   border-right: 0;
 }
 
-@media (max-width: 639px) {
-  .feature-grid > article:nth-child(even) {
-    border-right: 0;
+/* Quien pidió menos movimiento en su sistema no ve las animaciones decorativas. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .nova-float,
+  .nova-float-reverse,
+  .nova-pulse {
+    animation: none;
+  }
+
+  .reveal-card,
+  .reveal-card:hover {
+    transition: none;
+    transform: none;
   }
 }
