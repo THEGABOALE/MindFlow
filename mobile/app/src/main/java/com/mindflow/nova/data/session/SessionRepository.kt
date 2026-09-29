@@ -55,13 +55,20 @@ class SessionRepository(private val storage: SessionStorage) {
             val response = RetrofitClient.api.getMe()
             val user = response.body()?.user
 
-            if (response.isSuccessful && user != null) {
-                SessionResult.Success(user)
-            } else {
-                // Un 401 acá significa token vencido, o cuenta desactivada o
-                // con el rol cambiado desde que se inició sesión.
-                logout()
-                SessionResult.Rejected(errorMessage(response, "La sesión ya no es válida"))
+            when {
+                response.isSuccessful && user != null -> SessionResult.Success(user)
+
+                // Token vencido, o cuenta desactivada o con el rol cambiado
+                // desde que se inició sesión: ahí sí hay que volver a entrar.
+                isSessionRejected(response.code()) -> {
+                    logout()
+                    SessionResult.Rejected(errorMessage(response, "La sesión ya no es válida"))
+                }
+
+                // Cualquier otro error (502/503 mientras Railway arranca, un
+                // fallo puntual de la base) no dice nada del token: se conserva
+                // para reintentar en vez de sacar a la persona de su cuenta.
+                else -> SessionResult.Failure("El servidor no respondió (HTTP ${response.code()})")
             }
         } catch (e: Exception) {
             SessionResult.Failure("Error de conexión: ${e.message}")
@@ -115,3 +122,6 @@ class SessionRepository(private val storage: SessionStorage) {
 
     private data class ApiError(val message: String?, val status: String?)
 }
+
+/** Solo 401/403 significan que el token guardado ya no sirve; lo demás es un fallo del servidor o de la red. */
+internal fun isSessionRejected(httpCode: Int): Boolean = httpCode == 401 || httpCode == 403
