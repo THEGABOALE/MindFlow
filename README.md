@@ -1,160 +1,108 @@
 # NOVA
 
-NOVA es una plataforma digital de aprendizaje gamificado orientada a estudiantes de preescolar, primaria y secundaria. Su propósito es reforzar contenidos relacionados con derechos de la mujer, prevención de violencia, equidad de género y dignidad mediante misiones, retos, preguntas interactivas, niveles, retroalimentación visual y actividades breves adaptadas a cada etapa educativa.
+NOVA es una plataforma de aprendizaje gamificado para estudiantes de primaria y secundaria. Refuerza contenidos sobre derechos de la mujer, prevención de violencia, equidad de género y dignidad por medio de misiones cortas, preguntas interactivas, niveles, rachas y retroalimentación visual adaptada a cada etapa educativa.
 
-El proyecto busca ofrecer una experiencia accesible, motivadora y útil tanto para estudiantes como para docentes, permitiendo que los contenidos puedan ser trabajados desde el aula o desde dispositivos móviles y navegadores web.
+Busca ser una experiencia accesible y motivadora tanto para estudiantes como para docentes, que se pueda trabajar desde el aula o desde el teléfono.
 
-El proyecto es desarrollado por el equipo **MindFlow**. El nombre del producto es **NOVA**.
-
----
-
-## Descripción técnica general
-
-NOVA está pensado como una plataforma web/móvil con enfoque educativo y gamificado. La arquitectura actual contempla un backend desarrollado con **Node.js + Express**, una base de datos central en **PostgreSQL** y una aplicación móvil desarrollada en **Android con Kotlin y Jetpack Compose**.
-
-El backend expone una API REST que permite manejar autenticación, roles de usuario, grupos, códigos de acceso, niveles educativos, misiones, intentos de misión, progreso de estudiantes y vistas específicas para docentes, coordinadores y administradores.
-
-Actualmente, el sistema ya cuenta con una base funcional conectada a PostgreSQL, datos de prueba, endpoints principales, una integración inicial con la aplicación móvil y despliegue del backend en la nube para pruebas externas.
+El producto es **NOVA** y lo desarrolla el equipo **MindFlow** para el reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
 
 ---
 
-## Tecnologías utilizadas
+## Qué hay hoy
 
-### Backend
+| Parte | Estado | Dónde corre |
+| --- | --- | --- |
+| **Backend** (`backend/`) | API REST completa para autenticación, salas, niveles, misiones, intentos, progreso, rachas y vistas por rol | Railway, con PostgreSQL |
+| **App móvil** (`mobile/`) | Flujo completo del estudiante y pantalla del docente con datos de ejemplo | Android |
+| **Landing** (`landing/`) | Página de presentación del producto | Cloudflare Workers |
 
-- **pg**: cliente de PostgreSQL para conectar el backend con la base de datos.
-- **Node.js**: entorno de ejecución para JavaScript en el servidor.
-- **Express.js**: framework para construir la API REST.
-- **PostgreSQL**: base de datos relacional central del sistema.
-- **pg**: cliente de PostgreSQL para Node.js.
-- **dotenv**: manejo de variables de entorno.
-- **cors**: configuración de acceso entre cliente y servidor.
-- **jsonwebtoken**: generación y validación de tokens JWT.
-- **bcryptjs**: manejo de contraseñas cifradas.
-- **nodemon**: reinicio automático del servidor durante desarrollo.
-- **JavaScript**: lenguaje utilizado en el backend.
+En la app el estudiante puede:
 
-### Aplicación móvil
-
-- **Kotlin**: lenguaje principal de la aplicación Android.
-- **Jetpack Compose**: construcción de interfaces declarativas.
-- **Retrofit**: consumo de endpoints del backend.
-- **Material Design**: componentes visuales para la interfaz móvil.
-
-### Tecnologías previstas para el proyecto completo
-
-- **React + Vite**: frontend web/PWA previsto.
-- **Progressive Web App (PWA)**: instalación y uso offline.
-- **IndexedDB**: almacenamiento local para escenarios con conectividad limitada.
-- **Kaboom.js**: motor para experiencias interactivas o lúdicas.
-- **jsPDF**: generación de material imprimible.
-
-> Nota: el backend y la aplicación móvil ya tienen avances funcionales. El frontend web/PWA, IndexedDB, Kaboom.js y jsPDF forman parte de la arquitectura prevista, pero no necesariamente están implementados en esta etapa.
+- Iniciar sesión con su ID o con Google, y unirse a su sala con un código.
+- Recorrer la ruta de aprendizaje de su nivel y jugar misiones de verdadero o falso, opción múltiple y emparejar.
+- Llevar sus plumas (vidas) y su racha diaria, que se congela si deja de jugar y vuelve a encenderse al completar una misión.
+- Ver su progreso y su perfil, y cambiar entre modo claro y oscuro.
 
 ---
 
-## Estructura actual del proyecto
+## Estructura del repositorio
 
 ```txt
-MindFlow/
-├─ backend/
-│  ├─ .env.example
-│  ├─ package.json
-│  ├─ package-lock.json
-│  └─ src/
-│     ├─ app.js
-│     ├─ server.js
-│     ├─ config/
-│     │  └─ env.js
-│     ├─ controllers/
-│     │  ├─ admin.controller.js
-│     │  ├─ auth.controller.js
-│     │  ├─ coordinator.controller.js
-│     │  ├─ group.controller.js
-│     │  ├─ health.controller.js
-│     │  ├─ level.controller.js
-│     │  ├─ mission.controller.js
-│     │  ├─ student.controller.js
-│     │  └─ teacher.controller.js
-│     ├─ middlewares/
-│     │  └─ auth.middleware.js
-│     ├─ routes/
-│     │  ├─ admin.routes.js
-│     │  ├─ auth.routes.js
-│     │  ├─ coordinator.routes.js
-│     │  ├─ group.routes.js
-│     │  ├─ health.routes.js
-│     │  ├─ level.routes.js
-│     │  ├─ mission.routes.js
-│     │  ├─ student.routes.js
-│     │  └─ teacher.routes.js
-│     └─ database/
-│        ├─ connection.js
-│        ├─ schema.sql
-│        └─ data.sql
-├─ mobile/
-│  ├─ app/
-│  │  └─ src/
-│  │     └─ main/
-│  │        └─ java/com/mindflow/nova/
-│  │           ├─ data/
-│  │           │  ├─ model/
-│  │           │  └─ remote/
-│  │           ├─ ui/
-│  │           │  ├─ components/
-│  │           │  ├─ screens/
-│  │           │  └─ theme/
-│  │           ├─ MainActivity.kt
-│  │           └─ NovaApp.kt
-│  ├─ build.gradle.kts
-│  ├─ settings.gradle.kts
-│  └─ gradle.properties
-├─ .gitignore
-└─ README.md
+NOVA/
+├─ backend/              API REST en Node.js + Express
+│  ├─ src/
+│  │  ├─ routes/         Rutas HTTP y qué rol puede usarlas
+│  │  ├─ middleware/     Validación del token y del rol
+│  │  ├─ controllers/    Un caso de uso por función: valida, orquesta y responde
+│  │  ├─ services/       Reglas de negocio puras (calificar, racha, quién ve a quién)
+│  │  ├─ repositories/   Todo el SQL, agrupado por tabla o agregado
+│  │  ├─ database/       Conexión, transacciones, schema.sql y data.sql
+│  │  ├─ utils/          JWT, contraseñas y verificación del token de Google
+│  │  ├─ config/         Variables de entorno
+│  │  ├─ app.js
+│  │  └─ server.js
+│  ├─ tests/             Tests con Jest
+│  └─ railway.json       Configuración del despliegue
+├─ mobile/               App Android en Kotlin + Jetpack Compose
+│  └─ app/src/
+│     ├─ main/java/com/mindflow/nova/
+│     │  ├─ ui/          Pantallas, componentes, ViewModels y tema
+│     │  └─ data/        Repositorios, cliente de la API, sesión y modelos
+│     └─ test/           Tests unitarios
+├─ landing/              Landing en React + Vite + Tailwind (ver landing/README.md)
+└─ .github/workflows/    CI
 ```
 
 ---
 
-## Instalación del proyecto
+## Arquitectura
 
-### 1. Clonar el repositorio
+El backend y la app siguen la misma separación por capas del análisis y diseño orientado a objetos: **Presentación → Negocio → Persistencia**. Cada capa solo conoce a la de abajo, así que no hay ciclos, y ninguna pantalla ni ruta habla directamente con la base de datos o con la API.
+
+| Estereotipo | Backend | App móvil |
+| --- | --- | --- |
+| «Frontera» | `routes/`, `middleware/` | Pantallas y componentes de `ui/` |
+| «Control» | `controllers/`, con las reglas puras en `services/` | ViewModels (`*ViewModel.kt`) |
+| «Entidad» | Tablas de `schema.sql`, leídas y escritas desde `repositories/` | `data/model/` |
+| «Servicio» | `utils/` (JWT, contraseñas, token de Google), `database/transaction.js` | Repositorios de `data/`, `data/remote/` (Retrofit) y `data/session/` |
+
+En el backend, cada función de un repositorio recibe la conexión (`db`) como parámetro. Así la misma consulta sirve sola o dentro de una transacción de `withTransaction`.
+
+En la app, las pantallas leen el estado de su ViewModel con `StateFlow`, y el ViewModel pide los datos a una interfaz de repositorio. En los tests esa interfaz se reemplaza por una falsa, sin red.
+
+---
+
+## Tecnologías
+
+| Parte | Tecnologías |
+| --- | --- |
+| Backend | Node.js 18+, Express 5, PostgreSQL (`pg`), JWT (`jsonwebtoken`), `bcryptjs`, `google-auth-library`, Jest |
+| App móvil | Kotlin, Jetpack Compose, Material 3, ViewModel + StateFlow, Retrofit, JUnit, `kotlinx-coroutines-test` |
+| Landing | React 19, Vite, Tailwind CSS 4, oxlint, Cloudflare Workers |
+| Infraestructura | Railway (backend), PostgreSQL gestionado, GitHub Actions |
+
+---
+
+## Backend
+
+### Instalación
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd MindFlow
-```
-
-### 2. Entrar al backend
-
-```bash
-cd backend
-```
-
-### 3. Instalar dependencias
-
-```bash
+git clone https://github.com/THEGABOALE/NOVA.git
+cd NOVA/backend
 npm install
 ```
 
-Este comando instala las dependencias definidas en `package.json`, como Express, dotenv y nodemon.
+### Variables de entorno
 
----
-
-## Variables de entorno
-
-El backend utiliza un archivo `.env` dentro de la carpeta `backend/`.
-
-Crear el archivo:
-
-```bash
-touch .env
-```
-
-Ejemplo de configuración local:
+Copiar `.env.example` como `.env` y completar los valores:
 
 ```env
 PORT=3000
 NODE_ENV=development
+
+# En producción basta con DATABASE_URL y se ignoran las variables DB_* de abajo
+DATABASE_URL=
 
 DB_HOST=localhost
 DB_PORT=5432
@@ -162,160 +110,77 @@ DB_NAME=mindflow_db
 DB_USER=postgres
 DB_PASSWORD=your_password_here
 
-JWT_SECRET=dev-secret-cambiar-en-produccion
+GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
+
+JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES_IN=7d
 ```
 
-El archivo `.env` no debe subirse al repositorio. Solo debe subirse `.env.example`.
+`JWT_SECRET` es obligatoria en producción: sin ella, el servidor no arranca. En desarrollo, si falta, se usa un secreto de prueba y aparece un aviso en la consola. El archivo `.env` nunca se sube al repositorio.
 
----
+### Base de datos
 
-## Base de datos
-
-El proyecto utiliza PostgreSQL como base de datos principal.
-
-Los archivos principales son:
-
-```txt
-backend/src/database/schema.sql
-backend/src/database/data.sql
-```
-
-- `schema.sql`: crea la estructura de tablas.
-- `data.sql`: inserta datos de prueba para desarrollo.
-
-Durante desarrollo local, si se necesita reiniciar la base de datos, ejecutar primero `schema.sql` y luego `data.sql`.
-
-Ejemplo usando Node desde la carpeta `backend/`:
+Crear la base y cargar primero la estructura y después los datos de prueba:
 
 ```bash
-node -e "require('dotenv').config(); const fs = require('fs'); const { Pool } = require('pg'); const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD }); const sql = fs.readFileSync('src/database/schema.sql', 'utf8'); pool.query(sql).then(() => { console.log('schema.sql ejecutado correctamente'); pool.end(); }).catch(e => { console.error(e.message); pool.end(); });"
+psql -U postgres -d mindflow_db -f src/database/schema.sql
+psql -U postgres -d mindflow_db -f src/database/data.sql
 ```
 
-Luego:
+También se pueden ejecutar abriendo los archivos en SQLTools, desde VS Code.
+
+### Ejecución
 
 ```bash
-node -e "require('dotenv').config(); const fs = require('fs'); const { Pool } = require('pg'); const pool = new Pool({ host: process.env.DB_HOST, port: process.env.DB_PORT, database: process.env.DB_NAME, user: process.env.DB_USER, password: process.env.DB_PASSWORD }); const sql = fs.readFileSync('src/database/data.sql', 'utf8'); pool.query(sql).then(() => { console.log('data.sql ejecutado correctamente'); pool.end(); }).catch(e => { console.error(e.message); pool.end(); });"
+npm run dev     # con recarga automática (nodemon)
+npm start       # modo normal
+npm test        # tests con Jest
 ```
 
-También se puede ejecutar desde SQLTools en VS Code, abriendo los archivos y ejecutando los bloques SQL correspondientes.
+La API queda en `http://localhost:3000`, o en el puerto definido en `.env`.
 
----
+### Despliegue
 
-## Ejecución del backend
+El backend se publica en Railway según `railway.json`. Railway arranca el servidor con `npm start`, revisa que esté vivo con `/api/health` y lo reinicia si falla. En producción la conexión a la base llega por `DATABASE_URL` y va cifrada.
 
-Desde la carpeta `backend/`:
+La instancia puede tardar en responder la primera petición después de un rato sin uso. Por eso la app la despierta al abrirse y espera hasta 30 segundos por respuesta.
 
-```bash
-npm run dev
-```
+### Endpoints
 
-Si todo está correcto, el backend debería levantarse en:
+Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token se obtiene al iniciar sesión.
 
-```txt
-http://localhost:3000
-```
+| Método | Ruta | Acceso | Qué hace |
+| --- | --- | --- | --- |
+| GET | `/api/health` | Público | Confirma que el servidor está vivo |
+| GET | `/api/health/db` | Público | Confirma la conexión con PostgreSQL |
+| POST | `/api/auth/login/id` | Público | Inicia sesión con `loginId` y `password` |
+| POST | `/api/auth/login/google` | Público | Inicia sesión con el `idToken` de Google |
+| GET | `/api/auth/me` | Con sesión | Devuelve el usuario de la sesión |
+| POST | `/api/auth/students` | Coordinador, admin | Crea una cuenta con ID y contraseña |
+| GET | `/api/levels` | Con sesión | Niveles educativos con sus misiones |
+| POST | `/api/groups/join` | Estudiante | Une al estudiante a una sala con un `code` |
+| GET | `/api/students/:studentId/context` | Ver nota | Sala, nivel y centro del estudiante |
+| GET | `/api/students/:studentId/progress` | Ver nota | Puntos, misiones completadas y racha |
+| GET | `/api/missions/:missionId` | Con sesión | Misión con sus preguntas |
+| POST | `/api/missions/:missionId/attempts` | Con sesión | Abre un intento |
+| POST | `/api/missions/attempts/:attemptId/finish` | Con sesión | Califica las respuestas y actualiza progreso y racha |
+| GET | `/api/teacher/me/students` | Docente | Estudiantes de sus salas |
+| GET | `/api/coordinator/me/overview` | Coordinador | Resumen de su centro |
+| GET | `/api/admin/overview` | Admin | Resumen global |
+| GET | `/api/admin/users` | Admin | Lista de usuarios |
+| GET | `/api/admin/centers/:centerId/overview` | Admin | Resumen de un centro |
 
-O en el puerto definido dentro del archivo `.env`.
+**Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
 
----
-
-## Despliegue en la nube
-
-Además de poder ejecutarse localmente, el backend de NOVA ya cuenta con un despliegue en la nube para facilitar pruebas externas e integración con la aplicación móvil.
-
-Durante el desarrollo local, la API puede ejecutarse en:
-
-```txt
-http://localhost:3000
-```
-
-Para pruebas en la nube, se utiliza la URL del backend desplegado:
-
-```txt
-<URL_DEL_BACKEND_EN_LA_NUBE>
-```
-
-La aplicación móvil puede consumir la API local o la API desplegada, dependiendo de la configuración definida en el cliente móvil.
-
-Ejemplos de endpoints en local:
-
-```txt
-POST http://localhost:3000/api/auth/login/id
-GET http://localhost:3000/api/levels
-POST http://localhost:3000/api/groups/join
-```
-
-Ejemplos de endpoints en la nube:
-
-```txt
-POST <URL_DEL_BACKEND_EN_LA_NUBE>/api/auth/login/id
-GET <URL_DEL_BACKEND_EN_LA_NUBE>/api/levels
-POST <URL_DEL_BACKEND_EN_LA_NUBE>/api/groups/join
-```
-
-> Nota: la URL exacta del backend en la nube debe mantenerse actualizada según el servicio de despliegue utilizado por el equipo.
-
-## Scripts disponibles
-
-Los scripts principales del backend se encuentran en `backend/package.json`.
-
-Ejemplo esperado:
+Ejemplo de inicio de sesión:
 
 ```json
-{
-  "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
-  }
-}
-```
-
-Ejecutar en desarrollo:
-
-```bash
-npm run dev
-```
-
-Ejecutar en modo normal:
-
-```bash
-npm start
-```
-
----
-
-## Endpoints principales
-
-### Salud del sistema
-
-```txt
-GET /
-GET /api/health/db
-```
-
-Permiten verificar que el servidor esté activo y que exista conexión con PostgreSQL.
-
----
-
-### Autenticación
-
-```txt
 POST /api/auth/login/id
-```
-
-Permite iniciar sesión mediante `loginId` y contraseña.
-
-Ejemplo:
-
-```json
 {
   "loginId": "profedemo",
   "password": "profe2026"
 }
 ```
-
-Respuesta esperada:
 
 ```json
 {
@@ -334,397 +199,127 @@ Respuesta esperada:
 }
 ```
 
-El token debe enviarse en rutas protegidas mediante el header:
+### Roles
 
-```txt
-Authorization: Bearer <JWT_TOKEN>
+| Rol | Puede |
+| --- | --- |
+| `student` | Unirse a una sala, jugar misiones y ver su propio progreso |
+| `teacher` | Ver a los estudiantes de sus salas |
+| `coordinator` | Ver su centro educativo y crear cuentas de estudiantes y docentes |
+| `admin` | Ver todo el sistema y crear cuentas de cualquier rol (equipo MindFlow) |
+
+---
+
+## App móvil
+
+Se abre la carpeta `mobile/` en Android Studio, que usa JDK 21. La app pide Android 7.0 (API 24) o superior.
+
+La URL de la API depende del tipo de build:
+
+- **debug:** `http://10.0.2.2:3000/`, que desde el emulador apunta al backend local de la computadora.
+- **release:** el backend desplegado en Railway.
+
+Para probar contra el backend local basta con levantarlo con `npm run dev` y correr la app en el emulador. Para una demo en un teléfono se instala el build release, que se firma con la clave de debug y no sirve para publicar en Play Store.
+
+Tests unitarios, desde `mobile/`:
+
+```bash
+./gradlew testDebugUnitTest
 ```
 
 ---
 
-### Códigos de grupo
+## Landing
 
-```txt
-POST /api/groups/join
-```
-
-Permite que un estudiante se una a un grupo mediante código de acceso.
-
-Ejemplo:
-
-```json
-{
-  "code": "NOVA123",
-  "studentName": "Gabriel Demo"
-}
-```
-
-El backend valida que el código exista, esté activo, no haya expirado y no haya alcanzado su límite de usos.
-
----
-
-### Niveles educativos
-
-```txt
-GET /api/levels
-```
-
-Devuelve los niveles educativos registrados en la base de datos.
-
----
-
-### Estudiantes
-
-```txt
-GET /api/students/:studentId/context
-GET /api/students/:studentId/progress
-```
-
-Permiten obtener el contexto del estudiante, su grupo, nivel educativo y progreso.
-
-Estas rutas pueden requerir token de autenticación.
-
----
-
-### Misiones
-
-```txt
-GET /api/missions
-GET /api/missions/:id
-GET /api/missions/:id/questions
-POST /api/missions/:id/attempts
-POST /api/missions/attempts/:attemptId/finish
-```
-
-Permiten consultar misiones, obtener preguntas, iniciar intentos y finalizar misiones con respuestas del estudiante.
-
----
-
-### Docente
-
-```txt
-GET /api/teacher/me/students
-```
-
-Permite consultar información asociada al docente, como estudiantes o grupos relacionados.
-
----
-
-### Coordinador
-
-```txt
-GET /api/coordinator/me/overview
-```
-
-Permite consultar información general del centro educativo asociado al coordinador.
-
-El rol coordinador está pensado para gestionar usuarios de su institución, como estudiantes y docentes, sin permisos globales de administrador.
-
----
-
-### Administrador
-
-```txt
-GET /api/admin/overview
-GET /api/admin/users
-GET /api/admin/centers/:centerId/overview
-```
-
-Permiten consultar información global del sistema, usuarios y centros educativos.
-
----
-
-## Roles del sistema
-
-El backend contempla los siguientes roles:
-
-```txt
-student
-teacher
-coordinator
-admin
-```
-
-### Estudiante
-
-Puede acceder a su contexto, grupo, nivel, misiones y progreso.
-
-### Docente
-
-Puede consultar información relacionada con sus grupos y estudiantes.
-
-### Coordinador
-
-Puede gestionar usuarios dentro de su institución y consultar información de su centro educativo.
-
-### Administrador
-
-Puede consultar información general del sistema y gestionar información global.
+Está en `landing/`. Cómo correrla, publicarla y los detalles de marca están en [landing/README.md](landing/README.md).
 
 ---
 
 ## Datos de prueba
 
-El archivo `backend/src/database/data.sql` contiene usuarios y datos iniciales para desarrollo.
+`data.sql` crea un centro, una sala de Primaria alta con el código `NOVA123`, cinco misiones de prueba (tres de Primaria alta y una en cada nivel de secundaria) y estas cuentas:
 
-Credenciales de prueba usadas durante el desarrollo:
+| Rol | loginId | Contraseña |
+| --- | --- | --- |
+| Estudiante | `garciaga` | `1234` |
+| Docente | `profedemo` | `profe2026` |
+| Coordinador | `coordinador` | `coord2026` |
+| Admin | `adminmindflow` | `admin2026` |
 
-```txt
-Estudiante:
-loginId: garciaga
-password: 1234
+El código `NOVA123` vence 5 minutos después de cargar los datos. Para volver a probar el ingreso a una sala, hay que cargar `data.sql` otra vez o extender `expires_at` en `group_access_codes`.
 
-Profesor:
-loginId: profedemo
-password: profe2026
-
-Coordinador:
-loginId: coordinador
-password: coord2026
-
-Admin:
-loginId: adminmindflow
-password: admin2026
-```
-
-Estas credenciales son únicamente para desarrollo local.
+Estas credenciales son solo para desarrollo local.
 
 ---
 
-## Pruebas recomendadas del backend
+## CI
 
-Después de ejecutar `schema.sql`, `data.sql` y levantar el servidor, se recomienda probar:
+GitHub Actions corre tres trabajos en cada push y en cada PR hacia `main`:
 
-Las pruebas pueden realizarse usando la API local o la API desplegada en la nube. Para pruebas locales se utiliza `http://localhost:3000`. Para pruebas externas se utiliza la URL del backend desplegado.
+- **Backend:** `npm test`.
+- **Móvil:** `./gradlew testDebugUnitTest`.
+- **Landing:** `npm run lint` y `npm run build`.
 
-```txt
-GET /
-GET /api/health/db
-POST /api/auth/login/id
-GET /api/levels
-POST /api/groups/join
-GET /api/students/:studentId/context
-GET /api/students/:studentId/progress
-GET /api/missions
-GET /api/missions/:id
-GET /api/missions/:id/questions
-POST /api/missions/:id/attempts
-POST /api/missions/attempts/:attemptId/finish
-GET /api/teacher/me/students
-GET /api/coordinator/me/overview
-GET /api/admin/overview
-GET /api/admin/users
-```
-
-También se deben probar casos de error:
-
-```txt
-Login con contraseña incorrecta
-Token ausente
-Token inválido
-Acceso con rol incorrecto
-Código de grupo expirado
-Código de grupo inexistente
-Código de grupo con límite de usos alcanzado
-```
+Un PR solo debería mergearse con los tres en verde.
 
 ---
 
-## Aplicación móvil
+## Flujo de trabajo
 
-La aplicación móvil está desarrollada en Android usando Kotlin y Jetpack Compose.
+Hay una rama por área, y todos los PRs van hacia `main`:
 
-Actualmente incluye avances como:
+| Rama | Para |
+| --- | --- |
+| `main` | Lo que está integrado y funcionando |
+| `backend` | API y base de datos |
+| `frontend/mobile` | App Android |
+| `frontend/landing` | Landing |
+| `docs/readme` | Documentación |
 
-- Pantalla para unirse a un grupo mediante código.
-- Consumo del endpoint `POST /api/groups/join`.
-- Manejo de mensajes de error del backend.
-- Navegación inicial hacia pantallas de estudiante/docente.
-- Estructura de modelos y servicios remotos para conexión con la API.
-- Pantallas y componentes iniciales para home, lecciones, progreso, docente y perfil.
+Antes de empezar, se actualiza la rama con `main`. Cuando el cambio está listo, se abre el PR hacia `main`. No se trabaja directamente sobre `main` ni se abren PRs de una rama hacia otra.
 
-La integración móvil continúa en desarrollo, especialmente en la conexión con autenticación real, manejo de token JWT y navegación según rol.
-
----
-
-## Buenas prácticas del repositorio
-
-No subir al repositorio:
+### Commits
 
 ```txt
-node_modules/
-.env
-backend/.env
-mobile/.gradle/
-mobile/build/
-mobile/app/build/
-mobile/local.properties
-.idea/
-.vscode/
+tipo(alcance): descripción breve
 ```
-
-Sí subir al repositorio:
-
-```txt
-package.json
-package-lock.json
-.env.example
-src/
-README.md
-.gitignore
-mobile/app/src/
-mobile/build.gradle.kts
-mobile/settings.gradle.kts
-mobile/gradle.properties
-mobile/gradle/wrapper/gradle-wrapper.properties
-```
-
----
-
-## Flujo de trabajo con Git y GitHub
-
-El equipo utiliza Git y GitHub para controlar versiones, organizar avances y revisar cambios antes de integrarlos a la rama principal.
-
-Flujo recomendado:
 
 ```bash
-git switch main
-git pull origin main
-git switch -c tipo/nombre-de-la-rama
+git commit -m "feat(mobile): agregar racha en el inicio"
+git commit -m "fix(backend): calcular la racha en la zona horaria del estudiante"
+git commit -m "docs(readme): actualizar estructura del proyecto"
 ```
 
-Después de trabajar:
+| Tipo | Uso |
+| --- | --- |
+| `feat` | Funcionalidad nueva |
+| `fix` | Corrección de un error |
+| `refactor` | Cambio interno sin cambiar el comportamiento |
+| `docs` | Documentación |
+| `test` | Tests |
+| `style` | Formato |
+| `perf` | Rendimiento |
+| `ci` | GitHub Actions |
+| `chore` | Mantenimiento |
 
-```bash
-git status
-git add archivo-modificado
-git commit -m "tipo(alcance): descripcion breve"
-git push -u origin tipo/nombre-de-la-rama
-```
+### Qué no se sube
 
-Luego se crea un Pull Request en GitHub para revisión.
-
-No se recomienda trabajar directamente sobre `main`.
+`node_modules/`, `.env`, `dist/`, `mobile/.gradle/`, `mobile/build/`, `mobile/app/build/`, `mobile/local.properties`, `.idea/` y `.vscode/`. Solo se sube `.env.example`.
 
 ---
 
-## Convención de commits
+## Próximos pasos
 
-Formato recomendado:
+1. Conectar la pantalla del docente a datos reales del backend.
+2. Crear las pantallas de coordinador y administrador en la app.
+3. Probar el login con Google en un teléfono real contra el backend desplegado.
+4. Sumar misiones a los niveles de secundaria, que hoy tienen una cada uno.
+5. Preparar una versión estable para la demostración.
 
-```txt
-tipo(alcance): descripción breve del cambio realizado
-```
-
-Ejemplos:
-
-```bash
-git commit -m "core(config): agregar variables de entorno"
-git commit -m "docs(readme): agregar base del repositorio"
-git commit -m "core(api): inicializar backend express"
-git commit -m "core(db): configurar conexion PostgreSQL"
-git commit -m "feat(api): agregar login por id"
-git commit -m "feat(api): agregar contexto de estudiante"
-git commit -m "fix(mobile): mostrar mensaje de codigo invalido"
-git commit -m "docs(readme): actualizar estado del proyecto"
-```
-
-Tipos de commit:
-
-```txt
-feat: nueva funcionalidad
-fix: corrección de errores
-refactor: refactorización sin cambiar la lógica externa
-docs: cambios en documentación
-style: cambios de formato
-perf: mejoras de rendimiento
-test: pruebas
-chore: tareas de mantenimiento
-ci: cambios en CI/CD
-core: cambios de infraestructura o base del sistema
-```
+Más adelante está prevista una versión web/PWA con uso sin conexión y la generación de material imprimible.
 
 ---
-
-## Convención de nombres de ramas
-
-Las ramas deben tener nombres claros y relacionados con la tarea que se está trabajando. Se recomienda usar minúsculas, guiones medios y un prefijo según el tipo de trabajo.
-
-Formato recomendado:
-
-```txt
-tipo/nombre-de-la-rama
-```
-
-Ejemplos:
-
-```txt
-feature/conexion-postgresql
-feat/api-student-session
-feat/api-auth-login
-mobile/group-code-login
-mobile/auth-login
-docs/readme-flujo-proyecto
-fix/error-puerto-db
-refactor/estructura-backend
-```
-
----
-
-## Estado actual del proyecto
-
-Actualmente el proyecto cuenta con:
-
-- Backend en Node.js y Express.
-- Conexión funcional con PostgreSQL.
-- Esquema de base de datos inicial.
-- Datos de prueba para desarrollo.
-- Autenticación por `loginId` y contraseña.
-- Generación de tokens JWT.
-- Roles de estudiante, docente, coordinador y administrador.
-- Validación de códigos de grupo.
-- Endpoints para niveles, estudiantes, misiones, docentes, coordinadores y administradores.
-- Aplicación móvil en Kotlin con Jetpack Compose.
-- Integración inicial entre mobile y backend.
-- Pruebas manuales con Postman y SQLTools.
-- Backend desplegado en la nube para pruebas externas.
-
----
-
-## Próximos pasos técnicos
-
-Los próximos avances recomendados son:
-
-1. Terminar la integración del login real en la aplicación móvil.
-2. Guardar el token JWT en Android para consumir rutas protegidas.
-3. Redirigir al usuario según su rol.
-4. Conectar las pantallas móviles con datos reales del backend.
-5. Pulir el flujo de estudiante: login, home, misiones, progreso y retroalimentación.
-6. Pulir el flujo de docente: grupos, estudiantes y seguimiento.
-7. Validar permisos por rol en todas las rutas protegidas.
-8. Limpiar archivos locales del repositorio, especialmente cachés de Android como `.gradle` e `.idea`.
-9. Agregar scripts más simples para ejecutar `schema.sql` y `data.sql`.
-10. Validar que la aplicación móvil consuma correctamente la API desplegada en la nube.
-11. Preparar una versión estable para demostración.
-
----
-
-## Rama de trabajo
-
-El backend se está trabajando actualmente en la rama:
-
-```txt
-backend
-```
-
-Para subir cambios:
-
-```bash
-git add .
-git commit -m "mensaje del commit"
-git push origin backend
-```
 
 ## Equipo
 
-El proyecto **NOVA** es desarrollado por el equipo **MindFlow** como parte del reto de plataforma de aprendizaje basado en juegos del Hackathon Nicaragua 2026.
+**NOVA** es desarrollado por el equipo **MindFlow** para el Hackathon Nicaragua 2026.
