@@ -35,11 +35,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,7 +47,6 @@ import androidx.compose.ui.unit.sp
 import com.mindflow.nova.BuildConfig
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
-import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
@@ -66,28 +60,14 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 
 @Composable
 fun ProfileScreen(
+    // Null mientras carga o si no se pudo obtener la cuenta.
+    user: SessionUser?,
     progress: StudentProgress?,
     darkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     onLogout: () -> Unit = {}
 ) {
-    var user by remember { mutableStateOf<SessionUser?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitClient.api.getMe()
-            if (response.isSuccessful) {
-                user = response.body()?.user
-            }
-        } catch (e: Exception) {
-            // Sin conexión: se queda con los datos por defecto de abajo.
-        } finally {
-            isLoading = false
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -112,7 +92,7 @@ fun ProfileScreen(
             )
         }
 
-        ProfileHeaderCard(user = user, isLoading = isLoading)
+        ProfileHeaderCard(user = user)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -168,7 +148,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileHeaderCard(user: SessionUser?, isLoading: Boolean) {
+private fun ProfileHeaderCard(user: SessionUser?) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
@@ -199,7 +179,7 @@ private fun ProfileHeaderCard(user: SessionUser?, isLoading: Boolean) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = user?.fullName ?: if (isLoading) "Cargando..." else "Estudiante",
+                text = user?.fullName ?: "Estudiante",
                 color = NovaText,
                 fontWeight = FontWeight.Bold,
                 fontSize = 22.sp,

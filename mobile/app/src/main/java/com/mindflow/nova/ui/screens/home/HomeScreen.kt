@@ -23,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,10 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.MissionResponse
+import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
-import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.screens.lessons.LessonHost
 import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
 import com.mindflow.nova.ui.screens.lessons.common.StartLessonDialog
@@ -55,51 +57,20 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 fun HomeScreen(
     darkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    viewModel: StudentHomeViewModel = viewModel()
 ) {
-    var levels by remember { mutableStateOf<List<LevelResponse>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val state by viewModel.state.collectAsState()
+    val levels = state.levels
+    val progress = state.progress
+
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
     // Misión elegida que todavía espera la confirmación "¿Quieres comenzar?".
     var pendingMission by remember { mutableStateOf<MissionResponse?>(null) }
-    var progress by remember { mutableStateOf<StudentProgress?>(null) }
-    // Cambia cada vez que se sale de una lección, para volver a pedir el
-    // progreso: así el mapa de lecciones refleja al toque la misión recién
-    // completada, sin esperar a cerrar y volver a abrir la app.
-    var progressRefreshKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitClient.api.getLevels()
-
-            if (response.isSuccessful) {
-                levels = response.body().orEmpty()
-            } else {
-                errorMessage = "Error HTTP: ${response.code()}"
-            }
-        } catch (e: Exception) {
-            errorMessage = "Error de conexión: ${e.message}"
-        } finally {
-            isLoading = false
-        }
-    }
-
-    LaunchedEffect(progressRefreshKey) {
-        try {
-            val me = RetrofitClient.api.getMe()
-            val userId = me.body()?.user?.id
-
-            if (me.isSuccessful && userId != null) {
-                val response = RetrofitClient.api.getStudentProgress(userId)
-                if (response.isSuccessful) {
-                    progress = response.body()?.student
-                }
-            }
-        } catch (e: Exception) {
-            // Sin conexión: el mapa de lecciones sigue con el progreso que ya tenía.
-        }
+        viewModel.start()
     }
 
     activeMission?.let { mission ->
@@ -107,7 +78,9 @@ fun HomeScreen(
             mission = mission,
             onExit = {
                 activeMission = null
-                progressRefreshKey++
+                // Al salir de una lección se vuelve a pedir el progreso, para que
+                // la ruta refleje la misión recién completada sin reabrir la app.
+                viewModel.refreshProgress()
             }
         )
         return
@@ -122,7 +95,7 @@ fun HomeScreen(
         }
     ) { innerPadding ->
         when {
-            isLoading -> {
+            state.isLoading -> {
                 LoadingState(
                     modifier = Modifier
                         .fillMaxSize()
@@ -130,9 +103,9 @@ fun HomeScreen(
                 )
             }
 
-            errorMessage != null -> {
+            state.errorMessage != null -> {
                 ErrorState(
-                    message = errorMessage ?: "Error desconocido",
+                    message = state.errorMessage ?: "Error desconocido",
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -151,12 +124,16 @@ fun HomeScreen(
                 NovaMainContent(
                     selectedTab = selectedTab,
                     level = levels.first(),
+                    user = state.user,
                     progress = progress,
                     onMissionSelected = { mission -> pendingMission = mission },
                     onOpenLessons = { selectedTab = NovaTab.Lessons },
                     darkMode = darkMode,
                     onDarkModeChange = onDarkModeChange,
-                    onLogout = onLogout,
+                    onLogout = {
+                        viewModel.clear()
+                        onLogout()
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
@@ -189,6 +166,7 @@ internal enum class NovaTab {
 private fun NovaMainContent(
     selectedTab: NovaTab,
     level: LevelResponse,
+    user: SessionUser?,
     progress: StudentProgress?,
     onMissionSelected: (MissionResponse) -> Unit,
     onOpenLessons: () -> Unit,
@@ -220,12 +198,14 @@ private fun NovaMainContent(
         NovaTab.Progress -> {
             ProgressScreen(
                 level = level,
+                progress = progress,
                 modifier = modifier
             )
         }
 
         NovaTab.Profile -> {
             ProfileScreen(
+                user = user,
                 progress = progress,
                 darkMode = darkMode,
                 onDarkModeChange = onDarkModeChange,
