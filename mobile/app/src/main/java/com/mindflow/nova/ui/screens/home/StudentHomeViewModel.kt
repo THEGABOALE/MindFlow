@@ -8,6 +8,7 @@ import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.student.LevelsResult
 import com.mindflow.nova.data.student.RemoteStudentRepository
 import com.mindflow.nova.data.student.StudentRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,7 @@ class StudentHomeViewModel(
     val state: StateFlow<StudentHomeState> = _state.asStateFlow()
 
     private var started = false
+    private var refreshJob: Job? = null
 
     /** Carga todo la primera vez que se entra al área del estudiante; después no hace nada. */
     fun start() {
@@ -62,9 +64,14 @@ class StudentHomeViewModel(
      * Vuelve a pedir el progreso, por ejemplo al salir de una lección, para
      * que la ruta refleje la misión recién completada. Si falla, se conserva
      * el progreso que ya se tenía.
+     *
+     * Si ya había una actualización en curso se cancela: si no, una respuesta
+     * vieja que llegue tarde podría pisar a la nueva y mostrar como pendiente
+     * una misión recién completada.
      */
     fun refreshProgress() {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             val user = _state.value.user ?: repository.loadCurrentUser() ?: return@launch
             _state.update { it.copy(user = user) }
 

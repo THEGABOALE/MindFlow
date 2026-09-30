@@ -44,11 +44,17 @@ class StudentHomeViewModelTest {
         var userCalls = 0
         var progressCalls = 0
         var progressGate: CompletableDeferred<Unit>? = null
+        /** Respuestas por llamada, en orden, cada una con su propia espera; si está vacía se usa [progress]. */
+        val progressQueue = ArrayDeque<Pair<StudentProgress?, CompletableDeferred<Unit>>>()
 
         override suspend fun loadLevels(): LevelsResult { levelCalls++; return levels }
         override suspend fun loadCurrentUser(): SessionUser? { userCalls++; return user }
         override suspend fun loadProgress(userId: Int): StudentProgress? {
             progressCalls++
+            progressQueue.removeFirstOrNull()?.let { (answer, gate) ->
+                gate.await()
+                return answer
+            }
             val answer = progress
             progressGate?.await()
             return answer
@@ -187,5 +193,23 @@ class StudentHomeViewModelTest {
 
         assertNull(viewModel.state.value.progress)
         assertNull(viewModel.state.value.user)
+    }
+
+    @Test
+    fun `una actualizacion vieja que llega tarde no pisa a la nueva`() {
+        val repo = repository()
+        val slowOld = CompletableDeferred<Unit>()
+        val fastNew = CompletableDeferred<Unit>().apply { complete(Unit) }
+        repo.progressQueue.add(progress(2, 250) to slowOld) // la del inicio, lenta
+        repo.progressQueue.add(progress(2, 450) to fastNew) // la de salir de una lección, rápida
+        val viewModel = StudentHomeViewModel(repo)
+
+        viewModel.start()
+        viewModel.refreshProgress()
+        assertEquals(450, viewModel.state.value.progress?.totalPoints)
+
+        slowOld.complete(Unit) // la respuesta vieja llega después
+
+        assertEquals(450, viewModel.state.value.progress?.totalPoints)
     }
 }
