@@ -1,79 +1,16 @@
-const bcrypt = require("bcryptjs");
-const { OAuth2Client } = require("google-auth-library");
 const pool = require("../database/connection");
-const env = require("../config/env");
+const { withTransaction } = require("../database/transaction");
+const userRepository = require("../repositories/user.repository");
+const groupRepository = require("../repositories/group.repository");
 const { signSessionToken } = require("../utils/jwt");
-
-const googleClient = new OAuth2Client(env.auth.googleClientId);
-
-const SALT_ROUNDS = 10;
-
-const findUserForLogin = async ({ email, loginId }) => {
-  const result = await pool.query(
-    `
-    SELECT
-      u.id,
-      u.full_name,
-      u.email,
-      u.login_id,
-      u.password_hash,
-      u.center_id,
-      u.is_active,
-      r.name AS role_name
-    FROM users u
-    JOIN roles r ON r.id = u.role_id
-    WHERE ($1::VARCHAR IS NOT NULL AND u.email = $1)
-       OR ($2::VARCHAR IS NOT NULL AND u.login_id = $2)
-    LIMIT 1;
-    `,
-    [email || null, loginId || null]
-  );
-
-  return result.rows[0] || null;
-};
-
-const findUserById = async (id) => {
-  const result = await pool.query(
-    `
-    SELECT
-      u.id,
-      u.full_name,
-      u.email,
-      u.login_id,
-      u.center_id,
-      u.is_active,
-      r.name AS role_name
-    FROM users u
-    JOIN roles r ON r.id = u.role_id
-    WHERE u.id = $1
-    LIMIT 1;
-    `,
-    [id]
-  );
-
-  return result.rows[0] || null;
-};
+const { hashPassword, passwordMatches } = require("../utils/password");
+const { isGoogleLoginConfigured, verifyGoogleIdToken } = require("../utils/google-token");
 
 // Sala activa del estudiante. Si viene null, la app le muestra la pantalla
 // del código; si ya tiene sala, entra directo al home aunque haya cerrado
 // sesión antes, porque la matrícula vive en la base y no en el teléfono.
-const findActiveGroup = async (userId) => {
-  const result = await pool.query(
-    `
-    SELECT cg.id, cg.name, cg.grade, cg.section, cg.school_year, cg.level_id
-    FROM student_group_enrollments sge
-    JOIN class_groups cg ON cg.id = sge.group_id
-    WHERE sge.user_id = $1
-      AND sge.is_active = TRUE
-      AND cg.is_active = TRUE
-    ORDER BY cg.school_year DESC
-    LIMIT 1;
-    `,
-    [userId]
-  );
-
-  return result.rows[0] || null;
-};
+const findSessionGroup = (user) =>
+  user.role_name === "student" ? groupRepository.findActiveGroup(pool, user.id) : null;
 
 const buildSessionUser = (user, group) => ({
   id: user.id,
@@ -93,9 +30,7 @@ const buildSessionUser = (user, group) => ({
 });
 
 const buildSessionResponse = async (user) => {
-  const group = user.role_name === "student"
-    ? await findActiveGroup(user.id)
-    : null;
+  const group = await findSessionGroup(user);
 
   return {
     message: "Sesión iniciada correctamente",
@@ -115,7 +50,7 @@ const loginWithGoogle = async (req, res) => {
     });
   }
 
-  if (!env.auth.googleClientId) {
+  if (!isGoogleLoginConfigured()) {
     return res.status(500).json({
       message: "El servidor no tiene configurado GOOGLE_CLIENT_ID",
       status: "ERROR"
@@ -125,12 +60,7 @@ const loginWithGoogle = async (req, res) => {
   let payload;
 
   try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: env.auth.googleClientId
-    });
-
-    payload = ticket.getPayload();
+    payload = await verifyGoogleIdToken(idToken);
   } catch (error) {
     return res.status(401).json({
       message: "El token de Google no es válido",
@@ -153,7 +83,7 @@ const loginWithGoogle = async (req, res) => {
   }
 
   try {
-    const user = await findUserForLogin({ email: payload.email });
+    const user = await userRepository.findUserForLogin(pool, { email: payload.email });
 
     if (!user) {
       // La institución tiene que haber registrado el correo de antemano; el
@@ -193,7 +123,7 @@ const loginWithId = async (req, res) => {
 
   try {
     // El ID se guarda en minúsculas al crear la cuenta, así que se normaliza igual acá.
-    const user = await findUserForLogin({ loginId: loginId.trim().toLowerCase() });
+    const user = await userRepository.findUserForLogin(pool, { loginId: loginId.trim().toLowerCase() });
 
     // Mismo mensaje genérico si el ID no existe o la contraseña no coincide.
     if (!user || !user.password_hash) {
@@ -203,9 +133,7 @@ const loginWithId = async (req, res) => {
       });
     }
 
-    const passwordMatches = await bcrypt.compare(password, user.password_hash);
-
-    if (!passwordMatches) {
+    if (!(await passwordMatches(password, user.password_hash))) {
       return res.status(401).json({
         message: "ID o contraseña incorrectos",
         status: "ERROR"
@@ -233,7 +161,7 @@ const loginWithId = async (req, res) => {
 // mandar al usuario (estudiante, docente, coordinador o admin).
 const getMe = async (req, res) => {
   try {
-    const user = await findUserById(req.user.id);
+    const user = await userRepository.findUserById(pool, req.user.id);
 
     if (!user || !user.is_active) {
       return res.status(401).json({
@@ -242,9 +170,7 @@ const getMe = async (req, res) => {
       });
     }
 
-    const group = user.role_name === "student"
-      ? await findActiveGroup(user.id)
-      : null;
+    const group = await findSessionGroup(user);
 
     return res.status(200).json({
       message: "OK",
@@ -294,88 +220,54 @@ const createIdAccount = async (req, res) => {
     });
   }
 
-  const client = await pool.connect();
-
   try {
-    await client.query("BEGIN");
+    const outcome = await withTransaction(async (db) => {
+      const normalizedLoginId = loginId.trim().toLowerCase();
 
-    const normalizedLoginId = loginId.trim().toLowerCase();
-
-    const existing = await client.query(
-      "SELECT id FROM users WHERE login_id = $1 LIMIT 1;",
-      [normalizedLoginId]
-    );
-
-    if (existing.rows.length > 0) {
-      await client.query("ROLLBACK");
-
-      return res.status(409).json({
-        message: "Ya existe una cuenta con ese ID",
-        status: "ERROR"
-      });
-    }
-
-    const roleResult = await client.query(
-      "SELECT id FROM roles WHERE name = $1 LIMIT 1;",
-      [requestedRole]
-    );
-
-    if (roleResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-
-      return res.status(400).json({
-        message: `No existe el rol "${requestedRole}"`,
-        status: "ERROR"
-      });
-    }
-
-    // La cuenta nueva queda en el mismo centro que quien la crea (ya viene
-    // fresco de la base gracias a authenticate).
-    const centerId = req.user.centerId || null;
-
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-    const insertResult = await client.query(
-      `
-      INSERT INTO users (full_name, login_id, password_hash, role_id, center_id, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, full_name, login_id, center_id;
-      `,
-      [
-        fullName.trim(),
-        normalizedLoginId,
-        passwordHash,
-        roleResult.rows[0].id,
-        centerId,
-        req.user.id
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    const created = insertResult.rows[0];
-
-    return res.status(201).json({
-      message: "Cuenta creada correctamente",
-      status: "OK",
-      user: {
-        id: created.id,
-        fullName: created.full_name,
-        loginId: created.login_id,
-        role: requestedRole,
-        centerId: created.center_id
+      if (await userRepository.loginIdExists(db, normalizedLoginId)) {
+        return { httpStatus: 409, body: { message: "Ya existe una cuenta con ese ID", status: "ERROR" } };
       }
-    });
-  } catch (error) {
-    await client.query("ROLLBACK");
 
+      const roleId = await userRepository.findRoleId(db, requestedRole);
+
+      if (roleId === null) {
+        return { httpStatus: 400, body: { message: `No existe el rol "${requestedRole}"`, status: "ERROR" } };
+      }
+
+      const created = await userRepository.createIdAccount(db, {
+        fullName: fullName.trim(),
+        loginId: normalizedLoginId,
+        passwordHash: await hashPassword(password),
+        roleId,
+        // La cuenta nueva queda en el mismo centro que quien la crea (ya viene
+        // fresco de la base gracias a authenticate).
+        centerId: req.user.centerId || null,
+        createdBy: req.user.id
+      });
+
+      return {
+        httpStatus: 201,
+        body: {
+          message: "Cuenta creada correctamente",
+          status: "OK",
+          user: {
+            id: created.id,
+            fullName: created.full_name,
+            loginId: created.login_id,
+            role: requestedRole,
+            centerId: created.center_id
+          }
+        }
+      };
+    });
+
+    return res.status(outcome.httpStatus).json(outcome.body);
+  } catch (error) {
     return res.status(500).json({
       message: "Error al crear la cuenta",
       status: "ERROR",
       error: error.message
     });
-  } finally {
-    client.release();
   }
 };
 

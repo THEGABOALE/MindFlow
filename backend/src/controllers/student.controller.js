@@ -1,33 +1,15 @@
-const pool = require("../database/connection"); // importar la conexion a la base de datos
+const pool = require("../database/connection");
+const groupRepository = require("../repositories/group.repository");
+const attemptRepository = require("../repositories/attempt.repository");
+const levelProgressRepository = require("../repositories/level-progress.repository");
+const { canViewStudent } = require("../services/student-access.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
 
-// El estudiante solo se ve a si mismo, el profesor solo a su sala y el
-// coordinador solo a su centro. El admin (equipo MindFlow) ve todo.
-const canViewStudent = (requester, row) => {
-    if (requester.role === "admin") {
-        return true;
-    }
+const getStudentContext = async (req, res) => {
+    const { studentId } = req.params;
 
-    if (requester.role === "student") {
-        return Number(requester.id) === row.student_id;
-    }
-
-    if (requester.role === "teacher") {
-        return Number(requester.id) === row.group_teacher_id;
-    }
-
-    if (requester.role === "coordinator") {
-        return requester.centerId !== null && Number(requester.centerId) === row.group_center_id;
-    }
-
-    return false;
-};
-
-const getStudentContext = async (req, res) => { // Funcion para obtener el contexto del estudiante
-    const { studentId} = req.params;
-
-    if (!studentId) { // Si no se proporciona el studentId, se devuelve un error 404
+    if (!studentId) {
         return res.status(404).json({
             message: "El ID del estudiante no ha sido proporcionado",
             status: "ERROR"
@@ -42,43 +24,14 @@ const getStudentContext = async (req, res) => { // Funcion para obtener el conte
     }
 
     try {
-        const result = await pool.query(
-            `
-        SELECT
-            u.id AS student_id,
-            u.full_name AS student_full_name,
-            cg.id AS group_id,
-            cg.name AS group_name,
-            cg.grade AS group_grade,
-            cg.section AS group_section,
-            cg.school_year AS group_school_year,
-            cg.teacher_id AS group_teacher_id,
-            cg.center_id AS group_center_id,
-            el.id AS level_id,
-            el.name AS level_name,
-            el.code AS level_code,
-            el.description AS level_description
-        FROM users u
-        JOIN student_group_enrollments sge ON sge.user_id = u.id
-        JOIN class_groups cg ON cg.id = sge.group_id
-        JOIN educational_levels el ON el.id = cg.level_id
-        WHERE u.id = $1
-            AND u.is_active = TRUE
-            AND sge.is_active = TRUE
-            AND cg.is_active = TRUE
-        LIMIT 1;
-        `,
-        [studentId]
-        ); // Ejecutar la consulta para obtener el contexto del estudiante       
-        
-        if (result.rows.length === 0){
+        const row = await groupRepository.findStudentContext(pool, studentId);
+
+        if (!row) {
             return res.status(404).json({
                 message: "No se encontró el contexto del estudiante",
                 status: "ERROR"
             });
         }
-
-        const row = result.rows[0]; //Se almacena el contexto del estudiante en una variable
 
         if (!canViewStudent(req.user, row)) {
             return res.status(403).json({
@@ -87,7 +40,7 @@ const getStudentContext = async (req, res) => { // Funcion para obtener el conte
             });
         }
 
-        return res.status(200).json({ // se devuelve el contexto del estudiante en formato JSON
+        return res.status(200).json({
             message: "Contexto del estudiante obtenido exitosamente",
             status: "OK",
             student: {
@@ -108,8 +61,7 @@ const getStudentContext = async (req, res) => { // Funcion para obtener el conte
                 }
             }
         });
-    
-    } catch (error) { // Si ocurre un error durante la consulta, se devuelve un error 500
+    } catch (error) {
         console.error("Hubo un error al obtener el contexto del estudiante", error);
         return res.status(500).json({
             message: "Hubo un error al obtener el contexto del estutiante",
@@ -130,26 +82,7 @@ const getStudentProgress = async (req, res) => {
     }
 
     try {
-        const permResult = await pool.query(
-            `
-        SELECT
-            u.id AS student_id,
-            u.full_name AS student_full_name,
-            cg.teacher_id AS group_teacher_id,
-            cg.center_id AS group_center_id
-        FROM users u
-        JOIN student_group_enrollments sge ON sge.user_id = u.id
-        JOIN class_groups cg ON cg.id = sge.group_id
-        WHERE u.id = $1
-            AND u.is_active = TRUE
-            AND sge.is_active = TRUE
-            AND cg.is_active = TRUE
-        LIMIT 1;
-        `,
-            [studentId]
-        );
-
-        const row = permResult.rows[0];
+        const row = await groupRepository.findStudentContext(pool, studentId);
 
         if (!row) {
             return res.status(404).json({
@@ -165,47 +98,16 @@ const getStudentProgress = async (req, res) => {
             });
         }
 
-        const totalsResult = await pool.query(
-            `
-        SELECT
-            COALESCE(SUM(points_earned), 0) AS total_points,
-            COUNT(*) FILTER (WHERE status = 'completed' AND is_review = FALSE) AS missions_completed
-        FROM mission_attempts
-        WHERE user_id = $1;
-        `,
-            [studentId]
-        );
+        const totals = await attemptRepository.findStudentTotals(pool, studentId);
+        const levels = await levelProgressRepository.findLevelsWithProgress(pool, studentId);
 
-        const levelsResult = await pool.query(
-            `
-        SELECT
-            el.id, el.name, el.code, el.order_index,
-            COALESCE(lp.progress_percentage, 0) AS progress_percentage,
-            COALESCE(lp.status, 'locked') AS status
-        FROM educational_levels el
-        LEFT JOIN level_progress lp ON lp.level_id = el.id AND lp.user_id = $1
-        ORDER BY el.order_index ASC;
-        `,
-            [studentId]
-        );
-
-        // IDs de las misiones ya completadas (sin contar repasos), para que la
-        // app sepa cuales marcar con check y cual es la siguiente desbloqueada
-        // sin tener que adivinarlo por posicion.
-        const completedMissionsResult = await pool.query(
-            `
-        SELECT DISTINCT mission_id
-        FROM mission_attempts
-        WHERE user_id = $1 AND status = 'completed';
-        `,
-            [studentId]
-        );
+        // IDs de las misiones ya completadas, para que la app sepa cuales marcar
+        // con check y cual es la siguiente desbloqueada sin adivinarlo por posicion.
+        const completedMissionIds = await attemptRepository.findCompletedMissionIds(pool, studentId);
 
         // La app manda el desfase de su huso en tzOffsetMinutes para que el dia
         // de la racha sea el local y no cambie a las 7 de la tarde por usar UTC.
         const { streak } = await loadStreak(pool, studentId, normalizeTzOffset(req.query.tzOffsetMinutes));
-
-        const totals = totalsResult.rows[0];
 
         return res.status(200).json({
             message: "Progreso del estudiante obtenido exitosamente",
@@ -213,11 +115,11 @@ const getStudentProgress = async (req, res) => {
             student: {
                 id: row.student_id,
                 fullName: row.student_full_name,
-                totalPoints: Number(totals.total_points),
-                missionsCompleted: Number(totals.missions_completed),
+                totalPoints: totals.totalPoints,
+                missionsCompleted: totals.missionsCompleted,
                 streak,
-                completedMissionIds: completedMissionsResult.rows.map((attempt) => attempt.mission_id),
-                levels: levelsResult.rows.map((level) => ({
+                completedMissionIds,
+                levels: levels.map((level) => ({
                     id: level.id,
                     name: level.name,
                     code: level.code,

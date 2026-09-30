@@ -1,34 +1,13 @@
 const pool = require("../database/connection");
+const levelRepository = require("../repositories/level.repository");
 
 const getLevels = async (req, res) => {
     try {
-        const result = await pool.query(`
-      SELECT
-        el.id AS level_id,
-        el.name AS level_name,
-        el.code AS level_code,
-        el.description AS level_description,
-        el.order_index AS level_order,
-        m.id AS mission_id,
-        m.title AS mission_title,
-        m.description AS mission_description,
-        m.topic AS mission_topic,
-        m.order_index AS mission_order,
-        m.points_reward,
-        m.mechanic,
-        m.time_limit_seconds,
-        m.max_plumas,
-        m.is_published
-      FROM educational_levels el
-      LEFT JOIN missions m 
-        ON m.level_id = el.id 
-        AND m.is_published = TRUE
-      ORDER BY el.order_index ASC, m.order_index ASC;
-    `);
-    
+        const rows = await levelRepository.findLevelsWithMissions(pool);
+
     const levelsMap = new Map();
 
-    result.rows.forEach((row) => {
+    rows.forEach((row) => {
         if (!levelsMap.has(row.level_id)) {
             levelsMap.set(row.level_id, {
                 id: row.level_id,

@@ -1,4 +1,5 @@
 const pool = require("../database/connection");
+const healthRepository = require("../repositories/health.repository");
 
 const healthCheck = (req, res) => {
   res.json({
@@ -10,11 +11,11 @@ const healthCheck = (req, res) => {
 
 const databaseHealthCheck = async (req, res) => {
   try {
-    const client = await pool.query("SELECT NOW()");
+    const databaseTime = await healthRepository.getDatabaseTime(pool);
     res.json({
       message: "Conexión a la base de datos exitosa",
       status: "OK",
-      databaseTime: client.rows[0].now
+      databaseTime
     });
   } catch (error) {
     res.status(500).json({

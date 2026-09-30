@@ -1,4 +1,8 @@
 const pool = require("../database/connection");
+const { withTransaction } = require("../database/transaction");
+const missionRepository = require("../repositories/mission.repository");
+const attemptRepository = require("../repositories/attempt.repository");
+const levelProgressRepository = require("../repositories/level-progress.repository");
 const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
@@ -16,18 +20,7 @@ const getMissionContent = async (req, res) => {
   }
 
   try {
-    const missionResult = await pool.query(
-      `
-      SELECT id, level_id, title, description, topic, order_index,
-             points_reward, mechanic, time_limit_seconds, max_plumas
-      FROM missions
-      WHERE id = $1 AND is_published = TRUE
-      LIMIT 1;
-      `,
-      [missionId]
-    );
-
-    const mission = missionResult.rows[0];
+    const mission = await missionRepository.findPublishedMission(pool, missionId);
 
     if (!mission) {
       return res.status(404).json({
@@ -36,50 +29,18 @@ const getMissionContent = async (req, res) => {
       });
     }
 
-    const questionsResult = await pool.query(
-      `
-      SELECT id, question_text, question_type, feedback, order_index, points
-      FROM questions
-      WHERE mission_id = $1
-      ORDER BY order_index ASC;
-      `,
-      [missionId]
-    );
+    const questionRows = await missionRepository.findQuestions(pool, missionId);
+    const optionRows = await missionRepository.findOptions(pool, missionId);
+    const pairRows = await missionRepository.findPairs(pool, missionId);
 
-    const questionIds = questionsResult.rows.map((row) => row.id);
-
-    const optionsResult = questionIds.length
-      ? await pool.query(
-          `
-          SELECT id, question_id, option_text, is_correct, feedback, order_index
-          FROM answer_options
-          WHERE question_id = ANY($1::int[])
-          ORDER BY question_id ASC, order_index ASC;
-          `,
-          [questionIds]
-        )
-      : { rows: [] };
-
-    const pairsResult = questionIds.length
-      ? await pool.query(
-          `
-          SELECT id, question_id, term, match_text, order_index
-          FROM question_pairs
-          WHERE question_id = ANY($1::int[])
-          ORDER BY question_id ASC, order_index ASC;
-          `,
-          [questionIds]
-        )
-      : { rows: [] };
-
-    const questions = questionsResult.rows.map((question) => ({
+    const questions = questionRows.map((question) => ({
       id: question.id,
       prompt: question.question_text,
       type: question.question_type,
       feedback: question.feedback,
       orderIndex: question.order_index,
       points: question.points,
-      options: optionsResult.rows
+      options: optionRows
         .filter((option) => option.question_id === question.id)
         .map((option) => ({
           id: option.id,
@@ -88,7 +49,7 @@ const getMissionContent = async (req, res) => {
           feedback: option.feedback,
           orderIndex: option.order_index
         })),
-      pairs: pairsResult.rows
+      pairs: pairRows
         .filter((pair) => pair.question_id === question.id)
         .map((pair) => ({
           id: pair.id,
@@ -137,12 +98,7 @@ const startAttempt = async (req, res) => {
   }
 
   try {
-    const missionResult = await pool.query(
-      "SELECT id, max_plumas, time_limit_seconds FROM missions WHERE id = $1 AND is_published = TRUE LIMIT 1;",
-      [missionId]
-    );
-
-    const mission = missionResult.rows[0];
+    const mission = await missionRepository.findPublishedMission(pool, missionId);
 
     if (!mission) {
       return res.status(404).json({
@@ -152,23 +108,13 @@ const startAttempt = async (req, res) => {
     }
 
     // Si ya la completó antes, este intento es un repaso.
-    const previousResult = await pool.query(
-      "SELECT 1 FROM mission_attempts WHERE user_id = $1 AND mission_id = $2 AND status = 'completed' LIMIT 1;",
-      [req.user.id, missionId]
-    );
+    const isReview = await attemptRepository.hasCompletedMission(pool, req.user.id, missionId);
 
-    const isReview = previousResult.rows.length > 0;
-
-    const attemptResult = await pool.query(
-      `
-      INSERT INTO mission_attempts (user_id, mission_id, is_review, status)
-      VALUES ($1, $2, $3, 'in_progress')
-      RETURNING id, started_at;
-      `,
-      [req.user.id, missionId, isReview]
-    );
-
-    const attempt = attemptResult.rows[0];
+    const attempt = await attemptRepository.createAttempt(pool, {
+      userId: req.user.id,
+      missionId,
+      isReview
+    });
 
     return res.status(201).json({
       message: "Intento iniciado",
@@ -212,208 +158,124 @@ const finishAttempt = async (req, res) => {
     });
   }
 
-  const client = await pool.connect();
-
   try {
-    await client.query("BEGIN");
+    // Todo el cierre va en una transaccion: o queda el intento corregido con
+    // sus respuestas y el progreso del nivel, o no queda nada.
+    const outcome = await withTransaction(async (db) => {
+      const attempt = await attemptRepository.findAttemptWithMission(db, attemptId);
 
-    const attemptResult = await client.query(
-      `
-      SELECT a.id, a.user_id, a.mission_id, a.is_review, a.status,
-             m.level_id, m.points_reward, m.max_plumas
-      FROM mission_attempts a
-      JOIN missions m ON m.id = a.mission_id
-      WHERE a.id = $1
-      LIMIT 1;
-      `,
-      [attemptId]
-    );
+      if (!attempt) {
+        return { httpStatus: 404, body: { message: "No se encontró el intento", status: "ERROR" } };
+      }
 
-    const attempt = attemptResult.rows[0];
+      if (attempt.user_id !== req.user.id) {
+        return { httpStatus: 403, body: { message: "Este intento no es tuyo", status: "ERROR" } };
+      }
 
-    if (!attempt) {
-      await client.query("ROLLBACK");
+      if (attempt.status !== "in_progress") {
+        return { httpStatus: 409, body: { message: "Este intento ya fue cerrado", status: "ERROR" } };
+      }
 
-      return res.status(404).json({
-        message: "No se encontró el intento",
-        status: "ERROR"
+      // Preguntas reales de la mision: la correccion recorre esta lista, no la
+      // que mande el cliente, para que omitir o duplicar respuestas no cambie
+      // el puntaje (cada pregunta/par sin responder cuenta como incorrecta).
+      const { correctAnswers, wrongAnswers, answerRows } = gradeAttempt({
+        questions: await missionRepository.findQuestions(db, attempt.mission_id),
+        options: await missionRepository.findOptions(db, attempt.mission_id),
+        pairs: await missionRepository.findPairs(db, attempt.mission_id),
+        answers
       });
-    }
 
-    if (attempt.user_id !== req.user.id) {
-      await client.query("ROLLBACK");
+      for (const row of answerRows) {
+        await attemptRepository.insertAnswer(db, attemptId, row);
+      }
 
-      return res.status(403).json({
-        message: "Este intento no es tuyo",
-        status: "ERROR"
-      });
-    }
+      const ranOutOfPlumas = wrongAnswers >= attempt.max_plumas;
+      const failed = Boolean(timedOut) || ranOutOfPlumas;
 
-    if (attempt.status !== "in_progress") {
-      await client.query("ROLLBACK");
+      const totalAnswers = correctAnswers + wrongAnswers;
+      const score = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
 
-      return res.status(409).json({
-        message: "Este intento ya fue cerrado",
-        status: "ERROR"
-      });
-    }
+      const pointsEarned = failed
+        ? 0
+        : calculatePoints({
+            pointsReward: attempt.points_reward,
+            wrongAnswers,
+            maxPlumas: attempt.max_plumas,
+            isReview: attempt.is_review
+          });
 
-    // Preguntas reales de la mision: la correccion recorre esta lista, no la
-    // que mande el cliente, para que omitir o duplicar respuestas no cambie
-    // el puntaje (cada pregunta/par sin responder cuenta como incorrecta).
-    const questionsResult = await client.query(
-      `SELECT id, question_type FROM questions WHERE mission_id = $1 ORDER BY order_index ASC;`,
-      [attempt.mission_id]
-    );
-
-    const optionsResult = await client.query(
-      `
-      SELECT ao.id, ao.question_id, ao.is_correct
-      FROM answer_options ao
-      JOIN questions q ON q.id = ao.question_id
-      WHERE q.mission_id = $1;
-      `,
-      [attempt.mission_id]
-    );
-
-    const pairsResult = await client.query(
-      `
-      SELECT qp.id, qp.question_id
-      FROM question_pairs qp
-      JOIN questions q ON q.id = qp.question_id
-      WHERE q.mission_id = $1;
-      `,
-      [attempt.mission_id]
-    );
-
-    const { correctAnswers, wrongAnswers, answerRows } = gradeAttempt({
-      questions: questionsResult.rows,
-      options: optionsResult.rows,
-      pairs: pairsResult.rows,
-      answers
-    });
-
-    for (const row of answerRows) {
-      await client.query(
-        `
-        INSERT INTO attempt_answers (attempt_id, question_id, selected_option_id, pair_id, is_correct)
-        VALUES ($1, $2, $3, $4, $5);
-        `,
-        [attemptId, row.questionId, row.selectedOptionId, row.pairId, row.isCorrect]
-      );
-    }
-
-    const ranOutOfPlumas = wrongAnswers >= attempt.max_plumas;
-    const failed = Boolean(timedOut) || ranOutOfPlumas;
-
-    const totalAnswers = correctAnswers + wrongAnswers;
-    const score = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-
-    const pointsEarned = failed
-      ? 0
-      : calculatePoints({
-          pointsReward: attempt.points_reward,
-          wrongAnswers,
-          maxPlumas: attempt.max_plumas,
-          isReview: attempt.is_review
-        });
-
-    await client.query(
-      `
-      UPDATE mission_attempts
-      SET score = $1,
-          correct_answers = $2,
-          wrong_answers = $3,
-          points_earned = $4,
-          status = $5,
-          finished_at = CURRENT_TIMESTAMP
-      WHERE id = $6;
-      `,
-      [score, correctAnswers, wrongAnswers, pointsEarned, failed ? "failed" : "completed", attemptId]
-    );
-
-    // El progreso del nivel solo puede subir: un repaso que salga peor, o una
-    // mision perdida, nunca hacen retroceder la ruta de aprendizaje.
-    let levelProgress = null;
-
-    if (!failed) {
-      const progressResult = await client.query(
-        `
-        SELECT
-          (SELECT COUNT(*) FROM missions WHERE level_id = $1 AND is_published = TRUE) AS total,
-          (SELECT COUNT(DISTINCT a.mission_id)
-             FROM mission_attempts a
-             JOIN missions m ON m.id = a.mission_id
-            WHERE a.user_id = $2 AND m.level_id = $1 AND a.status = 'completed') AS completed;
-        `,
-        [attempt.level_id, req.user.id]
-      );
-
-      const { total, completed } = progressResult.rows[0];
-      const percentage = Number(total) > 0 ? (Number(completed) / Number(total)) * 100 : 0;
-      const status = Number(completed) >= Number(total) ? "completed" : "in_progress";
-
-      const upsertResult = await client.query(
-        `
-        INSERT INTO level_progress (user_id, level_id, progress_percentage, status)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id, level_id) DO UPDATE
-          SET progress_percentage = GREATEST(level_progress.progress_percentage, EXCLUDED.progress_percentage),
-              status = CASE WHEN EXCLUDED.progress_percentage >= level_progress.progress_percentage
-                            THEN EXCLUDED.status ELSE level_progress.status END,
-              updated_at = CURRENT_TIMESTAMP
-        RETURNING level_id, progress_percentage, status;
-        `,
-        [req.user.id, attempt.level_id, percentage.toFixed(2), status]
-      );
-
-      const progress = upsertResult.rows[0];
-
-      levelProgress = {
-        levelId: progress.level_id,
-        progressPercentage: Number(progress.progress_percentage),
-        status: progress.status
-      };
-    }
-
-    // Terminar un intento (pasado o no) cuenta para la racha. Si es el primero
-    // del dia, este intento fue el que la encendio o la descongelo: la app lo
-    // usa para mostrar la animacion de hielo a llama.
-    const { streak, attemptsToday } = await loadStreak(client, req.user.id, tzOffsetMinutes);
-
-    await client.query("COMMIT");
-
-    return res.status(200).json({
-      message: failed ? "Misión no superada" : "Misión completada",
-      status: "OK",
-      attempt: {
-        id: Number(attemptId),
-        missionId: attempt.mission_id,
+      await attemptRepository.closeAttempt(db, attemptId, {
         score,
         correctAnswers,
         wrongAnswers,
-        plumasLeft: Math.max(attempt.max_plumas - wrongAnswers, 0),
         pointsEarned,
-        isReview: attempt.is_review,
         status: failed ? "failed" : "completed"
-      },
-      levelProgress,
-      streak: {
-        days: streak.days,
-        isActive: streak.isActive,
-        justActivated: attemptsToday === 1
-      }
-    });
-  } catch (error) {
-    await client.query("ROLLBACK");
+      });
 
+      // El progreso del nivel solo puede subir: un repaso que salga peor, o una
+      // mision perdida, nunca hacen retroceder la ruta de aprendizaje.
+      let levelProgress = null;
+
+      if (!failed) {
+        const { total, completed } = await levelProgressRepository.countLevelMissions(
+          db,
+          attempt.level_id,
+          req.user.id
+        );
+
+        const progress = await levelProgressRepository.saveLevelProgress(db, {
+          userId: req.user.id,
+          levelId: attempt.level_id,
+          percentage: total > 0 ? (completed / total) * 100 : 0,
+          status: completed >= total ? "completed" : "in_progress"
+        });
+
+        levelProgress = {
+          levelId: progress.level_id,
+          progressPercentage: Number(progress.progress_percentage),
+          status: progress.status
+        };
+      }
+
+      // Terminar un intento (pasado o no) cuenta para la racha. Si es el primero
+      // del dia, este intento fue el que la encendio o la descongelo: la app lo
+      // usa para mostrar la animacion de hielo a llama.
+      const { streak, attemptsToday } = await loadStreak(db, req.user.id, tzOffsetMinutes);
+
+      return {
+        httpStatus: 200,
+        body: {
+          message: failed ? "Misión no superada" : "Misión completada",
+          status: "OK",
+          attempt: {
+            id: Number(attemptId),
+            missionId: attempt.mission_id,
+            score,
+            correctAnswers,
+            wrongAnswers,
+            plumasLeft: Math.max(attempt.max_plumas - wrongAnswers, 0),
+            pointsEarned,
+            isReview: attempt.is_review,
+            status: failed ? "failed" : "completed"
+          },
+          levelProgress,
+          streak: {
+            days: streak.days,
+            isActive: streak.isActive,
+            justActivated: attemptsToday === 1
+          }
+        }
+      };
+    });
+
+    return res.status(outcome.httpStatus).json(outcome.body);
+  } catch (error) {
     return res.status(500).json({
       message: "Error al cerrar el intento",
       status: "ERROR",
       error: error.message
     });
-  } finally {
-    client.release();
   }
 };
 
