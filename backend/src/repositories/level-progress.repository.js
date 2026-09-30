@@ -40,7 +40,27 @@ const saveLevelProgress = async (db, { userId, levelId, percentage, status }) =>
   return result.rows[0];
 };
 
+// Todos los niveles con el avance del estudiante; los que no ha empezado salen
+// en 0 y bloqueados.
+const findLevelsWithProgress = async (db, userId) => {
+  const result = await db.query(
+    `
+    SELECT
+      el.id, el.name, el.code, el.order_index,
+      COALESCE(lp.progress_percentage, 0) AS progress_percentage,
+      COALESCE(lp.status, 'locked') AS status
+    FROM educational_levels el
+    LEFT JOIN level_progress lp ON lp.level_id = el.id AND lp.user_id = $1
+    ORDER BY el.order_index ASC;
+    `,
+    [userId]
+  );
+
+  return result.rows;
+};
+
 module.exports = {
+  findLevelsWithProgress,
   countLevelMissions,
   saveLevelProgress
 };

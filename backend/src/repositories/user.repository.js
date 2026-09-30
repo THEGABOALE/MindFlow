@@ -79,7 +79,85 @@ const assignCenterIfMissing = async (db, userId, centerId) => {
   await db.query("UPDATE users SET center_id = $1 WHERE id = $2 AND center_id IS NULL;", [centerId, userId]);
 };
 
+// Cuantas cuentas activas hay por rol; los roles sin cuentas salen en 0.
+const countActiveUsersByRole = async (db) => {
+  const result = await db.query(
+    `
+    SELECT r.name AS role_name, COUNT(*) FILTER (WHERE u.is_active) AS active_count
+    FROM roles r
+    LEFT JOIN users u ON u.role_id = r.id
+    GROUP BY r.name;
+    `
+  );
+
+  return result.rows;
+};
+
+/**
+ * Cuentas ordenadas por nombre, con filtros opcionales y paginacion. Cada fila
+ * trae en total_count cuantas cuentas cumplen los filtros en total.
+ *
+ * @param {object} filters
+ * @param {string} [filters.role] nombre exacto del rol
+ * @param {string|number} [filters.centerId]
+ * @param {string} [filters.search] texto que aparezca en el nombre, el ID o el correo
+ * @param {boolean} [filters.isActive]
+ * @param {number} filters.limit
+ * @param {number} filters.offset
+ */
+const listUsers = async (db, { role, centerId, search, isActive, limit, offset }) => {
+  const conditions = [];
+  const params = [];
+
+  if (role) {
+    params.push(role);
+    conditions.push(`r.name = $${params.length}`);
+  }
+
+  if (centerId) {
+    params.push(centerId);
+    conditions.push(`u.center_id = $${params.length}`);
+  }
+
+  if (search) {
+    params.push(`%${search}%`);
+    conditions.push(`(u.full_name ILIKE $${params.length} OR u.login_id ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+  }
+
+  if (isActive !== undefined) {
+    params.push(isActive);
+    conditions.push(`u.is_active = $${params.length}`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  params.push(limit);
+  const limitParam = `$${params.length}`;
+  params.push(offset);
+  const offsetParam = `$${params.length}`;
+
+  const result = await db.query(
+    `
+    SELECT
+      u.id, u.full_name, u.email, u.login_id, u.center_id, u.is_active, u.created_at,
+      r.name AS role_name, ec.name AS center_name,
+      COUNT(*) OVER() AS total_count
+    FROM users u
+    JOIN roles r ON r.id = u.role_id
+    LEFT JOIN educational_centers ec ON ec.id = u.center_id
+    ${whereClause}
+    ORDER BY u.full_name ASC
+    LIMIT ${limitParam} OFFSET ${offsetParam};
+    `,
+    params
+  );
+
+  return result.rows;
+};
+
 module.exports = {
+  countActiveUsersByRole,
+  listUsers,
   findUserForLogin,
   findUserById,
   loginIdExists,

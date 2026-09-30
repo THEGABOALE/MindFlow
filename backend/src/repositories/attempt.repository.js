@@ -100,7 +100,41 @@ const findActivityDays = async (db, userId, tzOffsetMinutes) => {
   return result.rows;
 };
 
+// Semillas ganadas en total (sumando repasos) y misiones completadas sin contar repasos.
+const findStudentTotals = async (db, userId) => {
+  const result = await db.query(
+    `
+    SELECT
+      COALESCE(SUM(points_earned), 0) AS total_points,
+      COUNT(*) FILTER (WHERE status = 'completed' AND is_review = FALSE) AS missions_completed
+    FROM mission_attempts
+    WHERE user_id = $1;
+    `,
+    [userId]
+  );
+
+  const { total_points: totalPoints, missions_completed: missionsCompleted } = result.rows[0];
+
+  return { totalPoints: Number(totalPoints), missionsCompleted: Number(missionsCompleted) };
+};
+
+// IDs de las misiones que el estudiante ya completo, de cualquier nivel.
+const findCompletedMissionIds = async (db, userId) => {
+  const result = await db.query(
+    `
+    SELECT DISTINCT mission_id
+    FROM mission_attempts
+    WHERE user_id = $1 AND status = 'completed';
+    `,
+    [userId]
+  );
+
+  return result.rows.map((row) => row.mission_id);
+};
+
 module.exports = {
+  findStudentTotals,
+  findCompletedMissionIds,
   hasCompletedMission,
   createAttempt,
   findAttemptWithMission,
