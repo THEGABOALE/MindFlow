@@ -16,11 +16,11 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
@@ -34,19 +34,19 @@ jobs:
       run:
         working-directory: mobile
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: "temurin"
           java-version: "21"
 
-      # "packages" fijo a solo platform-tools: el default de esta action
-      # (que sigue el tag movil @v3) llego a pedir tambien el paquete "tools",
-      # que Google descontinuo del repositorio del SDK hace anios y ya no
-      # existe — eso rompe el setup entero con "Failed to find package
-      # 'tools'" apenas la action se actualiza con ese default.
-      - uses: android-actions/setup-android@v3
+      # "packages" fijo a solo platform-tools: en la v3 el default de esta
+      # action llego a pedir tambien el paquete "tools", que Google
+      # descontinuo del repositorio del SDK y ya no existe, y eso rompia el
+      # setup entero con "Failed to find package 'tools'". Se deja explicito
+      # para no depender del default de cada version.
+      - uses: android-actions/setup-android@v4
         with:
           packages: "platform-tools"
 
@@ -71,11 +71,11 @@ jobs:
         working-directory: landing
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: landing/package-lock.json
 
