@@ -14,11 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
-import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaGold
@@ -40,26 +35,10 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 @Composable
 fun ProgressScreen(
     level: LevelResponse,
+    // Null mientras carga o si no se pudo obtener: se muestran los valores en 0.
+    progress: StudentProgress?,
     modifier: Modifier = Modifier
 ) {
-    var progress by remember { mutableStateOf<StudentProgress?>(null) }
-
-    LaunchedEffect(Unit) {
-        try {
-            val me = RetrofitClient.api.getMe()
-            val userId = me.body()?.user?.id
-
-            if (me.isSuccessful && userId != null) {
-                val response = RetrofitClient.api.getStudentProgress(userId)
-                if (response.isSuccessful) {
-                    progress = response.body()?.student
-                }
-            }
-        } catch (e: Exception) {
-            // Sin conexión: se queda con los valores en 0 de abajo.
-        }
-    }
-
     val levelProgress = progress?.levels?.firstOrNull { it.id == level.id }
     val progressFraction = ((levelProgress?.progressPercentage ?: 0.0) / 100.0).toFloat()
 
