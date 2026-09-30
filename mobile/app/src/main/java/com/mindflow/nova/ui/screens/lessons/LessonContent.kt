@@ -12,23 +12,21 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
-import com.mindflow.nova.data.model.FinishAttemptRequest
 import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.MissionResponse
-import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.ui.components.ScopedViewModels
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -132,17 +130,11 @@ class LessonAttempt(
     val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> AttemptResult?
 )
 
-private sealed class LessonContentState {
-    object Loading : LessonContentState()
-    data class Ready(val content: MissionContent) : LessonContentState()
-    data class Error(val message: String) : LessonContentState()
-}
-
 /**
- * Carga el contenido de la misión desde el backend y, según su mecánica,
- * muestra la pantalla de lección que corresponde. Las mecánicas que todavía no
- * tienen pantalla propia (por ejemplo la sopa de letras) van al placeholder sin
- * necesidad de pedir contenido.
+ * Muestra la lección de una misión según su mecánica. Las mecánicas que todavía
+ * no tienen pantalla propia (por ejemplo la sopa de letras) van al placeholder
+ * sin pedir contenido. El estado lo lleva [LessonViewModel], que vive solo
+ * mientras la lección está abierta.
  */
 @Composable
 fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
@@ -153,29 +145,37 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
         return
     }
 
-    var state by remember(mission.id) { mutableStateOf<LessonContentState>(LessonContentState.Loading) }
+    ScopedViewModels {
+        LessonHostContent(mission = mission, mechanic = mechanic, onExit = onExit)
+    }
+}
+
+@Composable
+private fun LessonHostContent(
+    mission: MissionResponse,
+    mechanic: String,
+    onExit: () -> Unit,
+    viewModel: LessonViewModel = viewModel()
+) {
+    val state by viewModel.state.collectAsState()
 
     LaunchedEffect(mission.id) {
-        state = try {
-            val response = RetrofitClient.api.getMissionContent(mission.id)
-            val body = response.body()
-
-            if (response.isSuccessful && body != null) {
-                LessonContentState.Ready(body.mission)
-            } else {
-                LessonContentState.Error("No se pudo cargar la misión (HTTP ${response.code()})")
-            }
-        } catch (e: Exception) {
-            LessonContentState.Error("Error de conexión: ${e.message}")
-        }
+        viewModel.open(mission.id)
     }
 
     when (val current = state) {
-        LessonContentState.Loading -> LessonContentLoading()
+        LessonState.Loading -> LessonContentLoading()
 
-        is LessonContentState.Error -> LessonContentError(message = current.message, onExit = onExit)
+        is LessonState.Error -> LessonContentError(message = current.message, onExit = onExit)
 
-        is LessonContentState.Ready -> LessonAttemptHost(missionId = mission.id, onExit = onExit) { attempt ->
+        // Con key, cada reintento vuelve a montar la pantalla de la mecánica desde cero.
+        is LessonState.Playing -> key(current.attemptNumber) {
+            val attempt = LessonAttempt(
+                id = current.attemptId,
+                onRetry = viewModel::retry,
+                submit = viewModel::finishAttempt
+            )
+
             when (mechanic) {
                 "multiple_choice" -> LessonPlayScreen(
                     mission = mission,
@@ -201,72 +201,6 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
 
                 else -> MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
             }
-        }
-    }
-}
-
-private sealed class AttemptState {
-    object Loading : AttemptState()
-    data class Ready(val attemptId: Int) : AttemptState()
-    data class Error(val message: String) : AttemptState()
-}
-
-/**
- * Abre un intento (POST .../attempts) y expone cómo cerrarlo o reintentar.
- * "Reintentar" no reinicia el estado local: pide un intento nuevo y, gracias
- * al key(retryKey), vuelve a montar la pantalla de lección desde cero.
- */
-@Composable
-private fun LessonAttemptHost(
-    missionId: Int,
-    onExit: () -> Unit,
-    content: @Composable (LessonAttempt) -> Unit
-) {
-    var retryKey by remember(missionId) { mutableStateOf(0) }
-    var state by remember(missionId, retryKey) { mutableStateOf<AttemptState>(AttemptState.Loading) }
-
-    LaunchedEffect(missionId, retryKey) {
-        state = try {
-            val response = RetrofitClient.api.startAttempt(missionId)
-            val attempt = response.body()?.attempt
-
-            if (response.isSuccessful && attempt != null) {
-                AttemptState.Ready(attempt.id)
-            } else {
-                AttemptState.Error("No se pudo iniciar el intento (HTTP ${response.code()})")
-            }
-        } catch (e: Exception) {
-            AttemptState.Error("Error de conexión: ${e.message}")
-        }
-    }
-
-    when (val current = state) {
-        AttemptState.Loading -> LessonContentLoading()
-
-        is AttemptState.Error -> LessonContentError(message = current.message, onExit = onExit)
-
-        is AttemptState.Ready -> key(retryKey) {
-            val attempt = LessonAttempt(
-                id = current.attemptId,
-                onRetry = { retryKey++ },
-                submit = { answers, timedOut ->
-                    try {
-                        val response = RetrofitClient.api.finishAttempt(
-                            current.attemptId,
-                            FinishAttemptRequest(answers, timedOut)
-                        )
-                        if (response.isSuccessful) {
-                            response.body()?.let { body -> body.attempt.copy(streak = body.streak) }
-                        } else {
-                            null
-                        }
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-            )
-
-            content(attempt)
         }
     }
 }

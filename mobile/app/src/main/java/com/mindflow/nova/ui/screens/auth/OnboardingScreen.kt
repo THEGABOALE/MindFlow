@@ -16,6 +16,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material3.Button
@@ -25,6 +26,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,13 +36,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mindflow.nova.data.model.JoinGroupRequest
-import com.mindflow.nova.data.model.JoinGroupResponse
-import com.mindflow.nova.data.remote.RetrofitClient
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mindflow.nova.ui.components.ScopedViewModels
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaLoginButton
 import com.mindflow.nova.ui.theme.NovaLoginFieldBorder
@@ -47,7 +54,6 @@ import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 /**
  * Splash de 2 páginas que sigue al primer login de un estudiante sin sala
@@ -71,7 +77,10 @@ fun OnboardingScreen(onJoined: () -> Unit) {
                     onNext = { scope.launch { pagerState.animateScrollToPage(1) } }
                 )
             } else {
-                AccessCodePage(onJoined = onJoined)
+                // El ViewModel del código vive solo mientras se muestra esta pantalla.
+                ScopedViewModels {
+                    AccessCodePage(onJoined = onJoined)
+                }
             }
         }
     }
@@ -136,11 +145,18 @@ private fun WelcomePage(onNext: () -> Unit) {
 }
 
 @Composable
-private fun AccessCodePage(onJoined: () -> Unit) {
+private fun AccessCodePage(
+    onJoined: () -> Unit,
+    viewModel: JoinGroupViewModel = viewModel()
+) {
     var code by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    val state by viewModel.state.collectAsState()
+    val errorMessage = state.errorMessage
+    val isLoading = state.isLoading
+
+    LaunchedEffect(state.joined) {
+        if (state.joined) onJoined()
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Spacer(modifier = Modifier.height(48.dp))
@@ -168,7 +184,12 @@ private fun AccessCodePage(onJoined: () -> Unit) {
 
         OutlinedTextField(
             value = code,
-            onValueChange = { code = it.uppercase(); errorMessage = null },
+            // El texto se guarda tal cual se escribe y solo se muestra en mayúsculas:
+            // cambiarlo dentro de onValueChange hace que el teclado pierda letras
+            // al escribir rápido. El backend igual normaliza el código.
+            onValueChange = { code = it; viewModel.clearError() },
+            visualTransformation = UppercaseTransformation,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text("Insertar código", color = NovaTextSecondary, fontSize = 14.sp) },
             singleLine = true,
@@ -192,29 +213,7 @@ private fun AccessCodePage(onJoined: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = {
-                if (code.isBlank() || isLoading) return@Button
-
-                isLoading = true
-                errorMessage = null
-
-                scope.launch {
-                    try {
-                        val response = RetrofitClient.api.joinGroupByCode(JoinGroupRequest(code.trim()))
-                        val body = response.body()
-
-                        if (response.isSuccessful && body?.status == "OK") {
-                            onJoined()
-                        } else {
-                            errorMessage = extractErrorMessage(response.errorBody()?.string(), body)
-                        }
-                    } catch (e: Exception) {
-                        errorMessage = "Error de conexión: ${e.message}"
-                    } finally {
-                        isLoading = false
-                    }
-                }
-            },
+            onClick = { viewModel.join(code) },
             modifier = Modifier.fillMaxWidth().height(42.dp),
             enabled = code.isNotBlank() && !isLoading,
             shape = RoundedCornerShape(100.dp),
@@ -230,16 +229,12 @@ private fun AccessCodePage(onJoined: () -> Unit) {
     }
 }
 
-private fun extractErrorMessage(rawError: String?, body: JoinGroupResponse?): String {
-    if (!rawError.isNullOrEmpty()) {
-        return try {
-            JSONObject(rawError).optString("message", "No se pudo validar el código")
-        } catch (e: Exception) {
-            "No se pudo validar el código"
-        }
-    }
-
-    return body?.message ?: "No se pudo validar el código"
+/** Muestra el texto en mayúsculas sin modificar lo que guarda el campo. */
+private val UppercaseTransformation = VisualTransformation { text ->
+    TransformedText(
+        AnnotatedString(text.text.map { it.uppercaseChar() }.joinToString("")),
+        OffsetMapping.Identity
+    )
 }
 
 @Composable
