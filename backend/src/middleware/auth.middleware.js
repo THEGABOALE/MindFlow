@@ -1,5 +1,6 @@
 const { verifySessionToken } = require("../utils/jwt");
 const pool = require("../database/connection");
+const userRepository = require("../repositories/user.repository");
 
 // Exige "Authorization: Bearer <token>" y deja el usuario en req.user.
 // El rol, el centro y si la cuenta sigue activa se leen de la base en cada
@@ -28,18 +29,7 @@ const authenticate = async (req, res, next) => {
   }
 
   try {
-    const result = await pool.query(
-      `
-      SELECT u.id, u.center_id, u.is_active, r.name AS role_name
-      FROM users u
-      JOIN roles r ON r.id = u.role_id
-      WHERE u.id = $1
-      LIMIT 1;
-      `,
-      [payload.sub]
-    );
-
-    const user = result.rows[0];
+    const user = await userRepository.findUserById(pool, payload.sub);
 
     if (!user || !user.is_active) {
       return res.status(401).json({
