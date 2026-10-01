@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Timeline
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -61,8 +64,12 @@ fun HomeScreen(
     viewModel: StudentHomeViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val levels = state.levels
     val progress = state.progress
+    val user = state.user
+    // El nivel de la sala del estudiante, no el primero de la lista: si no, uno
+    // de secundaria veía y jugaba las misiones de primaria. Hasta saber quién
+    // es no se elige ninguno.
+    val level = user?.let { levelForStudent(state.levels, it) }
 
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
@@ -85,6 +92,13 @@ fun HomeScreen(
         )
         return
     }
+
+    // "Atrás" del teléfono: desde otra pestaña vuelve al Inicio en vez de
+    // cerrar la app; desde el Inicio sí deja que se cierre.
+    BackHandler(enabled = selectedTab != NovaTab.Home) {
+        selectedTab = NovaTab.Home
+    }
+
     Scaffold(
         containerColor = NovaBackground,
         bottomBar = {
@@ -95,7 +109,29 @@ fun HomeScreen(
         }
     ) { innerPadding ->
         when {
-            state.isLoading -> {
+            state.errorMessage != null -> {
+                ErrorState(
+                    message = state.errorMessage ?: "Error desconocido",
+                    onRetry = viewModel::retry,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            }
+
+            state.accountFailed && user == null -> {
+                ErrorState(
+                    message = "No pudimos cargar tu cuenta. Revisa tu conexión e inténtalo de nuevo.",
+                    onRetry = viewModel::retry,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            }
+
+            // Se espera a la ruta y a saber quién es: si la ruta llega primero,
+            // no se muestra un nivel que quizá no es el suyo.
+            state.isLoading || user == null -> {
                 LoadingState(
                     modifier = Modifier
                         .fillMaxSize()
@@ -103,16 +139,7 @@ fun HomeScreen(
                 )
             }
 
-            state.errorMessage != null -> {
-                ErrorState(
-                    message = state.errorMessage ?: "Error desconocido",
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                )
-            }
-
-            levels.isEmpty() -> {
+            level == null -> {
                 EmptyState(
                     modifier = Modifier
                         .fillMaxSize()
@@ -123,7 +150,7 @@ fun HomeScreen(
             else -> {
                 NovaMainContent(
                     selectedTab = selectedTab,
-                    level = levels.first(),
+                    level = level,
                     user = state.user,
                     progress = progress,
                     onMissionSelected = { mission -> pendingMission = mission },
@@ -336,6 +363,7 @@ private fun LoadingState(modifier: Modifier = Modifier) {
 @Composable
 private fun ErrorState(
     message: String,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -366,6 +394,16 @@ private fun ErrorState(
                     textAlign = TextAlign.Center,
                     fontSize = 14.sp
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = Color.White),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Text(text = "Reintentar", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -378,7 +416,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "No hay niveles disponibles",
+            text = "Todavía no hay misiones para tu nivel",
             color = NovaTextSecondary,
             fontSize = 16.sp
         )

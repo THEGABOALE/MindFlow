@@ -5,6 +5,8 @@ import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.remote.NovaApiService
 import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.data.remote.connectionErrorMessage
+import com.mindflow.nova.data.remote.httpErrorMessage
 
 /** Resultado de pedir la ruta de aprendizaje: o llegan los niveles, o el motivo por el que no. */
 sealed class LevelsResult {
@@ -38,10 +40,16 @@ class RemoteStudentRepository(
             if (response.isSuccessful) {
                 LevelsResult.Loaded(response.body().orEmpty())
             } else {
-                LevelsResult.Failed("Error HTTP: ${response.code()}")
+                LevelsResult.Failed(
+                    httpErrorMessage(
+                        response.code(),
+                        response.errorBody()?.string(),
+                        "No se pudo cargar tu ruta de aprendizaje"
+                    )
+                )
             }
         } catch (e: Exception) {
-            LevelsResult.Failed("Error de conexión: ${e.message}")
+            LevelsResult.Failed(connectionErrorMessage(e))
         }
 
     override suspend fun loadCurrentUser(): SessionUser? =

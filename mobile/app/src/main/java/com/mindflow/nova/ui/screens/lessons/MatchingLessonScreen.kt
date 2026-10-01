@@ -1,6 +1,7 @@
 package com.mindflow.nova.ui.screens.lessons
 
 import androidx.compose.foundation.BorderStroke
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -91,7 +92,7 @@ fun MatchingLessonScreen(
     var stage by remember { mutableStateOf(MatchingStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var secondsLeft by remember { mutableStateOf(timeLimitSeconds) }
-    var feedback by remember { mutableStateOf("¡Vas bien! Elegí un par") }
+    var feedback by remember { mutableStateOf("¡Vas bien! Elige un par") }
     var justLostPluma by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
@@ -157,7 +158,19 @@ fun MatchingLessonScreen(
     fun onTermTap(termId: Int) {
         selectedTermId = termId
         justLostPluma = false
-        feedback = "Ahora tocá la palabra que combine"
+        feedback = "Ahora toca la palabra que combine"
+    }
+
+    // "Atrás" del teléfono: a mitad de la lección pide confirmar igual que la X;
+    // en las pantallas de cierre sale. Mientras se guarda el resultado se
+    // consume sin hacer nada: si pasara al de LessonHost, saldría de la lección
+    // y cancelaría el envío, y el resultado se perdería.
+    BackHandler {
+        when (stage) {
+            MatchingStage.SUBMITTING -> Unit
+            MatchingStage.IN_PROGRESS -> showExitConfirmation = true
+            else -> onExit()
+        }
     }
 
     Box(

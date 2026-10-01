@@ -212,4 +212,45 @@ class StudentHomeViewModelTest {
 
         assertEquals(450, viewModel.state.value.progress?.totalPoints)
     }
+
+    @Test
+    fun `si no se puede saber quien es queda marcado y no se elige nivel`() {
+        val viewModel = StudentHomeViewModel(repository(user = null))
+
+        viewModel.start()
+
+        val state = viewModel.state.value
+        assertTrue(state.accountFailed)
+        assertNull(state.user)
+        assertNull(state.progress)
+    }
+
+    @Test
+    fun `reintentar despues de que fallo la cuenta la vuelve a pedir`() {
+        val repo = repository(user = null)
+        val viewModel = StudentHomeViewModel(repo)
+        viewModel.start()
+
+        repo.user = user(2)
+        viewModel.retry()
+
+        val state = viewModel.state.value
+        assertFalse(state.accountFailed)
+        assertEquals(2, state.user?.id)
+        assertEquals(250, state.progress?.totalPoints)
+    }
+
+    @Test
+    fun `reintentar despues de que fallo la ruta la vuelve a pedir`() {
+        val repo = repository(levels = LevelsResult.Failed("sin red"))
+        val viewModel = StudentHomeViewModel(repo)
+        viewModel.start()
+
+        repo.levels = LevelsResult.Loaded(listOf(level))
+        viewModel.retry()
+
+        assertNull(viewModel.state.value.errorMessage)
+        assertEquals(listOf(level), viewModel.state.value.levels)
+        assertEquals(2, repo.levelCalls)
+    }
 }

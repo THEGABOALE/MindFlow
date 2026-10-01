@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.lessons
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
+import kotlin.random.Random
 
 // --- Tipos de contenido que consumen las pantallas de lección ---
 // (antes vivían en los *MockData.kt; ahora el contenido llega del backend).
@@ -84,6 +86,24 @@ fun MissionContent.toLessonQuestions(): List<LessonQuestion> =
             }
         )
     }
+
+/**
+ * Si la misión tiene algo que jugar. Una misión publicada sin preguntas (o de
+ * relación de conceptos sin pares) hacía que la pantalla buscara la primera
+ * pregunta de una lista vacía y la app se cerrara.
+ */
+fun MissionContent.hasPlayableContent(): Boolean = when (mechanic) {
+    "matching" -> questions.any { it.pairs.isNotEmpty() }
+    else -> questions.isNotEmpty() && questions.all { it.options.isNotEmpty() }
+}
+
+/**
+ * Mezcla el orden de las opciones de cada pregunta. En la base la correcta
+ * suele ser la primera, y mostrarlas tal cual llegan dejaba ganar tocando
+ * siempre la de arriba. Las preguntas mantienen su orden.
+ */
+fun List<LessonQuestion>.withShuffledOptions(random: Random = Random.Default): List<LessonQuestion> =
+    map { question -> question.copy(options = question.options.shuffled(random)) }
 
 /** Relación de conceptos: la misión trae una sola pregunta con todos los pares. */
 fun MissionContent.toMatchingPairs(): List<MatchingPair> =
@@ -139,6 +159,11 @@ class LessonAttempt(
 @Composable
 fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
     val mechanic = mission.mechanic
+
+    // "Atrás" mientras la lección carga, si no se pudo abrir o en el
+    // placeholder: vuelve a la ruta. Cada pantalla de juego pone el suyo
+    // encima, que pide confirmar antes de abandonar a mitad de la lección.
+    BackHandler(onBack = onExit)
 
     if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
         MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
@@ -290,7 +315,7 @@ fun LessonSubmitting() {
 fun LessonSubmitError(onRetry: () -> Unit, onExit: () -> Unit) {
     LessonEndScreen(
         title = "No se pudo guardar tu resultado",
-        message = "Revisá tu conexión e intentá de nuevo. Si volvés a intentar, empieza un intento nuevo.",
+        message = "Revisa tu conexión e inténtalo de nuevo. Si vuelves a intentar, empieza un intento nuevo.",
         primaryLabel = "Reintentar",
         onPrimary = onRetry,
         secondaryLabel = "Salir",

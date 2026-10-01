@@ -201,7 +201,7 @@ fun StreakCelebrationScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = if (warm) message.title else "Tu racha estaba congelada",
+                        text = if (warm) message.title else streakColdTitle(days),
                         color = if (warm) Color.White else ColdText,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,

@@ -252,8 +252,9 @@ private fun LessonPathInfoCard(
 ) {
     val statusText = when {
         isCompleted -> "Completada"
-        isCurrent -> "En curso"
-        else -> "Próxima misión"
+        // "En curso" sonaba a que ya la había empezado; es la que está lista para jugar.
+        isCurrent -> "Disponible"
+        else -> "Bloqueada"
     }
 
     val statusBackground = when {

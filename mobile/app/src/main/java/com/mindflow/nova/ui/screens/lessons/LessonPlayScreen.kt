@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.lessons
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,6 +81,9 @@ fun LessonPlayScreen(
     var showExitConfirmation by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
+    // Se mezcla una sola vez por intento: si se mezclara en cada recomposición,
+    // las opciones cambiarían de lugar mientras el estudiante elige.
+    val shuffledQuestions = remember(questions) { questions.withShuffledOptions() }
 
     fun finish() {
         stage = LessonStage.SUBMITTING
@@ -91,6 +95,18 @@ fun LessonPlayScreen(
             } else {
                 stage = LessonStage.SUBMIT_ERROR
             }
+        }
+    }
+
+    // "Atrás" del teléfono: a mitad de la lección pide confirmar igual que la X;
+    // en las pantallas de cierre sale. Mientras se guarda el resultado se
+    // consume sin hacer nada: si pasara al de LessonHost, saldría de la lección
+    // y cancelaría el envío, y el resultado se perdería.
+    BackHandler {
+        when (stage) {
+            LessonStage.SUBMITTING -> Unit
+            LessonStage.IN_PROGRESS -> showExitConfirmation = true
+            else -> onExit()
         }
     }
 
@@ -125,7 +141,7 @@ fun LessonPlayScreen(
             }
 
             LessonStage.IN_PROGRESS -> {
-                val question = questions[currentIndex]
+                val question = shuffledQuestions[currentIndex]
                 val selectedOption = question.options.firstOrNull { it.id == selectedOptionId }
                 val progress = when (phase) {
                     QuestionPhase.ANSWERING -> currentIndex.toFloat() / questions.size

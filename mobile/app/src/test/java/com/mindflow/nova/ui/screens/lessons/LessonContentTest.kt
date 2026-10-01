@@ -5,9 +5,11 @@ import com.mindflow.nova.data.model.MissionOption
 import com.mindflow.nova.data.model.MissionPair
 import com.mindflow.nova.data.model.MissionQuestion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.random.Random
 
 /**
  * Tests de los mappers que convierten el contenido crudo del backend
@@ -167,5 +169,39 @@ class LessonContentTest {
         )
 
         assertTrue(content.toTrueFalseQuestions()[0].correctAnswer)
+    }
+
+    @Test
+    fun `una mision sin preguntas o sin pares no se puede jugar`() {
+        val option = MissionOption(id = 1, text = "Verdadero", isCorrect = true, feedback = null, orderIndex = 1)
+        val withOption = MissionQuestion(id = 1, prompt = "P", type = "true_false", feedback = null, orderIndex = 1, points = 1, options = listOf(option))
+        val noOptions = withOption.copy(options = emptyList())
+        val withPair = MissionQuestion(
+            id = 2, prompt = "Relaciona", type = "matching", feedback = null, orderIndex = 1, points = 1,
+            pairs = listOf(MissionPair(id = 100, term = "Igualdad", match = "Mismos derechos", orderIndex = 1))
+        )
+
+        assertTrue(missionContent("true_false", listOf(withOption)).hasPlayableContent())
+        assertFalse(missionContent("multiple_choice", emptyList()).hasPlayableContent())
+        assertFalse(missionContent("true_false", listOf(withOption, noOptions)).hasPlayableContent())
+        assertTrue(missionContent("matching", listOf(withPair)).hasPlayableContent())
+        assertFalse(missionContent("matching", listOf(withPair.copy(pairs = emptyList()))).hasPlayableContent())
+    }
+
+    @Test
+    fun `mezclar las opciones cambia su orden pero no las preguntas ni lo que dice cada opcion`() {
+        val options = (1..4).map { LessonOption(id = it, text = "Opción $it", isCorrect = it == 1, feedback = "") }
+        val questions = listOf(
+            LessonQuestion(id = 10, prompt = "Primera", options = options),
+            LessonQuestion(id = 20, prompt = "Segunda", options = options)
+        )
+
+        val shuffled = questions.withShuffledOptions(Random(7))
+
+        assertEquals(listOf(10, 20), shuffled.map { it.id })
+        shuffled.forEach { question -> assertEquals(options.toSet(), question.options.toSet()) }
+        // Mezclando varias veces, la correcta no puede quedar siempre arriba.
+        val firstIds = (1..20).map { seed -> questions.withShuffledOptions(Random(seed))[0].options.first().id }
+        assertTrue(firstIds.any { it != 1 })
     }
 }

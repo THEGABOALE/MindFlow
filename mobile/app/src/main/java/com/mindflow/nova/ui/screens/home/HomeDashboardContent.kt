@@ -234,7 +234,7 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "01",
+                        text = level.orderIndex.toString().padStart(2, '0'),
                         color = NovaPurple,
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp
@@ -409,7 +409,8 @@ private fun MissionRouteRow(
             Column(modifier = Modifier.weight(1f)) {
                 if (isCurrent) {
                     Text(
-                        text = "Sigue transformando tu aprendizaje",
+                        // Si la que sigue es la primera, todavía no hay nada que "seguir".
+                        text = if (index == 0) "Empieza tu aprendizaje" else "Sigue transformando tu aprendizaje",
                         color = NovaPurple,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
@@ -450,7 +451,7 @@ private fun MissionRouteRow(
                         ),
                         shape = RoundedCornerShape(20.dp)
                     ) {
-                        Text(text = "Continuar", fontWeight = FontWeight.Bold)
+                        Text(text = if (index == 0) "Empezar" else "Continuar", fontWeight = FontWeight.Bold)
                     }
                 }
             }

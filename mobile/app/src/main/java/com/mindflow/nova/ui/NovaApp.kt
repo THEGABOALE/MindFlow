@@ -115,7 +115,11 @@ fun NovaApp(session: SessionRepository, themePreferences: ThemePreferences) {
             )
 
             AppScreen.Onboarding -> OnboardingScreen(
-                onJoined = { screen = AppScreen.StudentHome }
+                onJoined = { screen = AppScreen.StudentHome },
+                onLogout = {
+                    session.logout()
+                    screen = AppScreen.Login
+                }
             )
 
             AppScreen.StudentHome -> HomeScreen(
@@ -131,7 +135,7 @@ fun NovaApp(session: SessionRepository, themePreferences: ThemePreferences) {
             )
 
             AppScreen.TeacherHome -> TeacherRoomsScreen(
-                onBack = {
+                onLogout = {
                     session.logout()
                     screen = AppScreen.Login
                 }

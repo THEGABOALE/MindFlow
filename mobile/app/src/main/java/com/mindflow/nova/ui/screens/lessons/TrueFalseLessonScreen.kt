@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.lessons
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -93,6 +94,18 @@ fun TrueFalseLessonScreen(
             } else {
                 stage = TruthStage.SUBMIT_ERROR
             }
+        }
+    }
+
+    // "Atrás" del teléfono: a mitad de la lección pide confirmar igual que la X;
+    // en las pantallas de cierre sale. Mientras se guarda el resultado se
+    // consume sin hacer nada: si pasara al de LessonHost, saldría de la lección
+    // y cancelaría el envío, y el resultado se perdería.
+    BackHandler {
+        when (stage) {
+            TruthStage.SUBMITTING -> Unit
+            TruthStage.IN_PROGRESS -> showExitConfirmation = true
+            else -> onExit()
         }
     }
 

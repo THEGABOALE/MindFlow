@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.auth
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,8 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,9 +66,14 @@ import kotlinx.coroutines.launch
  * el backend, así que en logins posteriores esto se salta directo al home.
  */
 @Composable
-fun OnboardingScreen(onJoined: () -> Unit) {
+fun OnboardingScreen(onJoined: () -> Unit, onLogout: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
+
+    // "Atrás" en la página del código vuelve a la bienvenida en vez de cerrar la app.
+    BackHandler(enabled = pagerState.currentPage == 1) {
+        scope.launch { pagerState.animateScrollToPage(0) }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(NovaBackground)) {
         HorizontalPager(
@@ -82,6 +91,18 @@ fun OnboardingScreen(onJoined: () -> Unit) {
                     AccessCodePage(onJoined = onJoined)
                 }
             }
+        }
+
+        // Salida para quien entró con la cuenta equivocada: sin esto quedaba
+        // atrapado en el onboarding sin forma de volver al login.
+        TextButton(
+            onClick = onLogout,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(8.dp)
+        ) {
+            Text(text = "Cerrar sesión", color = NovaTextSecondary, fontSize = 13.sp)
         }
     }
 }
@@ -158,7 +179,8 @@ private fun AccessCodePage(
         if (state.joined) onJoined()
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+    // imePadding: con el teclado abierto el botón "Continuar" sube en vez de quedar tapado.
+    Column(modifier = Modifier.fillMaxSize().imePadding().padding(24.dp)) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
@@ -205,6 +227,14 @@ private fun AccessCodePage(
                 fontSize = 13.sp
             )
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = "¿No tienes código? Pídeselo a tu docente.",
+            color = NovaTextSecondary,
+            fontSize = 13.sp
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 

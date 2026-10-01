@@ -5,6 +5,8 @@ import com.google.gson.JsonSyntaxException
 import com.mindflow.nova.data.model.JoinGroupRequest
 import com.mindflow.nova.data.remote.NovaApiService
 import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.data.remote.SERVER_TROUBLE_MESSAGE
+import com.mindflow.nova.data.remote.connectionErrorMessage
 
 /** Resultado de intentar entrar a una sala con su código. */
 sealed class JoinGroupResult {
@@ -31,10 +33,16 @@ class RemoteGroupRepository(
             if (response.isSuccessful && body?.status == "OK") {
                 JoinGroupResult.Joined
             } else {
-                JoinGroupResult.Failed(joinErrorMessage(response.errorBody()?.string(), body?.message, gson))
+                JoinGroupResult.Failed(
+                    if (response.code() >= 500) {
+                        SERVER_TROUBLE_MESSAGE
+                    } else {
+                        joinErrorMessage(response.errorBody()?.string(), body?.message, gson)
+                    }
+                )
             }
         } catch (e: Exception) {
-            JoinGroupResult.Failed("Error de conexión: ${e.message}")
+            JoinGroupResult.Failed(connectionErrorMessage(e))
         }
 }
 

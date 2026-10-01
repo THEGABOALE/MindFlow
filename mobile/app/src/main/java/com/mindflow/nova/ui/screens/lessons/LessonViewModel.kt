@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+internal const val EMPTY_MISSION_MESSAGE = "Esta misión todavía no tiene preguntas. Vuelve a intentarlo más tarde."
+
 sealed class LessonState {
     /** Se está pidiendo el contenido o abriendo un intento. */
     object Loading : LessonState()
@@ -58,7 +60,11 @@ class LessonViewModel(
         viewModelScope.launch {
             when (val result = repository.loadContent(missionId)) {
                 is MissionContentResult.Failed -> _state.value = LessonState.Error(result.message)
-                is MissionContentResult.Loaded -> {
+                // Sin preguntas no se abre el intento: quedaría abierto en la base
+                // sin que el estudiante pueda jugar nada.
+                is MissionContentResult.Loaded -> if (!result.content.hasPlayableContent()) {
+                    _state.value = LessonState.Error(EMPTY_MISSION_MESSAGE)
+                } else {
                     content = result.content
                     startAttempt(missionId, result.content)
                 }
