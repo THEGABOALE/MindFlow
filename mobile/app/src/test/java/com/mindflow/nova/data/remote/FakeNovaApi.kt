@@ -1,7 +1,5 @@
 package com.mindflow.nova.data.remote
 
-import com.mindflow.nova.data.model.FinishAttemptRequest
-import com.mindflow.nova.data.model.FinishAttemptResponse
 import com.mindflow.nova.data.model.HealthResponse
 import com.mindflow.nova.data.model.JoinGroupRequest
 import com.mindflow.nova.data.model.JoinGroupResponse
@@ -11,7 +9,6 @@ import com.mindflow.nova.data.model.LoginIdRequest
 import com.mindflow.nova.data.model.LoginResponse
 import com.mindflow.nova.data.model.MeResponse
 import com.mindflow.nova.data.model.MissionContentResponse
-import com.mindflow.nova.data.model.StartAttemptResponse
 import com.mindflow.nova.data.model.StudentProgressResponse
 import com.mindflow.nova.data.model.SyncAttemptResult
 import com.mindflow.nova.data.model.SyncAttemptsRequest
@@ -70,8 +67,6 @@ class FakeNovaApi : NovaApiService {
     override suspend fun getHealth(): Response<HealthResponse> = TODO()
     override suspend fun getDatabaseHealth(): Response<HealthResponse> = TODO()
     override suspend fun joinGroupByCode(request: JoinGroupRequest): Response<JoinGroupResponse> = TODO()
-    override suspend fun startAttempt(missionId: Int): Response<StartAttemptResponse> = TODO()
-    override suspend fun finishAttempt(attemptId: Int, request: FinishAttemptRequest): Response<FinishAttemptResponse> = TODO()
 
     companion object {
         fun acceptedResult(clientAttemptId: String, missionId: Int, pointsEarned: Int = 100) = SyncAttemptResult(

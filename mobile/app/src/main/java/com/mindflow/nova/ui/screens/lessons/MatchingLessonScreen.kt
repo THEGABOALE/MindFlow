@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
@@ -59,7 +60,7 @@ import kotlinx.coroutines.launch
 
 private const val MATCHING_TIME_SECONDS = 45
 
-private enum class MatchingStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, TIME_UP, COMPLETED, SUBMIT_ERROR }
+private enum class MatchingStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, TIME_UP, COMPLETED, SUBMIT_ERROR, REJECTED }
 
 private enum class ItemState { IDLE, SELECTED, CORRECT, WRONG }
 
@@ -95,6 +96,8 @@ fun MatchingLessonScreen(
     var feedback by remember { mutableStateOf("¡Vas bien! Elige un par") }
     var justLostPluma by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    var pendingNotice by remember { mutableStateOf(false) }
+    var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
     val shuffledTerms = remember { pairs.shuffled() }
@@ -103,12 +106,19 @@ fun MatchingLessonScreen(
     fun finish(timedOut: Boolean, targetStage: MatchingStage) {
         stage = MatchingStage.SUBMITTING
         scope.launch {
-            val result = attempt.submit(answers.toList(), timedOut)
-            if (result != null) {
-                attemptResult = result
-                stage = targetStage
-            } else {
-                stage = MatchingStage.SUBMIT_ERROR
+            val outcome = attempt.submit(answers.toList(), timedOut)
+            val result = outcome.savedResult
+            when {
+                result != null -> {
+                    attemptResult = result
+                    pendingNotice = outcome is LessonOutcome.Pending
+                    stage = targetStage
+                }
+                outcome is LessonOutcome.Rejected -> {
+                    rejectedMessage = outcome.message
+                    stage = MatchingStage.REJECTED
+                }
+                else -> stage = MatchingStage.SUBMIT_ERROR
             }
         }
     }
@@ -183,12 +193,15 @@ fun MatchingLessonScreen(
 
             MatchingStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
 
+            MatchingStage.REJECTED -> LessonRejected(message = rejectedMessage, onRetry = attempt.onRetry, onExit = onExit)
+
             MatchingStage.COMPLETED -> {
                 LessonCompletedScreen(
                     subtitle = "Emparejaste ${pairs.size} de ${pairs.size} conceptos",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
                     rewardLabel = "semillas (según tus aciertos)",
                     streak = attemptResult?.streak,
+                    notice = if (pendingNotice) PENDING_RESULT_NOTICE else null,
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {

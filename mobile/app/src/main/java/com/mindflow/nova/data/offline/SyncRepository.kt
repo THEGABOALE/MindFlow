@@ -39,6 +39,9 @@ data class SyncReport(
     val stoppedBy: SyncStop?
 )
 
+/** Un intento que el servidor no aceptó y por qué, para avisarlo en el Inicio. */
+data class RejectedNotice(val clientAttemptId: String, val message: String)
+
 /**
  * Sube los intentos jugados en el teléfono con POST /api/sync/attempts. Los
  * aceptados y los rechazados salen de la cola; con cualquier otro problema se
@@ -56,13 +59,18 @@ class SyncRepository(
     // Dos subidas a la vez leerían la misma cola y mandarían dos veces lo mismo.
     private val mutex = Mutex()
 
-    private val _rejectedNotices = MutableStateFlow<List<String>>(emptyList())
+    private val _rejectedNotices = MutableStateFlow<List<RejectedNotice>>(emptyList())
 
-    /** Motivos de los intentos que el servidor no aceptó, para avisar una vez en el Inicio. */
-    val rejectedNotices: StateFlow<List<String>> = _rejectedNotices.asStateFlow()
+    /** Intentos que el servidor no aceptó, para avisar una vez en el Inicio. */
+    val rejectedNotices: StateFlow<List<RejectedNotice>> = _rejectedNotices.asStateFlow()
 
     fun consumeNotices() {
         _rejectedNotices.value = emptyList()
+    }
+
+    /** Quita el aviso de un intento cuyo rechazo ya se mostró (al cerrar la lección). */
+    fun dismissNotice(clientAttemptId: String) {
+        _rejectedNotices.update { notices -> notices.filterNot { it.clientAttemptId == clientAttemptId } }
     }
 
     suspend fun syncPending(userId: Int): SyncReport = mutex.withLock {
@@ -116,7 +124,7 @@ class SyncRepository(
         // El servidor guarda los ids en minúsculas; se buscan sin importar mayúsculas.
         val byId = batch.associateBy { it.clientAttemptId.lowercase() }
         val done = mutableListOf<String>()
-        val notices = mutableListOf<String>()
+        val notices = mutableListOf<RejectedNotice>()
 
         for (result in body.results) {
             val id = byId[result.clientAttemptId.lowercase()]?.clientAttemptId ?: continue
@@ -126,7 +134,7 @@ class SyncRepository(
                 result.status == "rejected" -> {
                     val message = result.message ?: "No se pudo guardar uno de tus resultados"
                     rejected[id] = message
-                    notices += message
+                    notices += RejectedNotice(id, message)
                 }
                 else -> continue
             }

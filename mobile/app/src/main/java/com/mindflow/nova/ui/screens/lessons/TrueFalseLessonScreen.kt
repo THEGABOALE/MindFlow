@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
@@ -55,7 +56,7 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 import kotlinx.coroutines.launch
 
 private enum class TruthPhase { ANSWERING, ANSWERED }
-private enum class TruthStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR }
+private enum class TruthStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR, REJECTED }
 
 private val TrueFalseSelected = Color(0xFF5B93C7)
 
@@ -82,17 +83,26 @@ fun TrueFalseLessonScreen(
     var stage by remember { mutableStateOf(TruthStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    var pendingNotice by remember { mutableStateOf(false) }
+    var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
     fun finish() {
         stage = TruthStage.SUBMITTING
         scope.launch {
-            val result = attempt.submit(answers.toList(), false)
-            if (result != null) {
-                attemptResult = result
-                stage = if (result.status == "completed") TruthStage.COMPLETED else TruthStage.OUT_OF_PLUMAS
-            } else {
-                stage = TruthStage.SUBMIT_ERROR
+            val outcome = attempt.submit(answers.toList(), false)
+            val result = outcome.savedResult
+            when {
+                result != null -> {
+                    attemptResult = result
+                    pendingNotice = outcome is LessonOutcome.Pending
+                    stage = if (result.status == "completed") TruthStage.COMPLETED else TruthStage.OUT_OF_PLUMAS
+                }
+                outcome is LessonOutcome.Rejected -> {
+                    rejectedMessage = outcome.message
+                    stage = TruthStage.REJECTED
+                }
+                else -> stage = TruthStage.SUBMIT_ERROR
             }
         }
     }
@@ -119,11 +129,14 @@ fun TrueFalseLessonScreen(
 
             TruthStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
 
+            TruthStage.REJECTED -> LessonRejected(message = rejectedMessage, onRetry = attempt.onRetry, onExit = onExit)
+
             TruthStage.COMPLETED -> {
                 LessonCompletedScreen(
                     subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} afirmaciones correctas",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
                     streak = attemptResult?.streak,
+                    notice = if (pendingNotice) PENDING_RESULT_NOTICE else null,
                     onContinue = onExit
                 )
             }

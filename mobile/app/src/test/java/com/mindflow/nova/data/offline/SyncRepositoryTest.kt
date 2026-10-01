@@ -66,10 +66,22 @@ class SyncRepositoryTest {
 
         assertEquals(mapOf("b" to "Primero completa la misión anterior"), report.rejected)
         assertTrue(store.pendingNow(userId).isEmpty())
-        assertEquals(listOf("Primero completa la misión anterior"), sync.rejectedNotices.value)
+        assertEquals(listOf(RejectedNotice("b", "Primero completa la misión anterior")), sync.rejectedNotices.value)
 
         sync.consumeNotices()
         assertTrue(sync.rejectedNotices.value.isEmpty())
+    }
+
+    @Test
+    fun `el aviso de un rechazo ya mostrado se puede quitar`() = runTest {
+        store.addPending(pending("a", minute = 1))
+        store.addPending(pending("b", minute = 2))
+        api.onSync = { syncOk(listOf(rejectedResult("a", "uno"), rejectedResult("b", "dos"))) }
+        sync.syncPending(userId)
+
+        sync.dismissNotice("a")
+
+        assertEquals(listOf(RejectedNotice("b", "dos")), sync.rejectedNotices.value)
     }
 
     @Test
