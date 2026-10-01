@@ -21,15 +21,21 @@ const failedAttemptsLimiter = (options) =>
     ...options
   });
 
-// Contraseñas probadas contra una misma cuenta. Va por cuenta y no solo por
-// IP porque un aula entera sale a internet con la misma IP del colegio.
+// Clave del límite por cuenta: solo el ID, sin la IP. Si llevara la IP, quien
+// prueba contraseñas desde muchas IPs tendría 10 intentos nuevos en cada una
+// contra la misma cuenta. Sin ID (petición mal armada) se cuenta por IP.
+const loginAccountKey = (req) => {
+  const loginId = req.body && typeof req.body.loginId === "string" ? req.body.loginId.trim().toLowerCase() : "";
+
+  return loginId ? `account:${loginId}` : `ip:${ipKeyGenerator(req.ip)}`;
+};
+
+// Contraseñas probadas contra una misma cuenta, vengan de donde vengan. Va por
+// cuenta y no solo por IP porque un aula entera sale a internet con la misma
+// IP del colegio.
 const loginAttemptsPerAccount = failedAttemptsLimiter({
   limit: 10,
-  keyGenerator: (req) => {
-    const loginId = req.body && typeof req.body.loginId === "string" ? req.body.loginId.trim().toLowerCase() : "";
-
-    return `${ipKeyGenerator(req.ip)}:${loginId}`;
-  }
+  keyGenerator: loginAccountKey
 });
 
 // Tope general por IP para quien prueba muchas cuentas distintas. Es amplio
@@ -44,6 +50,7 @@ const joinCodeAttempts = failedAttemptsLimiter({
 });
 
 module.exports = {
+  loginAccountKey,
   loginAttemptsPerAccount,
   loginAttemptsPerIp,
   joinCodeAttempts
