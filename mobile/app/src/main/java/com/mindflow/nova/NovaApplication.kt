@@ -24,5 +24,7 @@ class NovaApplication : Application() {
         session = AppServices.session
         themePreferences = ThemePreferences(this)
         RetrofitClient.warmUp()
+        // Lo que quedó sin subir la última vez se sube apenas haya red.
+        if (session.hasStoredToken()) AppServices.scheduleSync()
     }
 }

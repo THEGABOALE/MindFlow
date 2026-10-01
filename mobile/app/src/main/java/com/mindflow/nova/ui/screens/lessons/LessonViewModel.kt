@@ -50,7 +50,8 @@ class LessonViewModel(
     private val recorder: AttemptRecorder = OfflineAttemptRecorder(
         local = AppServices.localStore,
         sync = AppServices.sync,
-        currentUserId = { AppServices.session.currentUserId() }
+        currentUserId = { AppServices.session.currentUserId() },
+        scheduleSync = { AppServices.scheduleSync() }
     ),
     private val now: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },

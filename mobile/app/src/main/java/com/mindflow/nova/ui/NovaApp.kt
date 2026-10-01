@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.mindflow.nova.AppServices
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.session.SessionRepository
 import com.mindflow.nova.data.session.SessionResult
@@ -111,7 +112,11 @@ fun NovaApp(session: SessionRepository, themePreferences: ThemePreferences) {
 
             AppScreen.Login -> LoginScreen(
                 session = session,
-                onLoginSuccess = { user -> screen = routeForUser(user) }
+                onLoginSuccess = { user ->
+                    // Si esta cuenta dejó resultados sin subir en este teléfono, se suben ahora.
+                    AppServices.scheduleSync()
+                    screen = routeForUser(user)
+                }
             )
 
             AppScreen.Onboarding -> OnboardingScreen(

@@ -1,13 +1,21 @@
 package com.mindflow.nova
 
 import android.content.Context
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.mindflow.nova.data.local.LocalStore
 import com.mindflow.nova.data.local.NovaDatabase
 import com.mindflow.nova.data.local.RoomLocalStore
 import com.mindflow.nova.data.offline.SyncRepository
+import com.mindflow.nova.data.offline.SyncWorker
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.data.session.SessionRepository
 import com.mindflow.nova.data.session.SessionStorage
+import java.util.concurrent.TimeUnit
 
 /**
  * Lo que comparte toda la app y vive mientras vive el proceso. Lo arma
@@ -24,10 +32,29 @@ object AppServices {
     lateinit var sync: SyncRepository
         private set
 
+    private lateinit var appContext: Context
+
     fun init(context: Context) {
+        appContext = context.applicationContext
         localStore = RoomLocalStore(NovaDatabase.create(context).dao())
         // Crear la sesión deja el interceptor listo para firmar las peticiones.
         session = SessionRepository(SessionStorage(context), localStore)
         sync = SyncRepository(api = { RetrofitClient.api }, store = localStore)
     }
+
+    /**
+     * Pide subir los resultados pendientes en segundo plano apenas haya red,
+     * aunque la app esté cerrada. Si ya hay una subida programada no se agrega
+     * otra; si falla, WorkManager la reintenta cada vez más espaciada.
+     */
+    fun scheduleSync() {
+        val request = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setConstraints(Constraints(requiredNetworkType = NetworkType.CONNECTED))
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+            .build()
+
+        WorkManager.getInstance(appContext).enqueueUniqueWork(SYNC_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+    }
+
+    private const val SYNC_WORK_NAME = "sync-attempts"
 }
