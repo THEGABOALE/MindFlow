@@ -3,6 +3,7 @@ const { withTransaction } = require("../database/transaction");
 const missionRepository = require("../repositories/mission.repository");
 const attemptRepository = require("../repositories/attempt.repository");
 const levelProgressRepository = require("../repositories/level-progress.repository");
+const userRepository = require("../repositories/user.repository");
 const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
@@ -162,6 +163,10 @@ const finishAttempt = async (req, res) => {
     // Todo el cierre va en una transaccion: o queda el intento corregido con
     // sus respuestas y el progreso del nivel, o no queda nada.
     const outcome = await withTransaction(async (db) => {
+      // Los cierres de un mismo estudiante van de a uno, para que dos
+      // peticiones a la vez no trabajen sobre el mismo progreso.
+      await userRepository.lockUser(db, req.user.id);
+
       const attempt = await attemptRepository.findAttemptWithMission(db, attemptId);
 
       if (!attempt) {

@@ -74,6 +74,14 @@ const createIdAccount = async (db, { fullName, loginId, passwordHash, roleId, ce
   return result.rows[0];
 };
 
+// Bloquea la fila del usuario hasta que termine la transaccion. Sirve para
+// que dos peticiones del mismo estudiante que cambian su progreso (cerrar
+// intentos, unirse a una sala) se hagan una despues de la otra y no las dos
+// a la vez sobre los mismos datos. Las lecturas normales no esperan.
+const lockUser = async (db, userId) => {
+  await db.query("SELECT id FROM users WHERE id = $1 FOR UPDATE;", [userId]);
+};
+
 // Liga al usuario con un centro solo si todavia no tenia uno.
 const assignCenterIfMissing = async (db, userId, centerId) => {
   await db.query("UPDATE users SET center_id = $1 WHERE id = $2 AND center_id IS NULL;", [centerId, userId]);
@@ -163,5 +171,6 @@ module.exports = {
   loginIdExists,
   findRoleId,
   createIdAccount,
+  lockUser,
   assignCenterIfMissing
 };

@@ -25,6 +25,10 @@ const createAttempt = async (db, { userId, missionId, isReview }) => {
 };
 
 // El intento junto con los datos de su mision que hacen falta para corregirlo.
+//
+// Deja bloqueada la fila del intento hasta que termine la transaccion: si
+// llegan dos cierres del mismo intento a la vez, el segundo espera y despues
+// lo ve ya cerrado.
 const findAttemptWithMission = async (db, attemptId) => {
   const result = await db.query(
     `
@@ -33,7 +37,8 @@ const findAttemptWithMission = async (db, attemptId) => {
     FROM mission_attempts a
     JOIN missions m ON m.id = a.mission_id
     WHERE a.id = $1
-    LIMIT 1;
+    LIMIT 1
+    FOR UPDATE OF a;
     `,
     [attemptId]
   );

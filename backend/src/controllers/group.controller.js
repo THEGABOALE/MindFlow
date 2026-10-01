@@ -22,6 +22,12 @@ const joinGroupByCode = async (req, res) => {
     // La matrícula, el centro del estudiante y el uso del código se guardan
     // juntos o no se guarda nada.
     const outcome = await withTransaction(async (db) => {
+      // Dos toques seguidos del mismo estudiante esperan uno al otro en vez
+      // de matricularlo dos veces.
+      await userRepository.lockUser(db, req.user.id);
+
+      // Bloquea la fila del código hasta el final: si dos estudiantes van por
+      // el último uso a la vez, el segundo ve el código ya agotado.
       const accessCode = await groupRepository.findUsableAccessCode(db, code.trim().toUpperCase());
 
       if (!accessCode) {
