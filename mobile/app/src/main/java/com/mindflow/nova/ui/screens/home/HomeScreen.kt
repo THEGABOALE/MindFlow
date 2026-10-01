@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,6 +88,13 @@ fun HomeScreen(
         )
         return
     }
+
+    // "Atrás" del teléfono: desde otra pestaña vuelve al Inicio en vez de
+    // cerrar la app; desde el Inicio sí deja que se cierre.
+    BackHandler(enabled = selectedTab != NovaTab.Home) {
+        selectedTab = NovaTab.Home
+    }
+
     Scaffold(
         containerColor = NovaBackground,
         bottomBar = {

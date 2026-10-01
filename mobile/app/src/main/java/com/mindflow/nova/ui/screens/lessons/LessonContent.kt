@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.lessons
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -149,6 +150,11 @@ class LessonAttempt(
 @Composable
 fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
     val mechanic = mission.mechanic
+
+    // "Atrás" mientras la lección carga, si no se pudo abrir o en el
+    // placeholder: vuelve a la ruta. Cada pantalla de juego pone el suyo
+    // encima, que pide confirmar antes de abandonar a mitad de la lección.
+    BackHandler(onBack = onExit)
 
     if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
         MiniGamePlaceholderScreen(mission = mission, onBack = onExit)

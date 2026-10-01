@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.auth
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +66,11 @@ import kotlinx.coroutines.launch
 fun OnboardingScreen(onJoined: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
+
+    // "Atrás" en la página del código vuelve a la bienvenida en vez de cerrar la app.
+    BackHandler(enabled = pagerState.currentPage == 1) {
+        scope.launch { pagerState.animateScrollToPage(0) }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(NovaBackground)) {
         HorizontalPager(

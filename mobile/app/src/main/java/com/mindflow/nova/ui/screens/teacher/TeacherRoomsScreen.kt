@@ -1,5 +1,6 @@
 package com.mindflow.nova.ui.screens.teacher
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +60,9 @@ fun TeacherRoomsScreen(onBack: () -> Unit) {
 
     val room = selectedRoom
     if (room != null) {
+        // "Atrás" del teléfono en el detalle vuelve a la lista de salas.
+        BackHandler { selectedRoom = null }
+
         TeacherRoomDetailScreen(
             room = room,
             onBack = { selectedRoom = null }
