@@ -21,14 +21,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +58,7 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
  * backend de salones/alumnos todavía.
  */
 @Composable
-fun TeacherRoomsScreen(onBack: () -> Unit) {
+fun TeacherRoomsScreen(onLogout: () -> Unit) {
     var selectedRoom by remember { mutableStateOf<TeacherRoom?>(null) }
 
     val room = selectedRoom
@@ -70,7 +73,7 @@ fun TeacherRoomsScreen(onBack: () -> Unit) {
     } else {
         SalasListScreen(
             rooms = TeacherMockData.rooms,
-            onBack = onBack,
+            onLogout = onLogout,
             onRoomSelected = { selectedRoom = it }
         )
     }
@@ -79,9 +82,11 @@ fun TeacherRoomsScreen(onBack: () -> Unit) {
 @Composable
 private fun SalasListScreen(
     rooms: List<TeacherRoom>,
-    onBack: () -> Unit,
+    onLogout: () -> Unit,
     onRoomSelected: (TeacherRoom) -> Unit
 ) {
+    var confirmLogout by remember { mutableStateOf(false) }
+
     Scaffold(containerColor = NovaBackground) { innerPadding ->
         Column(
             modifier = Modifier
@@ -89,23 +94,24 @@ private fun SalasListScreen(
                 .padding(innerPadding)
                 .padding(24.dp)
         ) {
+            // Antes había una flecha "atrás" que cerraba la sesión sin avisar;
+            // ahora cerrar sesión es un botón propio y pide confirmación.
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.Rounded.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = NovaText
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
                 Text(
                     text = "Salas",
                     color = NovaText,
                     fontSize = 26.sp,
-                    fontWeight = FontWeight.Black
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.weight(1f)
                 )
+
+                IconButton(onClick = { confirmLogout = true }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.Logout,
+                        contentDescription = "Cerrar sesión",
+                        tint = NovaText
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -130,6 +136,20 @@ private fun SalasListScreen(
                 }
             }
         }
+    }
+
+    if (confirmLogout) {
+        AlertDialog(
+            onDismissRequest = { confirmLogout = false },
+            title = { Text("¿Cerrar sesión?") },
+            text = { Text("Vas a volver a la pantalla de inicio de sesión.") },
+            confirmButton = {
+                TextButton(onClick = onLogout) { Text("Cerrar sesión") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmLogout = false }) { Text("Cancelar") }
+            }
+        )
     }
 }
 
