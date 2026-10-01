@@ -122,7 +122,9 @@ CREATE TABLE mission_attempts (
   is_review BOOLEAN DEFAULT FALSE,
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   finished_at TIMESTAMP,
-  status VARCHAR(50) DEFAULT 'in_progress'
+  status VARCHAR(50) DEFAULT 'in_progress',
+  -- Id que genera el teléfono en los intentos jugados sin conexión (modo offline).
+  client_attempt_id UUID UNIQUE
 );
 
 CREATE TABLE attempt_answers (
