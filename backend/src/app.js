@@ -13,6 +13,7 @@ const missionRoutes = require("./routes/mission.routes");
 const teacherRoutes = require("./routes/teacher.routes");
 const coordinatorRoutes = require("./routes/coordinator.routes");
 const adminRoutes = require("./routes/admin.routes");
+const syncRoutes = require("./routes/sync.routes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/missions", missionRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/sync", syncRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

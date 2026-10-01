@@ -68,6 +68,54 @@ const findAttemptWithMission = async (db, attemptId) => {
   return result.rows[0] || null;
 };
 
+// Un intento por el id que le dio el teléfono, con lo necesario para volver
+// a responder su resultado si el mismo intento llega dos veces.
+const findByClientAttemptId = async (db, clientAttemptId) => {
+  const result = await db.query(
+    `
+    SELECT a.id, a.user_id, a.mission_id, a.score, a.correct_answers, a.wrong_answers,
+           a.points_earned, a.is_review, a.status, m.max_plumas
+    FROM mission_attempts a
+    JOIN missions m ON m.id = a.mission_id
+    WHERE a.client_attempt_id = $1
+    LIMIT 1;
+    `,
+    [clientAttemptId]
+  );
+
+  return result.rows[0] || null;
+};
+
+// Guarda un intento jugado en el teléfono ya calificado. Las horas llegan con
+// su huso y se pasan a la hora de la sesión de la base, igual que las que se
+// escriben con CURRENT_TIMESTAMP, para que la racha las lea igual.
+const insertSettledAttempt = async (db, {
+  userId, missionId, clientAttemptId, startedAt, finishedAt,
+  score, correctAnswers, wrongAnswers, pointsEarned, isReview, status
+}) => {
+  const result = await db.query(
+    `
+    INSERT INTO mission_attempts (
+      user_id, mission_id, client_attempt_id, started_at, finished_at,
+      score, correct_answers, wrong_answers, points_earned, is_review, status
+    )
+    VALUES (
+      $1, $2, $3,
+      $4::timestamptz AT TIME ZONE current_setting('TimeZone'),
+      $5::timestamptz AT TIME ZONE current_setting('TimeZone'),
+      $6, $7, $8, $9, $10, $11
+    )
+    RETURNING id;
+    `,
+    [
+      userId, missionId, clientAttemptId, startedAt.toISOString(), finishedAt.toISOString(),
+      score, correctAnswers, wrongAnswers, pointsEarned, isReview, status
+    ]
+  );
+
+  return result.rows[0].id;
+};
+
 const insertAnswer = async (db, attemptId, { questionId, selectedOptionId, pairId, isCorrect }) => {
   await db.query(
     `
@@ -167,6 +215,8 @@ module.exports = {
   hasPaidReviewSince,
   createAttempt,
   findAttemptWithMission,
+  findByClientAttemptId,
+  insertSettledAttempt,
   insertAnswer,
   closeAttempt,
   findActivityDays
