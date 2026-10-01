@@ -10,10 +10,13 @@
 // 2 errores 50%, y al tercer error se pierde la mision y no gana nada.
 // El repaso (volver a jugar una mision ya completada) da la mitad, para que
 // repetir hasta hacerlo perfecto siga valiendo la pena sin regalar semillas.
-// Y solo paga una vez cada REVIEW_PAY_WINDOW_HOURS por mision: repetir la
-// misma mision diez veces seguidas no puede ser la forma de juntar semillas.
+// Cada repaso siguiente de la misma mision dentro de REVIEW_PAY_WINDOW_HOURS
+// paga la mitad del anterior (50, 25, 13, 6...) hasta un minimo de 1: repasar
+// siempre da algo, pero repetir la misma mision no es la forma de juntar
+// semillas. Pasado ese tiempo sin repasarla, vuelve a pagar la mitad.
 const REVIEW_FACTOR = 0.5;
 const REVIEW_PAY_WINDOW_HOURS = 24;
+const MIN_REVIEW_POINTS = 1;
 
 // Margen sobre el limite de tiempo de la mision para la red y para lo que
 // tarda la app entre abrir el intento y mostrar el reloj.
@@ -21,20 +24,26 @@ const TIME_LIMIT_GRACE_SECONDS = 15;
 
 /**
  * @param {object} args
- * @param {boolean} [args.reviewAlreadyPaid] true si ya cobro un repaso de esta
- *   mision dentro de la ventana; entonces este repaso no paga.
+ * @param {number} [args.paidReviewsNearby] cuantos repasos de esta mision ya
+ *   cobraron dentro de la ventana; cada uno parte a la mitad lo que paga este.
  */
-const calculatePoints = ({ pointsReward, wrongAnswers, maxPlumas, isReview, reviewAlreadyPaid = false }) => {
+const calculatePoints = ({ pointsReward, wrongAnswers, maxPlumas, isReview, paidReviewsNearby = 0 }) => {
   const plumasLeft = maxPlumas - wrongAnswers;
 
-  if (plumasLeft <= 0 || (isReview && reviewAlreadyPaid)) {
+  if (plumasLeft <= 0) {
     return 0;
   }
 
   const penalty = wrongAnswers / (maxPlumas + 1);
   const earned = pointsReward * (1 - penalty);
 
-  return Math.round(isReview ? earned * REVIEW_FACTOR : earned);
+  if (!isReview) {
+    return Math.round(earned);
+  }
+
+  const reviewPoints = earned * REVIEW_FACTOR ** (paidReviewsNearby + 1);
+
+  return Math.max(MIN_REVIEW_POINTS, Math.round(reviewPoints));
 };
 
 /**
@@ -137,7 +146,7 @@ const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds }) =>
  */
 const decideAttemptOutcome = ({
   correctAnswers, wrongAnswers, maxPlumas, pointsReward,
-  timedOut, elapsedSeconds, timeLimitSeconds, isReview, reviewAlreadyPaid
+  timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby
 }) => {
   const ranOutOfPlumas = wrongAnswers >= maxPlumas;
   // La app avisa timedOut cuando su reloj llega a cero, pero eso solo puede
@@ -154,7 +163,7 @@ const decideAttemptOutcome = ({
     plumasLeft: Math.max(maxPlumas - wrongAnswers, 0),
     pointsEarned: failed
       ? 0
-      : calculatePoints({ pointsReward, wrongAnswers, maxPlumas, isReview, reviewAlreadyPaid })
+      : calculatePoints({ pointsReward, wrongAnswers, maxPlumas, isReview, paidReviewsNearby })
   };
 };
 

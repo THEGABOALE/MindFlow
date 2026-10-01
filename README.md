@@ -181,7 +181,7 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
 
-La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad y solo una vez cada 24 horas por misión. El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
+La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad de la misión, y cada repaso siguiente de la misma misión dentro de 24 horas paga la mitad del anterior, hasta un mínimo de 1 semilla (50, 25, 13, 6…). El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
 
 Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
 

@@ -27,15 +27,31 @@ describe("calculatePoints", () => {
     expect(calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: true })).toBe(50);
   });
 
-  test("un repaso de una mision que ya cobro repaso en la ventana no paga", () => {
+  test("cada repaso seguido de la misma mision paga la mitad del anterior, hasta 1", () => {
+    const paid = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((paidReviewsNearby) =>
+      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: true, paidReviewsNearby })
+    );
+
+    expect(paid).toEqual([50, 25, 13, 6, 3, 2, 1, 1, 1]);
+  });
+
+  test("la baja tambien aplica sobre la recompensa con plumas perdidas", () => {
+    const paid = [0, 1, 2].map((paidReviewsNearby) =>
+      calculatePoints({ pointsReward: 200, wrongAnswers: 1, maxPlumas: 3, isReview: true, paidReviewsNearby })
+    );
+
+    expect(paid).toEqual([75, 38, 19]);
+  });
+
+  test("un repaso sin plumas no paga ni siquiera el minimo", () => {
     expect(
-      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: true, reviewAlreadyPaid: true })
+      calculatePoints({ pointsReward: 100, wrongAnswers: 3, maxPlumas: 3, isReview: true, paidReviewsNearby: 9 })
     ).toBe(0);
   });
 
-  test("reviewAlreadyPaid no afecta a una mision que no es repaso", () => {
+  test("los repasos anteriores no afectan a una mision que no es repaso", () => {
     expect(
-      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: false, reviewAlreadyPaid: true })
+      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: false, paidReviewsNearby: 4 })
     ).toBe(100);
   });
 });
@@ -44,7 +60,7 @@ describe("decideAttemptOutcome", () => {
   const base = {
     correctAnswers: 8, wrongAnswers: 0, maxPlumas: 3, pointsReward: 200,
     timedOut: false, elapsedSeconds: 30, timeLimitSeconds: null,
-    isReview: false, reviewAlreadyPaid: false
+    isReview: false, paidReviewsNearby: 0
   };
 
   test("todo bien y a tiempo: completada con la recompensa completa", () => {
@@ -67,9 +83,9 @@ describe("decideAttemptOutcome", () => {
     expect(decideAttemptOutcome({ ...base, timeLimitSeconds: 45, elapsedSeconds: 60 })).toMatchObject({ failed: false });
   });
 
-  test("un repaso paga la mitad y uno ya cobrado no paga", () => {
+  test("un repaso paga la mitad y el siguiente la mitad de eso", () => {
     expect(decideAttemptOutcome({ ...base, isReview: true }).pointsEarned).toBe(100);
-    expect(decideAttemptOutcome({ ...base, isReview: true, reviewAlreadyPaid: true }).pointsEarned).toBe(0);
+    expect(decideAttemptOutcome({ ...base, isReview: true, paidReviewsNearby: 1 }).pointsEarned).toBe(50);
   });
 
   test("sin respuestas el puntaje es 0", () => {

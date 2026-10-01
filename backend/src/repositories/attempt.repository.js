@@ -24,32 +24,31 @@ const createAttempt = async (db, { userId, missionId, isReview }) => {
   return result.rows[0];
 };
 
-// Si ya cobro un repaso de esta mision a menos de `hours` horas (antes o
-// despues) de `at`, la hora en que se termino el intento que se esta
+// Cuantos repasos de esta mision ya cobraron a menos de `hours` horas (antes
+// o despues) de `at`, la hora en que se termino el intento que se esta
 // calificando. Sin `at` se usa la hora actual (intento cerrado en linea).
 // Se mide contra la hora en que se jugo y no contra la de subida: si no, varios
-// repasos jugados sin conexion y subidos dias despues cobrarian todos. Es
-// simetrica para que no importe en que orden lleguen los intentos.
-const hasPaidReviewNear = async (db, userId, missionId, hours, at = null) => {
+// repasos jugados sin conexion y subidos dias despues cobrarian todos como el
+// primero. Es simetrica para que no importe en que orden lleguen los intentos.
+const countPaidReviewsNear = async (db, userId, missionId, hours, at = null) => {
   const result = await db.query(
     `
     WITH ref AS (
       SELECT COALESCE($4::timestamptz AT TIME ZONE current_setting('TimeZone'), LOCALTIMESTAMP) AS t
     )
-    SELECT 1
+    SELECT COUNT(*)::int AS paid
     FROM mission_attempts, ref
     WHERE user_id = $1
       AND mission_id = $2
       AND is_review = TRUE
       AND points_earned > 0
       AND finished_at > ref.t - make_interval(hours => $3)
-      AND finished_at < ref.t + make_interval(hours => $3)
-    LIMIT 1;
+      AND finished_at < ref.t + make_interval(hours => $3);
     `,
     [userId, missionId, hours, at ? at.toISOString() : null]
   );
 
-  return result.rows.length > 0;
+  return Number(result.rows[0].paid);
 };
 
 // El intento junto con los datos de su mision que hacen falta para corregirlo,
@@ -221,7 +220,7 @@ module.exports = {
   findStudentTotals,
   findCompletedMissionIds,
   hasCompletedMission,
-  hasPaidReviewNear,
+  countPaidReviewsNear,
   createAttempt,
   findAttemptWithMission,
   findByClientAttemptId,

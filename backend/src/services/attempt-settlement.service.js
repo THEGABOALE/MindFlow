@@ -35,15 +35,16 @@ const settleAttempt = async (db, {
   // Si es repaso se decide al cerrar y no al abrir: un intento abierto antes
   // de completar la misión por otro lado igual cuenta como repaso.
   const isReview = await attemptRepository.hasCompletedMission(db, userId, missionId);
-  // El tope de repasos se mide contra la hora en que se terminó este intento
-  // (finishedAt en los que vienen del teléfono; la hora actual en línea).
-  const reviewAlreadyPaid =
-    isReview &&
-    (await attemptRepository.hasPaidReviewNear(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS, finishedAt));
+  // Cada repaso cobrado cerca de este intento parte a la mitad lo que paga. Se
+  // mide contra la hora en que se terminó (finishedAt en los que vienen del
+  // teléfono; la hora actual en línea).
+  const paidReviewsNearby = isReview
+    ? await attemptRepository.countPaidReviewsNear(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS, finishedAt)
+    : 0;
 
   const outcome = decideAttemptOutcome({
     correctAnswers, wrongAnswers, maxPlumas, pointsReward,
-    timedOut, elapsedSeconds, timeLimitSeconds, isReview, reviewAlreadyPaid
+    timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby
   });
 
   const attemptId = await save({
