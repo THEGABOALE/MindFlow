@@ -2,16 +2,10 @@ const pool = require("../database/connection");
 const { withTransaction } = require("../database/transaction");
 const missionRepository = require("../repositories/mission.repository");
 const attemptRepository = require("../repositories/attempt.repository");
-const levelProgressRepository = require("../repositories/level-progress.repository");
 const groupRepository = require("../repositories/group.repository");
 const userRepository = require("../repositories/user.repository");
-const {
-  REVIEW_PAY_WINDOW_HOURS,
-  calculatePoints,
-  exceededTimeLimit,
-  gradeAttempt
-} = require("../services/mission-grading.service");
 const { missionStartBlock } = require("../services/mission-access.service");
+const { settleAttempt } = require("../services/attempt-settlement.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
 const { respondServerError } = require("../utils/server-error");
@@ -205,86 +199,21 @@ const finishAttempt = async (req, res) => {
         return { httpStatus: 409, body: { message: "Este intento ya fue cerrado", status: "ERROR" } };
       }
 
-      // Preguntas reales de la mision: la correccion recorre esta lista, no la
-      // que mande el cliente, para que omitir o duplicar respuestas no cambie
-      // el puntaje (cada pregunta/par sin responder cuenta como incorrecta).
-      const { correctAnswers, wrongAnswers, answerRows } = gradeAttempt({
-        questions: await missionRepository.findQuestions(db, attempt.mission_id),
-        options: await missionRepository.findOptions(db, attempt.mission_id),
-        pairs: await missionRepository.findPairs(db, attempt.mission_id),
-        answers
+      const settled = await settleAttempt(db, {
+        userId: req.user.id,
+        missionId: attempt.mission_id,
+        levelId: attempt.level_id,
+        pointsReward: attempt.points_reward,
+        maxPlumas: attempt.max_plumas,
+        timeLimitSeconds: attempt.time_limit_seconds,
+        answers,
+        timedOut,
+        elapsedSeconds: Number(attempt.elapsed_seconds),
+        save: async (fields) => {
+          await attemptRepository.closeAttempt(db, attemptId, fields);
+          return Number(attemptId);
+        }
       });
-
-      for (const row of answerRows) {
-        await attemptRepository.insertAnswer(db, attemptId, row);
-      }
-
-      const ranOutOfPlumas = wrongAnswers >= attempt.max_plumas;
-
-      // La app avisa timedOut cuando su reloj llega a cero, pero eso solo
-      // puede adelantar el fallo: el servidor también compara con su reloj.
-      const ranOutOfTime =
-        Boolean(timedOut) ||
-        exceededTimeLimit({
-          elapsedSeconds: Number(attempt.elapsed_seconds),
-          timeLimitSeconds: attempt.time_limit_seconds
-        });
-
-      const failed = ranOutOfTime || ranOutOfPlumas;
-
-      const totalAnswers = correctAnswers + wrongAnswers;
-      const score = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-
-      // Si es repaso se decide ahora y no al abrir: un intento abierto antes
-      // de completar la misión por otro lado igual cuenta como repaso.
-      const isReview = await attemptRepository.hasCompletedMission(db, req.user.id, attempt.mission_id);
-      const reviewAlreadyPaid =
-        isReview &&
-        (await attemptRepository.hasPaidReviewSince(db, req.user.id, attempt.mission_id, REVIEW_PAY_WINDOW_HOURS));
-
-      const pointsEarned = failed
-        ? 0
-        : calculatePoints({
-            pointsReward: attempt.points_reward,
-            wrongAnswers,
-            maxPlumas: attempt.max_plumas,
-            isReview,
-            reviewAlreadyPaid
-          });
-
-      await attemptRepository.closeAttempt(db, attemptId, {
-        score,
-        correctAnswers,
-        wrongAnswers,
-        pointsEarned,
-        isReview,
-        status: failed ? "failed" : "completed"
-      });
-
-      // El progreso del nivel solo puede subir: un repaso que salga peor, o una
-      // mision perdida, nunca hacen retroceder la ruta de aprendizaje.
-      let levelProgress = null;
-
-      if (!failed) {
-        const { total, completed } = await levelProgressRepository.countLevelMissions(
-          db,
-          attempt.level_id,
-          req.user.id
-        );
-
-        const progress = await levelProgressRepository.saveLevelProgress(db, {
-          userId: req.user.id,
-          levelId: attempt.level_id,
-          percentage: total > 0 ? (completed / total) * 100 : 0,
-          status: completed >= total ? "completed" : "in_progress"
-        });
-
-        levelProgress = {
-          levelId: progress.level_id,
-          progressPercentage: Number(progress.progress_percentage),
-          status: progress.status
-        };
-      }
 
       // Terminar un intento (pasado o no) cuenta para la racha. Si es el primero
       // del dia, este intento fue el que la encendio o la descongelo: la app lo
@@ -294,20 +223,20 @@ const finishAttempt = async (req, res) => {
       return {
         httpStatus: 200,
         body: {
-          message: failed ? "Misión no superada" : "Misión completada",
+          message: settled.status === "failed" ? "Misión no superada" : "Misión completada",
           status: "OK",
           attempt: {
-            id: Number(attemptId),
-            missionId: attempt.mission_id,
-            score,
-            correctAnswers,
-            wrongAnswers,
-            plumasLeft: Math.max(attempt.max_plumas - wrongAnswers, 0),
-            pointsEarned,
-            isReview,
-            status: failed ? "failed" : "completed"
+            id: settled.attemptId,
+            missionId: settled.missionId,
+            score: settled.score,
+            correctAnswers: settled.correctAnswers,
+            wrongAnswers: settled.wrongAnswers,
+            plumasLeft: settled.plumasLeft,
+            pointsEarned: settled.pointsEarned,
+            isReview: settled.isReview,
+            status: settled.status
           },
-          levelProgress,
+          levelProgress: settled.levelProgress,
           streak: {
             days: streak.days,
             isActive: streak.isActive,
