@@ -162,9 +162,15 @@ fun MatchingLessonScreen(
     }
 
     // "Atrás" del teléfono: a mitad de la lección pide confirmar igual que la X;
-    // en las pantallas de cierre sale; mientras se guarda el resultado no hace nada.
-    BackHandler(enabled = stage != MatchingStage.SUBMITTING) {
-        if (stage == MatchingStage.IN_PROGRESS) showExitConfirmation = true else onExit()
+    // en las pantallas de cierre sale. Mientras se guarda el resultado se
+    // consume sin hacer nada: si pasara al de LessonHost, saldría de la lección
+    // y cancelaría el envío, y el resultado se perdería.
+    BackHandler {
+        when (stage) {
+            MatchingStage.SUBMITTING -> Unit
+            MatchingStage.IN_PROGRESS -> showExitConfirmation = true
+            else -> onExit()
+        }
     }
 
     Box(
