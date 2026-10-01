@@ -1,4 +1,9 @@
-const { calculatePoints, exceededTimeLimit, gradeAttempt } = require("../src/services/mission-grading.service");
+const {
+  calculatePoints,
+  decideAttemptOutcome,
+  exceededTimeLimit,
+  gradeAttempt
+} = require("../src/services/mission-grading.service");
 
 describe("calculatePoints", () => {
   test("0 errores da el 100% de la recompensa", () => {
@@ -32,6 +37,43 @@ describe("calculatePoints", () => {
     expect(
       calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: false, reviewAlreadyPaid: true })
     ).toBe(100);
+  });
+});
+
+describe("decideAttemptOutcome", () => {
+  const base = {
+    correctAnswers: 8, wrongAnswers: 0, maxPlumas: 3, pointsReward: 200,
+    timedOut: false, elapsedSeconds: 30, timeLimitSeconds: null,
+    isReview: false, reviewAlreadyPaid: false
+  };
+
+  test("todo bien y a tiempo: completada con la recompensa completa", () => {
+    expect(decideAttemptOutcome(base)).toEqual({
+      failed: false, status: "completed", score: 100, plumasLeft: 3, pointsEarned: 200
+    });
+  });
+
+  test("agotar las plumas la pierde y no paga", () => {
+    const outcome = decideAttemptOutcome({ ...base, correctAnswers: 5, wrongAnswers: 3 });
+    expect(outcome).toMatchObject({ failed: true, status: "failed", plumasLeft: 0, pointsEarned: 0, score: 63 });
+  });
+
+  test("si la app avisa que se acabó el tiempo, la pierde", () => {
+    expect(decideAttemptOutcome({ ...base, timedOut: true })).toMatchObject({ failed: true, pointsEarned: 0 });
+  });
+
+  test("pasarse del límite más el margen la pierde aunque la app no avise", () => {
+    expect(decideAttemptOutcome({ ...base, timeLimitSeconds: 45, elapsedSeconds: 61 })).toMatchObject({ failed: true });
+    expect(decideAttemptOutcome({ ...base, timeLimitSeconds: 45, elapsedSeconds: 60 })).toMatchObject({ failed: false });
+  });
+
+  test("un repaso paga la mitad y uno ya cobrado no paga", () => {
+    expect(decideAttemptOutcome({ ...base, isReview: true }).pointsEarned).toBe(100);
+    expect(decideAttemptOutcome({ ...base, isReview: true, reviewAlreadyPaid: true }).pointsEarned).toBe(0);
+  });
+
+  test("sin respuestas el puntaje es 0", () => {
+    expect(decideAttemptOutcome({ ...base, correctAnswers: 0, wrongAnswers: 0 }).score).toBe(0);
   });
 });
 

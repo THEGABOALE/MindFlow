@@ -131,9 +131,37 @@ const gradeAttempt = ({ questions, options, pairs, answers }) => {
 const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds }) =>
   timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + TIME_LIMIT_GRACE_SECONDS;
 
+/**
+ * Resultado de un intento ya corregido: si se perdió (sin plumas o sin
+ * tiempo), el puntaje, las plumas que quedan y las semillas que paga.
+ */
+const decideAttemptOutcome = ({
+  correctAnswers, wrongAnswers, maxPlumas, pointsReward,
+  timedOut, elapsedSeconds, timeLimitSeconds, isReview, reviewAlreadyPaid
+}) => {
+  const ranOutOfPlumas = wrongAnswers >= maxPlumas;
+  // La app avisa timedOut cuando su reloj llega a cero, pero eso solo puede
+  // adelantar el fallo: el servidor también compara con las horas.
+  const ranOutOfTime = Boolean(timedOut) || exceededTimeLimit({ elapsedSeconds, timeLimitSeconds });
+  const failed = ranOutOfTime || ranOutOfPlumas;
+
+  const totalAnswers = correctAnswers + wrongAnswers;
+
+  return {
+    failed,
+    status: failed ? "failed" : "completed",
+    score: totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0,
+    plumasLeft: Math.max(maxPlumas - wrongAnswers, 0),
+    pointsEarned: failed
+      ? 0
+      : calculatePoints({ pointsReward, wrongAnswers, maxPlumas, isReview, reviewAlreadyPaid })
+  };
+};
+
 module.exports = {
   REVIEW_PAY_WINDOW_HOURS,
   calculatePoints,
+  decideAttemptOutcome,
   exceededTimeLimit,
   gradeAttempt
 };
