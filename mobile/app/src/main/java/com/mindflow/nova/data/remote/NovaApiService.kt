@@ -13,6 +13,8 @@ import com.mindflow.nova.data.model.FinishAttemptRequest
 import com.mindflow.nova.data.model.FinishAttemptResponse
 import com.mindflow.nova.data.model.StartAttemptResponse
 import com.mindflow.nova.data.model.StudentProgressResponse
+import com.mindflow.nova.data.model.SyncAttemptsRequest
+import com.mindflow.nova.data.model.SyncAttemptsResponse
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.Response
@@ -45,6 +47,13 @@ interface NovaApiService {
         @Path("attemptId") attemptId: Int,
         @Body request: FinishAttemptRequest
     ): Response<FinishAttemptResponse>
+
+    /**
+     * Sube intentos jugados en el teléfono: el servidor los vuelve a calificar
+     * y responde, uno por uno, si los aceptó o por qué no.
+     */
+    @POST("api/sync/attempts")
+    suspend fun syncAttempts(@Body request: SyncAttemptsRequest): Response<SyncAttemptsResponse>
 
     /**
      * Progreso acumulado del estudiante: semillas totales, misiones completadas, % por
