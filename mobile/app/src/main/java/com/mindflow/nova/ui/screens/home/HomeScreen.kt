@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -148,23 +149,35 @@ fun HomeScreen(
             }
 
             else -> {
-                NovaMainContent(
-                    selectedTab = selectedTab,
-                    level = level,
-                    user = state.user,
-                    progress = progress,
-                    onMissionSelected = { mission -> pendingMission = mission },
-                    onOpenLessons = { selectedTab = NovaTab.Lessons },
-                    darkMode = darkMode,
-                    onDarkModeChange = onDarkModeChange,
-                    onLogout = {
-                        viewModel.clear()
-                        onLogout()
-                    },
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                )
+                ) {
+                    SyncStatusStrip(offline = state.offline, pendingCount = state.pendingCount)
+
+                    state.notice?.let { notice ->
+                        RejectedNoticeCard(message = notice, onDismiss = viewModel::dismissNotice)
+                    }
+
+                    NovaMainContent(
+                        selectedTab = selectedTab,
+                        level = level,
+                        user = state.user,
+                        progress = progress,
+                        onMissionSelected = { mission -> pendingMission = mission },
+                        onOpenLessons = { selectedTab = NovaTab.Lessons },
+                        darkMode = darkMode,
+                        onDarkModeChange = onDarkModeChange,
+                        onLogout = {
+                            viewModel.clear()
+                            onLogout()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+                }
             }
         }
     }
@@ -404,6 +417,66 @@ private fun ErrorState(
                 ) {
                     Text(text = "Reintentar", fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+/** Texto de la franja de arriba, o null si no hay nada que avisar. */
+internal fun syncStatusText(offline: Boolean, pendingCount: Int): String? = when {
+    offline -> "Sin conexión · tus resultados se subirán solos"
+    pendingCount == 1 -> "Tienes 1 resultado por subir"
+    pendingCount > 1 -> "Tienes $pendingCount resultados por subir"
+    else -> null
+}
+
+/** Franja discreta: no hay conexión o quedan resultados sin subir. */
+@Composable
+private fun SyncStatusStrip(offline: Boolean, pendingCount: Int) {
+    val text = syncStatusText(offline, pendingCount) ?: return
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = NovaLightPurple
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            color = NovaPurple,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/** Resultados que el servidor no aceptó; se muestra hasta tocar "Entendido". */
+@Composable
+private fun RejectedNoticeCard(message: String, onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = NovaSurface,
+        border = BorderStroke(1.dp, NovaBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = message,
+                color = NovaText,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.align(Alignment.End),
+                colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = Color.White),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(text = "Entendido", fontWeight = FontWeight.Bold)
             }
         }
     }
