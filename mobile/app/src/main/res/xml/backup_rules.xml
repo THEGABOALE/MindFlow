@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Respaldo automático en Android 11 o menos (desde Android 12 se usa
+   data_extraction_rules.xml).
+
+   La sesión no se respalda: está cifrada con una clave del Keystore que no
+   viaja con el respaldo, así que en otro teléfono no se podría leer.
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="sharedpref" path="nova_session.xml" />
 </full-backup-content>

@@ -15,7 +15,17 @@ import androidx.security.crypto.MasterKey
  */
 class SessionStorage(context: Context) {
 
-    private val prefs: SharedPreferences = EncryptedSharedPreferences.create(
+    private val prefs: SharedPreferences = try {
+        openEncrypted(context)
+    } catch (e: Exception) {
+        // Si el archivo quedó cifrado con otra clave (por ejemplo, llegó en un
+        // respaldo desde otro teléfono), no se puede leer y la app se cerraba al
+        // abrir. Se borra y se empieza de cero: la persona vuelve a iniciar sesión.
+        context.deleteSharedPreferences(PREFS_NAME)
+        openEncrypted(context)
+    }
+
+    private fun openEncrypted(context: Context): SharedPreferences = EncryptedSharedPreferences.create(
         context,
         PREFS_NAME,
         MasterKey.Builder(context)

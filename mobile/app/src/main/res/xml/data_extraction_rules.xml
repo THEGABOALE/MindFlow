@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+   Respaldo en la nube y traspaso a un teléfono nuevo, desde Android 12.
+
+   La sesión no se copia en ninguno de los dos: está cifrada con una clave del
+   Keystore que no viaja, así que en el otro teléfono no se podría leer y la
+   app se cerraba al abrir. Ahí la persona simplemente vuelve a iniciar sesión.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="sharedpref" path="nova_session.xml" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="sharedpref" path="nova_session.xml" />
     </device-transfer>
-    -->
 </data-extraction-rules>
