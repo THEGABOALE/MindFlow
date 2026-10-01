@@ -12,13 +12,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -41,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
@@ -87,6 +96,7 @@ fun LoginScreen(
 ) {
     var loginId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isGoogleConnecting by remember { mutableStateOf(false) }
@@ -175,8 +185,13 @@ fun LoginScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        // La tarjeta sube con el teclado (imePadding) y, si no entra entera,
+        // se puede desplazar: antes el teclado tapaba los campos y no se veía
+        // dónde se estaba escribiendo.
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
             verticalArrangement = Arrangement.Bottom
         ) {
             Column(
@@ -186,6 +201,7 @@ fun LoginScreen(
                         color = NovaLoginCard,
                         shape = RoundedCornerShape(topStart = 27.dp, topEnd = 27.dp)
                     )
+                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 29.dp, vertical = 28.dp)
             ) {
                 Image(
@@ -270,7 +286,16 @@ fun LoginScreen(
                         .focusRequester(passwordFocusRequester),
                     placeholder = { Text("Contraseña", color = NovaTextSecondary, fontSize = 13.sp) },
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                contentDescription = if (showPassword) "Ocultar contraseña" else "Mostrar contraseña",
+                                tint = NovaTextSecondary
+                            )
+                        }
+                    },
                     shape = RoundedCornerShape(14.dp),
                     colors = loginFieldColors(),
                     enabled = !isSubmitting,
