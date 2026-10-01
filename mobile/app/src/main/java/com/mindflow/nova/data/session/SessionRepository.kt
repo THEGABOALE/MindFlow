@@ -7,6 +7,8 @@ import com.mindflow.nova.data.model.LoginIdRequest
 import com.mindflow.nova.data.model.LoginResponse
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.data.remote.SERVER_TROUBLE_MESSAGE
+import com.mindflow.nova.data.remote.connectionErrorMessage
 import retrofit2.Response
 
 /** Resultado de un intento de login o de restaurar la sesión guardada. */
@@ -68,10 +70,10 @@ class SessionRepository(private val storage: SessionStorage) {
                 // Cualquier otro error (502/503 mientras Railway arranca, un
                 // fallo puntual de la base) no dice nada del token: se conserva
                 // para reintentar en vez de sacar a la persona de su cuenta.
-                else -> SessionResult.Failure("El servidor no respondió (HTTP ${response.code()})")
+                else -> SessionResult.Failure(SERVER_TROUBLE_MESSAGE)
             }
         } catch (e: Exception) {
-            SessionResult.Failure("Error de conexión: ${e.message}")
+            SessionResult.Failure(connectionErrorMessage(e))
         }
     }
 
@@ -90,10 +92,13 @@ class SessionRepository(private val storage: SessionStorage) {
                 storage.saveToken(body.token)
                 SessionResult.Success(body.user)
             } else {
-                SessionResult.Rejected(errorMessage(response, "No se pudo iniciar sesión"))
+                SessionResult.Rejected(
+                    if (response.code() >= 500) SERVER_TROUBLE_MESSAGE
+                    else errorMessage(response, "No se pudo iniciar sesión")
+                )
             }
         } catch (e: Exception) {
-            SessionResult.Failure("Error de conexión: ${e.message}")
+            SessionResult.Failure(connectionErrorMessage(e))
         }
     }
 
