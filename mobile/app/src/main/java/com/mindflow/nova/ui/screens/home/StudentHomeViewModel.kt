@@ -23,19 +23,18 @@ data class StudentHomeState(
     val errorMessage: String? = null,
     val levels: List<LevelResponse> = emptyList(),
     val user: SessionUser? = null,
+    /** True si no se pudo saber quién es el estudiante (falló GET /me). */
+    val accountFailed: Boolean = false,
     val progress: StudentProgress? = null
 )
 
 /**
- * Nivel que se le muestra al estudiante: el de su sala. Mientras todavía no se
- * sabe quién es (o si no tiene sala) se usa el primero, como antes; si su sala
- * es de un nivel que no vino en la lista, null para no mostrarle otro nivel.
+ * Nivel que se le muestra al estudiante: el de su sala. Solo se llama cuando
+ * ya se sabe quién es; si no tiene sala o su nivel no vino en la lista
+ * devuelve null, para no mostrarle nunca el nivel de otro.
  */
-internal fun levelForStudent(levels: List<LevelResponse>, user: SessionUser?): LevelResponse? {
-    val levelId = user?.group?.levelId ?: return levels.firstOrNull()
-
-    return levels.firstOrNull { it.id == levelId }
-}
+internal fun levelForStudent(levels: List<LevelResponse>, user: SessionUser): LevelResponse? =
+    levels.firstOrNull { it.id == user.group?.levelId }
 
 /**
  * Estado del área del estudiante. Inicio, Lecciones, Progreso y Perfil leen de
@@ -83,12 +82,27 @@ class StudentHomeViewModel(
     fun refreshProgress() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            val user = _state.value.user ?: repository.loadCurrentUser() ?: return@launch
-            _state.update { it.copy(user = user) }
+            val user = _state.value.user ?: repository.loadCurrentUser()
+
+            // Sin saber quién es no se sabe su nivel: la pantalla muestra el
+            // error con "Reintentar" en vez de quedarse cargando para siempre.
+            if (user == null) {
+                _state.update { it.copy(accountFailed = true) }
+                return@launch
+            }
+
+            _state.update { it.copy(user = user, accountFailed = false) }
 
             val progress = repository.loadProgress(user.id) ?: return@launch
             _state.update { it.copy(progress = progress) }
         }
+    }
+
+    /** Vuelve a pedir lo que haya fallado (la ruta o la cuenta), desde el botón "Reintentar". */
+    fun retry() {
+        started = false
+        _state.update { it.copy(isLoading = it.levels.isEmpty(), errorMessage = null, accountFailed = false) }
+        start()
     }
 
     /**

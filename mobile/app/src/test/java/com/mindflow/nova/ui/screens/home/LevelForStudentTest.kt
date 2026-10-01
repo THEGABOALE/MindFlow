@@ -28,13 +28,8 @@ class LevelForStudentTest {
     }
 
     @Test
-    fun `mientras no se sabe quien es se muestra el primero`() {
-        assertEquals(1, levelForStudent(levels, user = null)?.id)
-    }
-
-    @Test
-    fun `sin sala se muestra el primero`() {
-        assertEquals(1, levelForStudent(levels, student(levelId = null))?.id)
+    fun `sin sala no se le muestra ningun nivel`() {
+        assertNull(levelForStudent(levels, student(levelId = null)))
     }
 
     @Test
