@@ -3,6 +3,7 @@ const userRepository = require("../repositories/user.repository");
 const centerRepository = require("../repositories/center.repository");
 const { getCenterRoomsOverview } = require("../services/center-overview.service");
 const { respondServerError } = require("../utils/server-error");
+const { parseNonNegativeInt } = require("../utils/validation");
 
 const MAX_USERS_LIMIT = 200;
 const DEFAULT_USERS_LIMIT = 50;
@@ -84,8 +85,26 @@ const getCenterOverview = async (req, res) => {
 // existe en la plataforma sin entrar directo a la base de datos.
 const listUsers = async (req, res) => {
   const { role, centerId, search, isActive } = req.query;
-  const limit = Math.min(Number(req.query.limit) || DEFAULT_USERS_LIMIT, MAX_USERS_LIMIT);
-  const offset = Number(req.query.offset) || 0;
+  const requestedLimit = parseNonNegativeInt(req.query.limit);
+  const requestedOffset = parseNonNegativeInt(req.query.offset);
+
+  if (requestedLimit === null || requestedOffset === null) {
+    return res.status(400).json({
+      message: "limit y offset deben ser enteros mayores o iguales a 0",
+      status: "ERROR"
+    });
+  }
+
+  // Un parámetro repetido en la URL llega como lista; aquí solo se acepta texto.
+  if ([role, centerId, search, isActive].some((value) => value !== undefined && typeof value !== "string")) {
+    return res.status(400).json({
+      message: "Cada filtro se puede indicar una sola vez",
+      status: "ERROR"
+    });
+  }
+
+  const limit = Math.min(requestedLimit || DEFAULT_USERS_LIMIT, MAX_USERS_LIMIT);
+  const offset = requestedOffset || 0;
 
   if (centerId && !/^\d+$/.test(centerId)) {
     return res.status(400).json({

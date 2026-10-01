@@ -2,6 +2,7 @@ const { withTransaction } = require("../database/transaction");
 const groupRepository = require("../repositories/group.repository");
 const userRepository = require("../repositories/user.repository");
 const { respondServerError } = require("../utils/server-error");
+const { isFilledString } = require("../utils/validation");
 
 // Matricula en una sala al estudiante que ya inició sesión. El código NO crea
 // cuentas: primero la persona se loguea (Google o ID) y recién ahí usa el
@@ -10,7 +11,7 @@ const { respondServerError } = require("../utils/server-error");
 const joinGroupByCode = async (req, res) => {
   const { code } = req.body || {};
 
-  if (!code) {
+  if (!isFilledString(code)) {
     return res.status(400).json({
       message: "El código del grupo es obligatorio",
       status: "ERROR"

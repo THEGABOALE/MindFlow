@@ -151,6 +151,13 @@ const finishAttempt = async (req, res) => {
     });
   }
 
+  if (answers.some((answer) => answer === null || typeof answer !== "object" || Array.isArray(answer))) {
+    return res.status(400).json({
+      message: "Cada respuesta debe ser un objeto",
+      status: "ERROR"
+    });
+  }
+
   try {
     // Todo el cierre va en una transaccion: o queda el intento corregido con
     // sus respuestas y el progreso del nivel, o no queda nada.

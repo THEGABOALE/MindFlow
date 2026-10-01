@@ -174,6 +174,8 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
 
+Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
+
 Ejemplo de inicio de sesión:
 
 ```json
