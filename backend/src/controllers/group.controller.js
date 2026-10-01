@@ -77,7 +77,7 @@ const joinGroupByCode = async (req, res) => {
         return {
           httpStatus: 409,
           body: {
-            message: `Ya pertenecés a la sala "${currentEnrollment.group_name}" este año. Pedile a tu docente que te traslade.`,
+            message: `Ya perteneces a la sala "${currentEnrollment.group_name}" este año. Pídele a tu docente que te traslade.`,
             status: "ERROR"
           }
         };

@@ -36,7 +36,7 @@ const getStudentContext = async (req, res) => {
 
         if (!canViewStudent(req.user, row)) {
             return res.status(403).json({
-                message: "No tenés permiso para ver este estudiante",
+                message: "No tienes permiso para ver este estudiante",
                 status: "ERROR"
             });
         }
@@ -89,7 +89,7 @@ const getStudentProgress = async (req, res) => {
 
         if (!canViewStudent(req.user, row)) {
             return res.status(403).json({
-                message: "No tenés permiso para ver este estudiante",
+                message: "No tienes permiso para ver este estudiante",
                 status: "ERROR"
             });
         }

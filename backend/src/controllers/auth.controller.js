@@ -93,7 +93,7 @@ const loginWithGoogle = async (req, res) => {
       // La institución tiene que haber registrado el correo de antemano; el
       // rol lo define siempre la base de datos, nunca el cliente.
       return res.status(404).json({
-        message: "Ese correo no está registrado en ninguna institución. Contactá a tu coordinador.",
+        message: "Ese correo no está registrado en ninguna institución. Contacta a tu coordinador.",
         status: "ERROR"
       });
     }
@@ -199,7 +199,7 @@ const createIdAccount = async (req, res) => {
 
   if (!canCreateRole(req.user.role, requestedRole)) {
     return res.status(403).json({
-      message: `No podés crear cuentas con el rol "${requestedRole}"`,
+      message: `No puedes crear cuentas con el rol "${requestedRole}"`,
       status: "ERROR"
     });
   }

@@ -252,7 +252,7 @@ Está en `landing/`. Cómo correrla, publicarla y los detalles de marca están e
 | Coordinador | `coordinador` | `coord2026` |
 | Admin | `adminmindflow` | `admin2026` |
 
-El código `NOVA123` vence 5 minutos después de cargar los datos. Para volver a probar el ingreso a una sala, hay que cargar `data.sql` otra vez o extender `expires_at` en `group_access_codes`.
+El código `NOVA123` vence 30 días después de cargar los datos.
 
 Estas credenciales son solo para desarrollo local.
 
