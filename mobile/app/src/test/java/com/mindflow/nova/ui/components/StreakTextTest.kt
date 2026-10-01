@@ -37,11 +37,18 @@ class StreakTextTest {
     }
 
     @Test
-    fun `sin racha invita a encenderla`() {
+    fun `sin racha invita a encenderla sin decir que esta congelada`() {
         val message = streakMessage(streak(days = 0, isActive = false))
 
-        assertEquals("racha congelada", message.caption)
+        assertEquals("empieza tu racha", message.caption)
         assertEquals("Todavía no tienes racha", message.title)
         assertEquals("Haz una misión hoy para encenderla.", message.body)
+    }
+
+    @Test
+    fun `el momento de racha solo dice congelada si habia dias antes de hoy`() {
+        assertEquals("Todavía no tenías racha", streakColdTitle(daysWithToday = 1))
+        assertEquals("Tu racha estaba congelada", streakColdTitle(daysWithToday = 2))
+        assertEquals("Tu racha estaba congelada", streakColdTitle(daysWithToday = 9))
     }
 }

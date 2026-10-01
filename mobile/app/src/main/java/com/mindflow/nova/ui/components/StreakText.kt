@@ -30,10 +30,21 @@ fun streakMessage(streak: StudentStreak): StreakMessage {
             body = "Haz una misión hoy para descongelarla y llegar a ${days + 1} días."
         )
 
+        // Sin días no hay nada congelado: decirle "congelada" a quien recién
+        // empieza suena a que ya hizo algo mal.
         else -> StreakMessage(
-            caption = "racha congelada",
+            caption = "empieza tu racha",
             title = "Todavía no tienes racha",
             body = "Haz una misión hoy para encenderla."
         )
     }
 }
+
+/**
+ * Título de la primera parte del momento de racha, antes de que aparezca la
+ * llama. [daysWithToday] son los días con hoy incluido: si es 1, antes no
+ * había racha (es la primera, o se había perdido), así que no estaba
+ * "congelada".
+ */
+fun streakColdTitle(daysWithToday: Int): String =
+    if (daysWithToday > 1) "Tu racha estaba congelada" else "Todavía no tenías racha"

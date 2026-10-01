@@ -166,7 +166,7 @@ fun LoginScreen(
             } catch (e: NoCredentialException) {
                 googleErrorMessage = "No se encontró ninguna cuenta de Google en este dispositivo."
             } catch (e: GetCredentialException) {
-                googleErrorMessage = "No se pudo conectar con Google. Intentá de nuevo."
+                googleErrorMessage = "No se pudo conectar con Google. Inténtalo de nuevo."
             }
 
             isGoogleConnecting = false
@@ -348,7 +348,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "¿No recordás tu contraseña? Contactá a tu colegio",
+                    text = "¿No recuerdas tu contraseña? Contacta a tu colegio",
                     color = Color(0xFF737378),
                     fontSize = 10.sp,
                     modifier = Modifier.fillMaxWidth(),

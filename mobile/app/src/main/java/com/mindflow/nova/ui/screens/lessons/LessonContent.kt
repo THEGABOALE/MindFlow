@@ -315,7 +315,7 @@ fun LessonSubmitting() {
 fun LessonSubmitError(onRetry: () -> Unit, onExit: () -> Unit) {
     LessonEndScreen(
         title = "No se pudo guardar tu resultado",
-        message = "Revisá tu conexión e intentá de nuevo. Si volvés a intentar, empieza un intento nuevo.",
+        message = "Revisa tu conexión e inténtalo de nuevo. Si vuelves a intentar, empieza un intento nuevo.",
         primaryLabel = "Reintentar",
         onPrimary = onRetry,
         secondaryLabel = "Salir",
