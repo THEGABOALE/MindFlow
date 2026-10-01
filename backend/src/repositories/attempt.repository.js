@@ -24,20 +24,29 @@ const createAttempt = async (db, { userId, missionId, isReview }) => {
   return result.rows[0];
 };
 
-// Si ya cobro un repaso de esta mision en las ultimas `hours` horas.
-const hasPaidReviewSince = async (db, userId, missionId, hours) => {
+// Si ya cobro un repaso de esta mision a menos de `hours` horas (antes o
+// despues) de `at`, la hora en que se termino el intento que se esta
+// calificando. Sin `at` se usa la hora actual (intento cerrado en linea).
+// Se mide contra la hora en que se jugo y no contra la de subida: si no, varios
+// repasos jugados sin conexion y subidos dias despues cobrarian todos. Es
+// simetrica para que no importe en que orden lleguen los intentos.
+const hasPaidReviewNear = async (db, userId, missionId, hours, at = null) => {
   const result = await db.query(
     `
+    WITH ref AS (
+      SELECT COALESCE($4::timestamptz AT TIME ZONE current_setting('TimeZone'), LOCALTIMESTAMP) AS t
+    )
     SELECT 1
-    FROM mission_attempts
+    FROM mission_attempts, ref
     WHERE user_id = $1
       AND mission_id = $2
       AND is_review = TRUE
       AND points_earned > 0
-      AND finished_at > LOCALTIMESTAMP - make_interval(hours => $3)
+      AND finished_at > ref.t - make_interval(hours => $3)
+      AND finished_at < ref.t + make_interval(hours => $3)
     LIMIT 1;
     `,
-    [userId, missionId, hours]
+    [userId, missionId, hours, at ? at.toISOString() : null]
   );
 
   return result.rows.length > 0;
@@ -212,7 +221,7 @@ module.exports = {
   findStudentTotals,
   findCompletedMissionIds,
   hasCompletedMission,
-  hasPaidReviewSince,
+  hasPaidReviewNear,
   createAttempt,
   findAttemptWithMission,
   findByClientAttemptId,

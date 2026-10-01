@@ -16,10 +16,12 @@ const { REVIEW_PAY_WINDOW_HOURS, decideAttemptOutcome, gradeAttempt } = require(
  * @param {object} args
  * @param {(fields: {score:number, correctAnswers:number, wrongAnswers:number, pointsEarned:number, isReview:boolean, status:string}) => Promise<number>} args.save
  *   guarda el intento cerrado (actualiza el abierto o inserta uno nuevo) y devuelve su id
+ * @param {Date} [args.finishedAt] cuándo se terminó el intento, si se jugó en el
+ *   teléfono; si no viene, se toma la hora actual
  */
 const settleAttempt = async (db, {
   userId, missionId, levelId, pointsReward, maxPlumas, timeLimitSeconds,
-  answers, timedOut, elapsedSeconds, save
+  answers, timedOut, elapsedSeconds, finishedAt = null, save
 }) => {
   // La corrección recorre las preguntas reales de la misión, no lo que mande
   // el cliente: omitir o duplicar respuestas no cambia el puntaje.
@@ -33,8 +35,11 @@ const settleAttempt = async (db, {
   // Si es repaso se decide al cerrar y no al abrir: un intento abierto antes
   // de completar la misión por otro lado igual cuenta como repaso.
   const isReview = await attemptRepository.hasCompletedMission(db, userId, missionId);
+  // El tope de repasos se mide contra la hora en que se terminó este intento
+  // (finishedAt en los que vienen del teléfono; la hora actual en línea).
   const reviewAlreadyPaid =
-    isReview && (await attemptRepository.hasPaidReviewSince(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS));
+    isReview &&
+    (await attemptRepository.hasPaidReviewNear(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS, finishedAt));
 
   const outcome = decideAttemptOutcome({
     correctAnswers, wrongAnswers, maxPlumas, pointsReward,

@@ -63,6 +63,7 @@ const syncOne = (userId, item) =>
       answers: item.answers,
       timedOut: item.timedOut,
       elapsedSeconds: (item.finishedAt.getTime() - item.startedAt.getTime()) / 1000,
+      finishedAt: item.finishedAt,
       save: (fields) =>
         attemptRepository.insertSettledAttempt(db, {
           ...fields,
