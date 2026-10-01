@@ -10,12 +10,24 @@
 // 2 errores 50%, y al tercer error se pierde la mision y no gana nada.
 // El repaso (volver a jugar una mision ya completada) da la mitad, para que
 // repetir hasta hacerlo perfecto siga valiendo la pena sin regalar semillas.
+// Y solo paga una vez cada REVIEW_PAY_WINDOW_HOURS por mision: repetir la
+// misma mision diez veces seguidas no puede ser la forma de juntar semillas.
 const REVIEW_FACTOR = 0.5;
+const REVIEW_PAY_WINDOW_HOURS = 24;
 
-const calculatePoints = ({ pointsReward, wrongAnswers, maxPlumas, isReview }) => {
+// Margen sobre el limite de tiempo de la mision para la red y para lo que
+// tarda la app entre abrir el intento y mostrar el reloj.
+const TIME_LIMIT_GRACE_SECONDS = 15;
+
+/**
+ * @param {object} args
+ * @param {boolean} [args.reviewAlreadyPaid] true si ya cobro un repaso de esta
+ *   mision dentro de la ventana; entonces este repaso no paga.
+ */
+const calculatePoints = ({ pointsReward, wrongAnswers, maxPlumas, isReview, reviewAlreadyPaid = false }) => {
   const plumasLeft = maxPlumas - wrongAnswers;
 
-  if (plumasLeft <= 0) {
+  if (plumasLeft <= 0 || (isReview && reviewAlreadyPaid)) {
     return 0;
   }
 
@@ -114,7 +126,14 @@ const gradeAttempt = ({ questions, options, pairs, answers }) => {
   return { correctAnswers, wrongAnswers, answerRows };
 };
 
+// El limite de tiempo lo mide el servidor con su propio reloj (desde que se
+// abrio el intento hasta que llega el cierre), no lo que diga la app.
+const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds }) =>
+  timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + TIME_LIMIT_GRACE_SECONDS;
+
 module.exports = {
+  REVIEW_PAY_WINDOW_HOURS,
   calculatePoints,
+  exceededTimeLimit,
   gradeAttempt
 };

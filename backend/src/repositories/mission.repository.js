@@ -17,6 +17,23 @@ const findPublishedMission = async (db, missionId) => {
   return result.rows[0] || null;
 };
 
+// La mision publicada que va justo antes en el mismo nivel, o null si esta es
+// la primera.
+const findPreviousMission = async (db, levelId, orderIndex) => {
+  const result = await db.query(
+    `
+    SELECT id
+    FROM missions
+    WHERE level_id = $1 AND is_published = TRUE AND order_index < $2
+    ORDER BY order_index DESC
+    LIMIT 1;
+    `,
+    [levelId, orderIndex]
+  );
+
+  return result.rows[0] || null;
+};
+
 const findQuestions = async (db, missionId) => {
   const result = await db.query(
     `
@@ -65,6 +82,7 @@ const findPairs = async (db, missionId) => {
 
 module.exports = {
   findPublishedMission,
+  findPreviousMission,
   findQuestions,
   findOptions,
   findPairs

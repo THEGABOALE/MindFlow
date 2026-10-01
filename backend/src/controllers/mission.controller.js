@@ -3,8 +3,15 @@ const { withTransaction } = require("../database/transaction");
 const missionRepository = require("../repositories/mission.repository");
 const attemptRepository = require("../repositories/attempt.repository");
 const levelProgressRepository = require("../repositories/level-progress.repository");
+const groupRepository = require("../repositories/group.repository");
 const userRepository = require("../repositories/user.repository");
-const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
+const {
+  REVIEW_PAY_WINDOW_HOURS,
+  calculatePoints,
+  exceededTimeLimit,
+  gradeAttempt
+} = require("../services/mission-grading.service");
+const { missionStartBlock } = require("../services/mission-access.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
 const { respondServerError } = require("../utils/server-error");
@@ -84,7 +91,9 @@ const getMissionContent = async (req, res) => {
 };
 
 // Abre un intento. El tiempo se mide en el servidor (started_at) para que el
-// panel docente no dependa de lo que reporte el telefono.
+// panel docente no dependa de lo que reporte el telefono. Solo puede abrirlo
+// un estudiante (la ruta lo exige), de una mision de su nivel y con la
+// anterior ya completada.
 const startAttempt = async (req, res) => {
   const { missionId } = req.params;
 
@@ -105,7 +114,20 @@ const startAttempt = async (req, res) => {
       });
     }
 
-    // Si ya la completó antes, este intento es un repaso.
+    const studentGroup = await groupRepository.findActiveGroup(pool, req.user.id);
+    const previousMission = await missionRepository.findPreviousMission(pool, mission.level_id, mission.order_index);
+    const previousMissionCompleted =
+      !previousMission || (await attemptRepository.hasCompletedMission(pool, req.user.id, previousMission.id));
+
+    const block = missionStartBlock({ studentGroup, mission, previousMissionCompleted });
+
+    if (block) {
+      return res.status(403).json({ message: block, status: "ERROR" });
+    }
+
+    // Si ya la completó antes, este intento se muestra como repaso. Lo que
+    // vale es lo que se decide al cerrarlo, porque puede haber otro intento
+    // de la misma misión abierto a la vez.
     const isReview = await attemptRepository.hasCompletedMission(pool, req.user.id, missionId);
 
     const attempt = await attemptRepository.createAttempt(pool, {
@@ -163,8 +185,10 @@ const finishAttempt = async (req, res) => {
     // Todo el cierre va en una transaccion: o queda el intento corregido con
     // sus respuestas y el progreso del nivel, o no queda nada.
     const outcome = await withTransaction(async (db) => {
-      // Los cierres de un mismo estudiante van de a uno, para que dos
-      // peticiones a la vez no trabajen sobre el mismo progreso.
+      // Los cierres de un mismo estudiante van de a uno: si dos intentos de la
+      // misma misión se cierran a la vez, el segundo ya ve al primero
+      // completado y cuenta como repaso en vez de cobrar la recompensa
+      // completa otra vez.
       await userRepository.lockUser(db, req.user.id);
 
       const attempt = await attemptRepository.findAttemptWithMission(db, attemptId);
@@ -196,10 +220,27 @@ const finishAttempt = async (req, res) => {
       }
 
       const ranOutOfPlumas = wrongAnswers >= attempt.max_plumas;
-      const failed = Boolean(timedOut) || ranOutOfPlumas;
+
+      // La app avisa timedOut cuando su reloj llega a cero, pero eso solo
+      // puede adelantar el fallo: el servidor también compara con su reloj.
+      const ranOutOfTime =
+        Boolean(timedOut) ||
+        exceededTimeLimit({
+          elapsedSeconds: Number(attempt.elapsed_seconds),
+          timeLimitSeconds: attempt.time_limit_seconds
+        });
+
+      const failed = ranOutOfTime || ranOutOfPlumas;
 
       const totalAnswers = correctAnswers + wrongAnswers;
       const score = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+
+      // Si es repaso se decide ahora y no al abrir: un intento abierto antes
+      // de completar la misión por otro lado igual cuenta como repaso.
+      const isReview = await attemptRepository.hasCompletedMission(db, req.user.id, attempt.mission_id);
+      const reviewAlreadyPaid =
+        isReview &&
+        (await attemptRepository.hasPaidReviewSince(db, req.user.id, attempt.mission_id, REVIEW_PAY_WINDOW_HOURS));
 
       const pointsEarned = failed
         ? 0
@@ -207,7 +248,8 @@ const finishAttempt = async (req, res) => {
             pointsReward: attempt.points_reward,
             wrongAnswers,
             maxPlumas: attempt.max_plumas,
-            isReview: attempt.is_review
+            isReview,
+            reviewAlreadyPaid
           });
 
       await attemptRepository.closeAttempt(db, attemptId, {
@@ -215,6 +257,7 @@ const finishAttempt = async (req, res) => {
         correctAnswers,
         wrongAnswers,
         pointsEarned,
+        isReview,
         status: failed ? "failed" : "completed"
       });
 
@@ -261,7 +304,7 @@ const finishAttempt = async (req, res) => {
             wrongAnswers,
             plumasLeft: Math.max(attempt.max_plumas - wrongAnswers, 0),
             pointsEarned,
-            isReview: attempt.is_review,
+            isReview,
             status: failed ? "failed" : "completed"
           },
           levelProgress,

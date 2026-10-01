@@ -24,7 +24,28 @@ const createAttempt = async (db, { userId, missionId, isReview }) => {
   return result.rows[0];
 };
 
-// El intento junto con los datos de su mision que hacen falta para corregirlo.
+// Si ya cobro un repaso de esta mision en las ultimas `hours` horas.
+const hasPaidReviewSince = async (db, userId, missionId, hours) => {
+  const result = await db.query(
+    `
+    SELECT 1
+    FROM mission_attempts
+    WHERE user_id = $1
+      AND mission_id = $2
+      AND is_review = TRUE
+      AND points_earned > 0
+      AND finished_at > LOCALTIMESTAMP - make_interval(hours => $3)
+    LIMIT 1;
+    `,
+    [userId, missionId, hours]
+  );
+
+  return result.rows.length > 0;
+};
+
+// El intento junto con los datos de su mision que hacen falta para corregirlo,
+// y cuantos segundos pasaron desde que se abrio. started_at se guardo con la
+// hora de la sesion, asi que se compara con LOCALTIMESTAMP, que usa la misma.
 //
 // Deja bloqueada la fila del intento hasta que termine la transaccion: si
 // llegan dos cierres del mismo intento a la vez, el segundo espera y despues
@@ -33,7 +54,8 @@ const findAttemptWithMission = async (db, attemptId) => {
   const result = await db.query(
     `
     SELECT a.id, a.user_id, a.mission_id, a.is_review, a.status,
-           m.level_id, m.points_reward, m.max_plumas
+           EXTRACT(EPOCH FROM (LOCALTIMESTAMP - a.started_at)) AS elapsed_seconds,
+           m.level_id, m.points_reward, m.max_plumas, m.time_limit_seconds
     FROM mission_attempts a
     JOIN missions m ON m.id = a.mission_id
     WHERE a.id = $1
@@ -56,7 +78,7 @@ const insertAnswer = async (db, attemptId, { questionId, selectedOptionId, pairI
   );
 };
 
-const closeAttempt = async (db, attemptId, { score, correctAnswers, wrongAnswers, pointsEarned, status }) => {
+const closeAttempt = async (db, attemptId, { score, correctAnswers, wrongAnswers, pointsEarned, isReview, status }) => {
   await db.query(
     `
     UPDATE mission_attempts
@@ -64,11 +86,12 @@ const closeAttempt = async (db, attemptId, { score, correctAnswers, wrongAnswers
         correct_answers = $2,
         wrong_answers = $3,
         points_earned = $4,
-        status = $5,
+        is_review = $5,
+        status = $6,
         finished_at = CURRENT_TIMESTAMP
-    WHERE id = $6;
+    WHERE id = $7;
     `,
-    [score, correctAnswers, wrongAnswers, pointsEarned, status, attemptId]
+    [score, correctAnswers, wrongAnswers, pointsEarned, isReview, status, attemptId]
   );
 };
 
@@ -141,6 +164,7 @@ module.exports = {
   findStudentTotals,
   findCompletedMissionIds,
   hasCompletedMission,
+  hasPaidReviewSince,
   createAttempt,
   findAttemptWithMission,
   insertAnswer,

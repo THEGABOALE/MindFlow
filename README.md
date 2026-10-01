@@ -164,8 +164,8 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 | GET | `/api/students/:studentId/context` | Ver nota | Sala, nivel y centro del estudiante |
 | GET | `/api/students/:studentId/progress` | Ver nota | Puntos, misiones completadas y racha |
 | GET | `/api/missions/:missionId` | Con sesión | Misión con sus preguntas |
-| POST | `/api/missions/:missionId/attempts` | Con sesión | Abre un intento |
-| POST | `/api/missions/attempts/:attemptId/finish` | Con sesión | Califica las respuestas y actualiza progreso y racha |
+| POST | `/api/missions/:missionId/attempts` | Estudiante | Abre un intento, si la misión es de su nivel y ya completó la anterior |
+| POST | `/api/missions/attempts/:attemptId/finish` | Estudiante | Califica las respuestas y actualiza progreso y racha |
 | GET | `/api/teacher/me/students` | Docente | Estudiantes de sus salas |
 | GET | `/api/coordinator/me/overview` | Coordinador | Resumen de su centro |
 | GET | `/api/admin/overview` | Admin | Resumen global |
@@ -173,6 +173,8 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 | GET | `/api/admin/centers/:centerId/overview` | Admin | Resumen de un centro |
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
+
+La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad y solo una vez cada 24 horas por misión.
 
 Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
 
