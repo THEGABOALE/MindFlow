@@ -1,5 +1,6 @@
 const pool = require("../database/connection");
 const groupRepository = require("../repositories/group.repository");
+const { respondServerError } = require("../utils/server-error");
 
 // El docente solo ve la sala que tiene asignada (requireRole ya exige rol
 // "teacher"; acá se filtra ademas por teacher_id para que solo vea la suya).
@@ -47,11 +48,7 @@ const getMyStudents = async (req, res) => {
       rooms
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener los estudiantes del docente",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener los estudiantes del docente", error);
   }
 };
 

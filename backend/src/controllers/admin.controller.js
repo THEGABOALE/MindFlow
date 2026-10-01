@@ -2,6 +2,7 @@ const pool = require("../database/connection");
 const userRepository = require("../repositories/user.repository");
 const centerRepository = require("../repositories/center.repository");
 const { getCenterRoomsOverview } = require("../services/center-overview.service");
+const { respondServerError } = require("../utils/server-error");
 
 const MAX_USERS_LIMIT = 200;
 const DEFAULT_USERS_LIMIT = 50;
@@ -37,11 +38,7 @@ const getGlobalOverview = async (req, res) => {
       centers
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener el resumen global",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener el resumen global", error);
   }
 };
 
@@ -79,11 +76,7 @@ const getCenterOverview = async (req, res) => {
       ...overview
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener el resumen del centro",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener el resumen del centro", error);
   }
 };
 
@@ -132,11 +125,7 @@ const listUsers = async (req, res) => {
       }))
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener los usuarios",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener los usuarios", error);
   }
 };
 

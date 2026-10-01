@@ -6,6 +6,7 @@ const levelProgressRepository = require("../repositories/level-progress.reposito
 const { calculatePoints, gradeAttempt } = require("../services/mission-grading.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
+const { respondServerError } = require("../utils/server-error");
 
 // Devuelve el contenido jugable de una mision: preguntas con sus opciones
 // (opcion multiple y verdadero/falso) o con sus pares (relacion de conceptos).
@@ -77,11 +78,7 @@ const getMissionContent = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener el contenido de la misión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener el contenido de la misión", error);
   }
 };
 
@@ -129,11 +126,7 @@ const startAttempt = async (req, res) => {
       }
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al iniciar el intento",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al iniciar el intento", error);
   }
 };
 
@@ -271,11 +264,7 @@ const finishAttempt = async (req, res) => {
 
     return res.status(outcome.httpStatus).json(outcome.body);
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al cerrar el intento",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al cerrar el intento", error);
   }
 };
 

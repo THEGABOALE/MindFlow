@@ -1,6 +1,7 @@
 const { verifySessionToken } = require("../utils/jwt");
 const pool = require("../database/connection");
 const userRepository = require("../repositories/user.repository");
+const { respondServerError } = require("../utils/server-error");
 
 // Exige "Authorization: Bearer <token>" y deja el usuario en req.user.
 // El rol, el centro y si la cuenta sigue activa se leen de la base en cada
@@ -46,11 +47,7 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al validar la sesión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al validar la sesión", error);
   }
 };
 

@@ -5,6 +5,7 @@ const groupRepository = require("../repositories/group.repository");
 const { signSessionToken } = require("../utils/jwt");
 const { hashPassword, passwordMatches } = require("../utils/password");
 const { isGoogleLoginConfigured, verifyGoogleIdToken } = require("../utils/google-token");
+const { respondServerError } = require("../utils/server-error");
 
 // Sala activa del estudiante. Si viene null, la app le muestra la pantalla
 // del código; si ya tiene sala, entra directo al home aunque haya cerrado
@@ -103,11 +104,7 @@ const loginWithGoogle = async (req, res) => {
 
     return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al iniciar sesión con Google",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al iniciar sesión con Google", error);
   }
 };
 
@@ -149,11 +146,7 @@ const loginWithId = async (req, res) => {
 
     return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al iniciar sesión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al iniciar sesión", error);
   }
 };
 
@@ -178,11 +171,7 @@ const getMe = async (req, res) => {
       user: buildSessionUser(user, group)
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener la sesión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener la sesión", error);
   }
 };
 
@@ -263,11 +252,7 @@ const createIdAccount = async (req, res) => {
 
     return res.status(outcome.httpStatus).json(outcome.body);
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al crear la cuenta",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al crear la cuenta", error);
   }
 };
 

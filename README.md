@@ -114,9 +114,11 @@ GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
 
 JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES_IN=7d
+
+CORS_ORIGINS=
 ```
 
-`JWT_SECRET` es obligatoria en producción: sin ella, el servidor no arranca. En desarrollo, si falta, se usa un secreto de prueba y aparece un aviso en la consola. El archivo `.env` nunca se sube al repositorio.
+`JWT_SECRET` es obligatoria en producción: sin ella, el servidor no arranca. En desarrollo, si falta, se usa un secreto de prueba y aparece un aviso en la consola. `CORS_ORIGINS` lista, separados por coma, los sitios web que pueden llamar a la API desde un navegador. La app móvil no lo necesita, así que vacío no permite ninguno. El archivo `.env` nunca se sube al repositorio.
 
 ### Base de datos
 

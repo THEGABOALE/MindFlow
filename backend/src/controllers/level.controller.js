@@ -1,5 +1,6 @@
 const pool = require("../database/connection");
 const levelRepository = require("../repositories/level.repository");
+const { respondServerError } = require("../utils/server-error");
 
 const getLevels = async (req, res) => {
     try {
@@ -35,11 +36,7 @@ const getLevels = async (req, res) => {
     })
     res.json(Array.from(levelsMap.values()));
     }catch (error) {
-        res.status(500).json({
-            message: "Error al obtener los niveles educativos",
-            status: "ERROR",
-            error: error.message
-        });
+        return respondServerError(res, "Error al obtener los niveles educativos", error);
     }
 };
 

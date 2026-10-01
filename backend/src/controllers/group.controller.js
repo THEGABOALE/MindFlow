@@ -1,6 +1,7 @@
 const { withTransaction } = require("../database/transaction");
 const groupRepository = require("../repositories/group.repository");
 const userRepository = require("../repositories/user.repository");
+const { respondServerError } = require("../utils/server-error");
 
 // Matricula en una sala al estudiante que ya inició sesión. El código NO crea
 // cuentas: primero la persona se loguea (Google o ID) y recién ahí usa el
@@ -87,11 +88,7 @@ const joinGroupByCode = async (req, res) => {
 
     return res.status(outcome.httpStatus).json(outcome.body);
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al unir estudiante al grupo",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al unir estudiante al grupo", error);
   }
 };
 

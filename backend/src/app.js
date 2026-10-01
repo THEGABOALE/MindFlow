@@ -1,5 +1,8 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const env = require("./config/env");
+const { notFound, errorHandler } = require("./middleware/error.middleware");
 
 const healthRoutes = require("./routes/health.routes");
 const levelRoutes = require("./routes/level.routes");
@@ -13,7 +16,8 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
-app.use(cors());
+app.use(helmet());
+app.use(cors({ origin: env.corsOrigins }));
 app.use(express.json());
 
 app.use("/", healthRoutes);
@@ -26,5 +30,8 @@ app.use("/api/missions", missionRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/coordinator", coordinatorRoutes);
 app.use("/api/admin", adminRoutes);
+
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;
