@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    // Genera el código de Room a partir de las anotaciones.
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -79,6 +81,13 @@ dependencies {
     // ViewModel de las pantallas: guarda el estado y coordina las llamadas al backend.
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation("androidx.compose.material:material-icons-extended")
+    // Base local: guarda la ruta, las misiones descargadas y los resultados que
+    // todavía no se subieron, para poder jugar sin conexión.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+    // Sube los resultados pendientes en segundo plano cuando vuelve la conexión.
+    implementation(libs.androidx.work.runtime.ktx)
     testImplementation(libs.junit)
     // Para probar los ViewModel: reemplaza el hilo principal de Android en los tests de JVM.
     testImplementation(libs.kotlinx.coroutines.test)
