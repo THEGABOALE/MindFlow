@@ -16,6 +16,13 @@ const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
+// En Railway la petición llega a través de un proxy: sin esto todas las
+// peticiones parecerían venir de la misma IP y el límite de intentos
+// bloquearía a todos a la vez.
+if (env.nodeEnv === "production") {
+  app.set("trust proxy", 1);
+}
+
 app.use(helmet());
 app.use(cors({ origin: env.corsOrigins }));
 app.use(express.json());
