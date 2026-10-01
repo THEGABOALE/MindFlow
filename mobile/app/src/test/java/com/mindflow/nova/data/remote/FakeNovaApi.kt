@@ -46,6 +46,14 @@ class FakeNovaApi : NovaApiService {
         return onSync(request)
     }
 
+    var onMe: suspend () -> Response<MeResponse> = { TODO() }
+    var onLoginId: suspend (LoginIdRequest) -> Response<LoginResponse> = { TODO() }
+    var onLoginGoogle: suspend (LoginGoogleRequest) -> Response<LoginResponse> = { TODO() }
+
+    override suspend fun getMe(): Response<MeResponse> = onMe()
+    override suspend fun loginWithId(request: LoginIdRequest): Response<LoginResponse> = onLoginId(request)
+    override suspend fun loginWithGoogle(request: LoginGoogleRequest): Response<LoginResponse> = onLoginGoogle(request)
+
     override suspend fun getHealth(): Response<HealthResponse> = TODO()
     override suspend fun getDatabaseHealth(): Response<HealthResponse> = TODO()
     override suspend fun getLevels(): Response<List<LevelResponse>> = TODO()
@@ -54,9 +62,6 @@ class FakeNovaApi : NovaApiService {
     override suspend fun startAttempt(missionId: Int): Response<StartAttemptResponse> = TODO()
     override suspend fun finishAttempt(attemptId: Int, request: FinishAttemptRequest): Response<FinishAttemptResponse> = TODO()
     override suspend fun getStudentProgress(studentId: Int, tzOffsetMinutes: Int): Response<StudentProgressResponse> = TODO()
-    override suspend fun loginWithId(request: LoginIdRequest): Response<LoginResponse> = TODO()
-    override suspend fun loginWithGoogle(request: LoginGoogleRequest): Response<LoginResponse> = TODO()
-    override suspend fun getMe(): Response<MeResponse> = TODO()
 
     companion object {
         fun acceptedResult(clientAttemptId: String, missionId: Int, pointsEarned: Int = 100) = SyncAttemptResult(

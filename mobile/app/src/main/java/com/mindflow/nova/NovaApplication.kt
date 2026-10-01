@@ -22,7 +22,7 @@ class NovaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppServices.init(this)
-        session = SessionRepository(SessionStorage(this))
+        session = SessionRepository(SessionStorage(this), AppServices.localStore)
         themePreferences = ThemePreferences(this)
         RetrofitClient.warmUp()
     }
