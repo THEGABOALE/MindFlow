@@ -1,6 +1,8 @@
 const { withTransaction } = require("../database/transaction");
 const groupRepository = require("../repositories/group.repository");
 const userRepository = require("../repositories/user.repository");
+const { respondServerError } = require("../utils/server-error");
+const { isFilledString } = require("../utils/validation");
 
 // Matricula en una sala al estudiante que ya inició sesión. El código NO crea
 // cuentas: primero la persona se loguea (Google o ID) y recién ahí usa el
@@ -9,7 +11,7 @@ const userRepository = require("../repositories/user.repository");
 const joinGroupByCode = async (req, res) => {
   const { code } = req.body || {};
 
-  if (!code) {
+  if (!isFilledString(code)) {
     return res.status(400).json({
       message: "El código del grupo es obligatorio",
       status: "ERROR"
@@ -20,6 +22,12 @@ const joinGroupByCode = async (req, res) => {
     // La matrícula, el centro del estudiante y el uso del código se guardan
     // juntos o no se guarda nada.
     const outcome = await withTransaction(async (db) => {
+      // Dos toques seguidos del mismo estudiante esperan uno al otro en vez
+      // de matricularlo dos veces.
+      await userRepository.lockUser(db, req.user.id);
+
+      // Bloquea la fila del código hasta el final: si dos estudiantes van por
+      // el último uso a la vez, el segundo ve el código ya agotado.
       const accessCode = await groupRepository.findUsableAccessCode(db, code.trim().toUpperCase());
 
       if (!accessCode) {
@@ -69,7 +77,7 @@ const joinGroupByCode = async (req, res) => {
         return {
           httpStatus: 409,
           body: {
-            message: `Ya pertenecés a la sala "${currentEnrollment.group_name}" este año. Pedile a tu docente que te traslade.`,
+            message: `Ya perteneces a la sala "${currentEnrollment.group_name}" este año. Pídele a tu docente que te traslade.`,
             status: "ERROR"
           }
         };
@@ -87,11 +95,7 @@ const joinGroupByCode = async (req, res) => {
 
     return res.status(outcome.httpStatus).json(outcome.body);
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al unir estudiante al grupo",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al unir estudiante al grupo", error);
   }
 };
 

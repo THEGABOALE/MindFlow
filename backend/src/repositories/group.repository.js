@@ -11,7 +11,7 @@ const findActiveGroup = async (db, userId) => {
     WHERE sge.user_id = $1
       AND sge.is_active = TRUE
       AND cg.is_active = TRUE
-    ORDER BY cg.school_year DESC
+    ORDER BY cg.school_year DESC, sge.joined_at DESC, sge.id DESC
     LIMIT 1;
     `,
     [userId]
@@ -22,6 +22,10 @@ const findActiveGroup = async (db, userId) => {
 
 // El codigo con su sala y su nivel, solo si todavia se puede usar: activo, de
 // una sala activa, sin vencer y sin haber llegado a su limite de usos.
+//
+// Deja bloqueada la fila del codigo hasta que termine la transaccion. Si otra
+// matricula la tenia bloqueada, Postgres espera y vuelve a evaluar el WHERE
+// con los usos ya actualizados, asi que nunca se pasa de max_uses.
 const findUsableAccessCode = async (db, code) => {
   const result = await db.query(
     `
@@ -51,7 +55,8 @@ const findUsableAccessCode = async (db, code) => {
       AND cg.is_active = TRUE
       AND (gac.expires_at IS NULL OR gac.expires_at > CURRENT_TIMESTAMP)
       AND (gac.max_uses IS NULL OR gac.current_uses < gac.max_uses)
-    LIMIT 1;
+    LIMIT 1
+    FOR UPDATE OF gac;
     `,
     [code]
   );
@@ -103,6 +108,8 @@ const incrementCodeUses = async (db, codeId) => {
 
 // El estudiante activo con su sala activa y el nivel de esa sala. Trae tambien
 // el docente y el centro de la sala, que son los que deciden quien puede verlo.
+// Si tiene matriculas de varios años se toma la mas reciente, la misma que
+// usa la sesion (findActiveGroup).
 const findStudentContext = async (db, studentId) => {
   const result = await db.query(
     `
@@ -128,6 +135,7 @@ const findStudentContext = async (db, studentId) => {
       AND u.is_active = TRUE
       AND sge.is_active = TRUE
       AND cg.is_active = TRUE
+    ORDER BY cg.school_year DESC, sge.joined_at DESC, sge.id DESC
     LIMIT 1;
     `,
     [studentId]

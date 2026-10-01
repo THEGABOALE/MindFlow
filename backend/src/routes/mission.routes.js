@@ -4,14 +4,14 @@ const {
   startAttempt,
   finishAttempt
 } = require("../controllers/mission.controller");
-const { authenticate } = require("../middleware/auth.middleware");
+const { authenticate, requireRole } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
 // Va antes que /:missionId para que "attempts" no se lea como un id de mision.
-router.post("/attempts/:attemptId/finish", authenticate, finishAttempt);
+router.post("/attempts/:attemptId/finish", authenticate, requireRole("student"), finishAttempt);
 
 router.get("/:missionId", authenticate, getMissionContent);
-router.post("/:missionId/attempts", authenticate, startAttempt);
+router.post("/:missionId/attempts", authenticate, requireRole("student"), startAttempt);
 
 module.exports = router;

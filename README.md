@@ -114,9 +114,11 @@ GOOGLE_CLIENT_ID=your_google_oauth_client_id_here
 
 JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES_IN=7d
+
+CORS_ORIGINS=
 ```
 
-`JWT_SECRET` es obligatoria en producción: sin ella, el servidor no arranca. En desarrollo, si falta, se usa un secreto de prueba y aparece un aviso en la consola. El archivo `.env` nunca se sube al repositorio.
+`JWT_SECRET` es obligatoria en producción: sin ella, el servidor no arranca. En desarrollo, si falta, se usa un secreto de prueba y aparece un aviso en la consola. `CORS_ORIGINS` lista, separados por coma, los sitios web que pueden llamar a la API desde un navegador. La app móvil no lo necesita, así que vacío no permite ninguno. El archivo `.env` nunca se sube al repositorio.
 
 ### Base de datos
 
@@ -162,8 +164,8 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 | GET | `/api/students/:studentId/context` | Ver nota | Sala, nivel y centro del estudiante |
 | GET | `/api/students/:studentId/progress` | Ver nota | Puntos, misiones completadas y racha |
 | GET | `/api/missions/:missionId` | Con sesión | Misión con sus preguntas |
-| POST | `/api/missions/:missionId/attempts` | Con sesión | Abre un intento |
-| POST | `/api/missions/attempts/:attemptId/finish` | Con sesión | Califica las respuestas y actualiza progreso y racha |
+| POST | `/api/missions/:missionId/attempts` | Estudiante | Abre un intento, si la misión es de su nivel y ya completó la anterior |
+| POST | `/api/missions/attempts/:attemptId/finish` | Estudiante | Califica las respuestas y actualiza progreso y racha |
 | GET | `/api/teacher/me/students` | Docente | Estudiantes de sus salas |
 | GET | `/api/coordinator/me/overview` | Coordinador | Resumen de su centro |
 | GET | `/api/admin/overview` | Admin | Resumen global |
@@ -171,6 +173,10 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 | GET | `/api/admin/centers/:centerId/overview` | Admin | Resumen de un centro |
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
+
+La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad y solo una vez cada 24 horas por misión. El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
+
+Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
 
 Ejemplo de inicio de sesión:
 
@@ -246,7 +252,7 @@ Está en `landing/`. Cómo correrla, publicarla y los detalles de marca están e
 | Coordinador | `coordinador` | `coord2026` |
 | Admin | `adminmindflow` | `admin2026` |
 
-El código `NOVA123` vence 5 minutos después de cargar los datos. Para volver a probar el ingreso a una sala, hay que cargar `data.sql` otra vez o extender `expires_at` en `group_access_codes`.
+El código `NOVA123` vence 30 días después de cargar los datos.
 
 Estas credenciales son solo para desarrollo local.
 

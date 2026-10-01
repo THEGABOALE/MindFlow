@@ -2,9 +2,13 @@ const pool = require("../database/connection");
 const { withTransaction } = require("../database/transaction");
 const userRepository = require("../repositories/user.repository");
 const groupRepository = require("../repositories/group.repository");
+const centerRepository = require("../repositories/center.repository");
+const { canCreateRole, minPasswordLength, resolveNewAccountCenter } = require("../services/account-creation.service");
 const { signSessionToken } = require("../utils/jwt");
 const { hashPassword, passwordMatches } = require("../utils/password");
 const { isGoogleLoginConfigured, verifyGoogleIdToken } = require("../utils/google-token");
+const { respondServerError } = require("../utils/server-error");
+const { isFilledString } = require("../utils/validation");
 
 // Sala activa del estudiante. Si viene null, la app le muestra la pantalla
 // del código; si ya tiene sala, entra directo al home aunque haya cerrado
@@ -43,7 +47,7 @@ const buildSessionResponse = async (user) => {
 const loginWithGoogle = async (req, res) => {
   const { idToken } = req.body || {};
 
-  if (!idToken) {
+  if (!isFilledString(idToken)) {
     return res.status(400).json({
       message: "El idToken de Google es obligatorio",
       status: "ERROR"
@@ -89,7 +93,7 @@ const loginWithGoogle = async (req, res) => {
       // La institución tiene que haber registrado el correo de antemano; el
       // rol lo define siempre la base de datos, nunca el cliente.
       return res.status(404).json({
-        message: "Ese correo no está registrado en ninguna institución. Contactá a tu coordinador.",
+        message: "Ese correo no está registrado en ninguna institución. Contacta a tu coordinador.",
         status: "ERROR"
       });
     }
@@ -103,18 +107,14 @@ const loginWithGoogle = async (req, res) => {
 
     return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al iniciar sesión con Google",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al iniciar sesión con Google", error);
   }
 };
 
 const loginWithId = async (req, res) => {
   const { loginId, password } = req.body || {};
 
-  if (!loginId || !password) {
+  if (!isFilledString(loginId) || typeof password !== "string" || !password) {
     return res.status(400).json({
       message: "El ID y la contraseña son obligatorios",
       status: "ERROR"
@@ -149,11 +149,7 @@ const loginWithId = async (req, res) => {
 
     return res.status(200).json(await buildSessionResponse(user));
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al iniciar sesión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al iniciar sesión", error);
   }
 };
 
@@ -178,46 +174,49 @@ const getMe = async (req, res) => {
       user: buildSessionUser(user, group)
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener la sesión",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener la sesión", error);
   }
 };
 
-// Un coordinador no puede crear coordinadores ni admins, para no poder
-// escalar sus propios permisos.
-const CREATABLE_ROLES_BY_ROLE = {
-  coordinator: ["student", "teacher"],
-  admin: ["student", "teacher", "coordinator", "admin", "validator"]
-};
-
 const createIdAccount = async (req, res) => {
-  const { fullName, loginId, password, roleName } = req.body || {};
+  const { fullName, loginId, password, roleName, centerId: requestedCenterId } = req.body || {};
 
-  if (!fullName || !loginId || !password) {
+  if (!isFilledString(fullName) || !isFilledString(loginId) || typeof password !== "string" || !password) {
     return res.status(400).json({
       message: "fullName, loginId y password son obligatorios",
       status: "ERROR"
     });
   }
 
-  if (password.length < 4) {
+  if (roleName !== undefined && typeof roleName !== "string") {
     return res.status(400).json({
-      message: "La contraseña debe tener al menos 4 caracteres",
+      message: "roleName debe ser texto",
       status: "ERROR"
     });
   }
 
   const requestedRole = roleName || "student";
-  const allowedRoles = CREATABLE_ROLES_BY_ROLE[req.user.role] || [];
 
-  if (!allowedRoles.includes(requestedRole)) {
+  if (!canCreateRole(req.user.role, requestedRole)) {
     return res.status(403).json({
-      message: `No podés crear cuentas con el rol "${requestedRole}"`,
+      message: `No puedes crear cuentas con el rol "${requestedRole}"`,
       status: "ERROR"
     });
+  }
+
+  if (password.length < minPasswordLength(requestedRole)) {
+    return res.status(400).json({
+      message: `La contraseña debe tener al menos ${minPasswordLength(requestedRole)} caracteres`,
+      status: "ERROR"
+    });
+  }
+
+  // req.user viene fresco de la base gracias a authenticate, así que el
+  // centro del coordinador es el actual.
+  const center = resolveNewAccountCenter({ requester: req.user, role: requestedRole, requestedCenterId });
+
+  if (center.error) {
+    return res.status(400).json({ message: center.error, status: "ERROR" });
   }
 
   try {
@@ -234,14 +233,16 @@ const createIdAccount = async (req, res) => {
         return { httpStatus: 400, body: { message: `No existe el rol "${requestedRole}"`, status: "ERROR" } };
       }
 
+      if (center.centerId !== null && !(await centerRepository.findActiveCenter(db, center.centerId))) {
+        return { httpStatus: 404, body: { message: "No se encontró el centro educativo", status: "ERROR" } };
+      }
+
       const created = await userRepository.createIdAccount(db, {
         fullName: fullName.trim(),
         loginId: normalizedLoginId,
         passwordHash: await hashPassword(password),
         roleId,
-        // La cuenta nueva queda en el mismo centro que quien la crea (ya viene
-        // fresco de la base gracias a authenticate).
-        centerId: req.user.centerId || null,
+        centerId: center.centerId,
         createdBy: req.user.id
       });
 
@@ -263,11 +264,7 @@ const createIdAccount = async (req, res) => {
 
     return res.status(outcome.httpStatus).json(outcome.body);
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al crear la cuenta",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al crear la cuenta", error);
   }
 };
 

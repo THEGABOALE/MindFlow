@@ -5,6 +5,7 @@ const levelProgressRepository = require("../repositories/level-progress.reposito
 const { canViewStudent } = require("../services/student-access.service");
 const { normalizeTzOffset } = require("../services/streak.service");
 const { loadStreak } = require("../services/streak-query.service");
+const { respondServerError } = require("../utils/server-error");
 
 const getStudentContext = async (req, res) => {
     const { studentId } = req.params;
@@ -35,7 +36,7 @@ const getStudentContext = async (req, res) => {
 
         if (!canViewStudent(req.user, row)) {
             return res.status(403).json({
-                message: "No tenés permiso para ver este estudiante",
+                message: "No tienes permiso para ver este estudiante",
                 status: "ERROR"
             });
         }
@@ -62,12 +63,7 @@ const getStudentContext = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Hubo un error al obtener el contexto del estudiante", error);
-        return res.status(500).json({
-            message: "Hubo un error al obtener el contexto del estutiante",
-            status: "ERROR",
-            error: error.message
-        });
+        return respondServerError(res, "Hubo un error al obtener el contexto del estudiante", error);
     }
 };
 
@@ -93,7 +89,7 @@ const getStudentProgress = async (req, res) => {
 
         if (!canViewStudent(req.user, row)) {
             return res.status(403).json({
-                message: "No tenés permiso para ver este estudiante",
+                message: "No tienes permiso para ver este estudiante",
                 status: "ERROR"
             });
         }
@@ -130,11 +126,7 @@ const getStudentProgress = async (req, res) => {
             }
         });
     } catch (error) {
-        return res.status(500).json({
-            message: "Error al obtener el progreso del estudiante",
-            status: "ERROR",
-            error: error.message
-        });
+        return respondServerError(res, "Error al obtener el progreso del estudiante", error);
     }
 };
 

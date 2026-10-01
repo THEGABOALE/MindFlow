@@ -1,4 +1,4 @@
-const { calculatePoints, gradeAttempt } = require("../src/services/mission-grading.service");
+const { calculatePoints, exceededTimeLimit, gradeAttempt } = require("../src/services/mission-grading.service");
 
 describe("calculatePoints", () => {
   test("0 errores da el 100% de la recompensa", () => {
@@ -20,6 +20,34 @@ describe("calculatePoints", () => {
 
   test("un repaso perfecto da la mitad de las semillas", () => {
     expect(calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: true })).toBe(50);
+  });
+
+  test("un repaso de una mision que ya cobro repaso en la ventana no paga", () => {
+    expect(
+      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: true, reviewAlreadyPaid: true })
+    ).toBe(0);
+  });
+
+  test("reviewAlreadyPaid no afecta a una mision que no es repaso", () => {
+    expect(
+      calculatePoints({ pointsReward: 100, wrongAnswers: 0, maxPlumas: 3, isReview: false, reviewAlreadyPaid: true })
+    ).toBe(100);
+  });
+});
+
+describe("exceededTimeLimit", () => {
+  test("una mision sin limite de tiempo nunca se pasa", () => {
+    expect(exceededTimeLimit({ elapsedSeconds: 99999, timeLimitSeconds: null })).toBe(false);
+  });
+
+  test("dentro del limite mas el margen de 15 s no se pasa", () => {
+    expect(exceededTimeLimit({ elapsedSeconds: 45, timeLimitSeconds: 45 })).toBe(false);
+    expect(exceededTimeLimit({ elapsedSeconds: 60, timeLimitSeconds: 45 })).toBe(false);
+  });
+
+  test("despues del margen se pasa aunque la app no lo diga", () => {
+    expect(exceededTimeLimit({ elapsedSeconds: 60.5, timeLimitSeconds: 45 })).toBe(true);
+    expect(exceededTimeLimit({ elapsedSeconds: 120, timeLimitSeconds: 45 })).toBe(true);
   });
 });
 

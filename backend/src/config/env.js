@@ -26,9 +26,19 @@ const resolveJwtSecret = () => {
   return DEV_JWT_SECRET;
 };
 
+// Orígenes web que pueden llamar a la API desde un navegador, separados por
+// coma. La app móvil no pasa por CORS, así que por defecto no se permite
+// ninguno.
+const parseCorsOrigins = (raw) =>
+  (raw || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 const env = {
   port: process.env.PORT || 3000,
   nodeEnv,
+  corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
 
   db: {
     // Neon/Railway dan una sola cadena de conexion; el desarrollo local sigue

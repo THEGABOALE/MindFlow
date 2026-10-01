@@ -1,4 +1,5 @@
 const { getCenterRoomsOverview } = require("../services/center-overview.service");
+const { respondServerError } = require("../utils/server-error");
 
 // El coordinador ve el progreso general de todas las salas de SU centro
 // (requireRole ya exige rol "coordinator"; acá se filtra por center_id).
@@ -19,11 +20,7 @@ const getCenterOverview = async (req, res) => {
       ...overview
     });
   } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener el resumen del centro",
-      status: "ERROR",
-      error: error.message
-    });
+    return respondServerError(res, "Error al obtener el resumen del centro", error);
   }
 };
 

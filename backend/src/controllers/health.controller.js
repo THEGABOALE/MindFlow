@@ -1,5 +1,6 @@
 const pool = require("../database/connection");
 const healthRepository = require("../repositories/health.repository");
+const { respondServerError } = require("../utils/server-error");
 
 const healthCheck = (req, res) => {
   res.json({
@@ -18,11 +19,7 @@ const databaseHealthCheck = async (req, res) => {
       databaseTime
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Error al conectar con la base de datos",
-      status: "ERROR",
-      error: error.message
-    })
+    return respondServerError(res, "Error al conectar con la base de datos", error);
   }
 };
 

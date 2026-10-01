@@ -124,4 +124,4 @@ VALUES
 
 INSERT INTO group_access_codes (group_id, code, expires_at, max_uses)
 VALUES
-(1, 'NOVA123', CURRENT_TIMESTAMP + INTERVAL '5 minutes', 40);
+(1, 'NOVA123', CURRENT_TIMESTAMP + INTERVAL '30 days', 40);
