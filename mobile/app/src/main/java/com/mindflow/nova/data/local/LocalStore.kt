@@ -5,6 +5,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.offline.PendingAttempt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -35,3 +36,16 @@ interface LocalStore {
     /** Borra la caché de la cuenta al cerrar sesión; los pendientes se quedan. */
     suspend fun clearAccount(userId: Int)
 }
+
+/**
+ * Lo guardado es un respaldo: si leerlo o escribirlo falla, la pantalla sigue
+ * con lo que vino del servidor (o con su error de siempre) en vez de romperse.
+ */
+internal suspend fun <T> localOrNull(block: suspend () -> T): T? =
+    try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }

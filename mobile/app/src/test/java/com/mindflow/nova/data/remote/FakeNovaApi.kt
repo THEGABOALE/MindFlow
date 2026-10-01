@@ -54,14 +54,24 @@ class FakeNovaApi : NovaApiService {
     override suspend fun loginWithId(request: LoginIdRequest): Response<LoginResponse> = onLoginId(request)
     override suspend fun loginWithGoogle(request: LoginGoogleRequest): Response<LoginResponse> = onLoginGoogle(request)
 
+    var onLevels: suspend () -> Response<List<LevelResponse>> = { TODO() }
+    var onProgress: suspend (Int) -> Response<StudentProgressResponse> = { TODO() }
+    val missionRequests = mutableListOf<Int>()
+    var onMissionContent: suspend (Int) -> Response<MissionContentResponse> = { TODO() }
+
+    override suspend fun getLevels(): Response<List<LevelResponse>> = onLevels()
+    override suspend fun getStudentProgress(studentId: Int, tzOffsetMinutes: Int): Response<StudentProgressResponse> =
+        onProgress(studentId)
+    override suspend fun getMissionContent(missionId: Int): Response<MissionContentResponse> {
+        missionRequests += missionId
+        return onMissionContent(missionId)
+    }
+
     override suspend fun getHealth(): Response<HealthResponse> = TODO()
     override suspend fun getDatabaseHealth(): Response<HealthResponse> = TODO()
-    override suspend fun getLevels(): Response<List<LevelResponse>> = TODO()
     override suspend fun joinGroupByCode(request: JoinGroupRequest): Response<JoinGroupResponse> = TODO()
-    override suspend fun getMissionContent(missionId: Int): Response<MissionContentResponse> = TODO()
     override suspend fun startAttempt(missionId: Int): Response<StartAttemptResponse> = TODO()
     override suspend fun finishAttempt(attemptId: Int, request: FinishAttemptRequest): Response<FinishAttemptResponse> = TODO()
-    override suspend fun getStudentProgress(studentId: Int, tzOffsetMinutes: Int): Response<StudentProgressResponse> = TODO()
 
     companion object {
         fun acceptedResult(clientAttemptId: String, missionId: Int, pointsEarned: Int = 100) = SyncAttemptResult(

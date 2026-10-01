@@ -54,6 +54,8 @@ class LessonViewModelTest {
             return contentResult(missionId)
         }
 
+        override suspend fun prefetch(missionIds: List<Int>) = Unit
+
         override suspend fun startAttempt(missionId: Int): AttemptStartResult {
             startCalls++
             return startResults.removeFirstOrNull() ?: AttemptStartResult.Started(nextAttemptId++)

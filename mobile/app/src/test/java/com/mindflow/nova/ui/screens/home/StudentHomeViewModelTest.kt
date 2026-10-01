@@ -8,6 +8,8 @@ import com.mindflow.nova.data.student.StudentRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -49,6 +51,9 @@ class StudentHomeViewModelTest {
 
         override suspend fun loadLevels(): LevelsResult { levelCalls++; return levels }
         override suspend fun loadCurrentUser(): SessionUser? { userCalls++; return user }
+        override fun observeProgress(userId: Int): Flow<StudentProgress?> = flowOf(null)
+        override fun observePendingCount(userId: Int): Flow<Int> = flowOf(0)
+
         override suspend fun loadProgress(userId: Int): StudentProgress? {
             progressCalls++
             progressQueue.removeFirstOrNull()?.let { (answer, gate) ->
