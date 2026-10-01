@@ -234,7 +234,7 @@ private fun CurrentLevelCard(level: LevelResponse, progressPercentage: Double) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
-                        text = "01",
+                        text = level.orderIndex.toString().padStart(2, '0'),
                         color = NovaPurple,
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp

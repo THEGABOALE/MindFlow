@@ -27,6 +27,17 @@ data class StudentHomeState(
 )
 
 /**
+ * Nivel que se le muestra al estudiante: el de su sala. Mientras todavía no se
+ * sabe quién es (o si no tiene sala) se usa el primero, como antes; si su sala
+ * es de un nivel que no vino en la lista, null para no mostrarle otro nivel.
+ */
+internal fun levelForStudent(levels: List<LevelResponse>, user: SessionUser?): LevelResponse? {
+    val levelId = user?.group?.levelId ?: return levels.firstOrNull()
+
+    return levels.firstOrNull { it.id == levelId }
+}
+
+/**
  * Estado del área del estudiante. Inicio, Lecciones, Progreso y Perfil leen de
  * aquí en vez de pedir cada una lo mismo al backend: la cuenta y el progreso se
  * piden una vez y se comparten.

@@ -5,6 +5,7 @@ import com.mindflow.nova.data.model.MissionOption
 import com.mindflow.nova.data.model.MissionPair
 import com.mindflow.nova.data.model.MissionQuestion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -167,5 +168,22 @@ class LessonContentTest {
         )
 
         assertTrue(content.toTrueFalseQuestions()[0].correctAnswer)
+    }
+
+    @Test
+    fun `una mision sin preguntas o sin pares no se puede jugar`() {
+        val option = MissionOption(id = 1, text = "Verdadero", isCorrect = true, feedback = null, orderIndex = 1)
+        val withOption = MissionQuestion(id = 1, prompt = "P", type = "true_false", feedback = null, orderIndex = 1, points = 1, options = listOf(option))
+        val noOptions = withOption.copy(options = emptyList())
+        val withPair = MissionQuestion(
+            id = 2, prompt = "Relaciona", type = "matching", feedback = null, orderIndex = 1, points = 1,
+            pairs = listOf(MissionPair(id = 100, term = "Igualdad", match = "Mismos derechos", orderIndex = 1))
+        )
+
+        assertTrue(missionContent("true_false", listOf(withOption)).hasPlayableContent())
+        assertFalse(missionContent("multiple_choice", emptyList()).hasPlayableContent())
+        assertFalse(missionContent("true_false", listOf(withOption, noOptions)).hasPlayableContent())
+        assertTrue(missionContent("matching", listOf(withPair)).hasPlayableContent())
+        assertFalse(missionContent("matching", listOf(withPair.copy(pairs = emptyList()))).hasPlayableContent())
     }
 }

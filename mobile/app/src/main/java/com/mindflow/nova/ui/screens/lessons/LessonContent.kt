@@ -85,6 +85,16 @@ fun MissionContent.toLessonQuestions(): List<LessonQuestion> =
         )
     }
 
+/**
+ * Si la misión tiene algo que jugar. Una misión publicada sin preguntas (o de
+ * relación de conceptos sin pares) hacía que la pantalla buscara la primera
+ * pregunta de una lista vacía y la app se cerrara.
+ */
+fun MissionContent.hasPlayableContent(): Boolean = when (mechanic) {
+    "matching" -> questions.any { it.pairs.isNotEmpty() }
+    else -> questions.isNotEmpty() && questions.all { it.options.isNotEmpty() }
+}
+
 /** Relación de conceptos: la misión trae una sola pregunta con todos los pares. */
 fun MissionContent.toMatchingPairs(): List<MatchingPair> =
     questions.flatMap { it.pairs }.map { pair ->

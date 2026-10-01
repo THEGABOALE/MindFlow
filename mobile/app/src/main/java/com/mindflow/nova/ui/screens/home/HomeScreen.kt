@@ -61,8 +61,10 @@ fun HomeScreen(
     viewModel: StudentHomeViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    val levels = state.levels
     val progress = state.progress
+    // El nivel de la sala del estudiante, no el primero de la lista: si no, uno
+    // de secundaria veía y jugaba las misiones de primaria.
+    val level = levelForStudent(state.levels, state.user)
 
     var selectedTab by remember { mutableStateOf(NovaTab.Home) }
     var activeMission by remember { mutableStateOf<MissionResponse?>(null) }
@@ -112,7 +114,7 @@ fun HomeScreen(
                 )
             }
 
-            levels.isEmpty() -> {
+            level == null -> {
                 EmptyState(
                     modifier = Modifier
                         .fillMaxSize()
@@ -123,7 +125,7 @@ fun HomeScreen(
             else -> {
                 NovaMainContent(
                     selectedTab = selectedTab,
-                    level = levels.first(),
+                    level = level,
                     user = state.user,
                     progress = progress,
                     onMissionSelected = { mission -> pendingMission = mission },
@@ -378,7 +380,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "No hay niveles disponibles",
+            text = "Todavía no hay misiones para tu nivel",
             color = NovaTextSecondary,
             fontSize = 16.sp
         )

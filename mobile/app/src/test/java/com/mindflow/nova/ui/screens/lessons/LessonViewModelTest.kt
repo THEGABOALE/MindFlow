@@ -6,6 +6,8 @@ import com.mindflow.nova.data.mission.MissionRepository
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionContent
+import com.mindflow.nova.data.model.MissionOption
+import com.mindflow.nova.data.model.MissionQuestion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -22,9 +24,14 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class LessonViewModelTest {
 
-    private fun content(id: Int) = MissionContent(
+    private val question = MissionQuestion(
+        id = 1, prompt = "¿Verdadero?", type = "true_false", feedback = null, orderIndex = 1, points = 10,
+        options = listOf(MissionOption(id = 1, text = "Verdadero", isCorrect = true, feedback = null, orderIndex = 1))
+    )
+
+    private fun content(id: Int, questions: List<MissionQuestion> = listOf(question)) = MissionContent(
         id = id, levelId = 1, title = "Misión $id", description = null, topic = null, orderIndex = id,
-        pointsReward = 100, mechanic = "true_false", timeLimitSeconds = null, maxPlumas = 3, questions = emptyList()
+        pointsReward = 100, mechanic = "true_false", timeLimitSeconds = null, maxPlumas = 3, questions = questions
     )
 
     private val result = AttemptResult(
@@ -110,6 +117,18 @@ class LessonViewModelTest {
         viewModel.open(3)
 
         assertEquals(LessonState.Error("No se pudo cargar la misión (HTTP 404)"), viewModel.state.value)
+        assertEquals(0, repo.startCalls)
+    }
+
+    @Test
+    fun `una mision sin preguntas avisa y no abre ningun intento`() {
+        val repo = FakeRepository()
+        repo.contentResult = { MissionContentResult.Loaded(content(it, questions = emptyList())) }
+        val viewModel = LessonViewModel(repo)
+
+        viewModel.open(5)
+
+        assertEquals(LessonState.Error(EMPTY_MISSION_MESSAGE), viewModel.state.value)
         assertEquals(0, repo.startCalls)
     }
 
