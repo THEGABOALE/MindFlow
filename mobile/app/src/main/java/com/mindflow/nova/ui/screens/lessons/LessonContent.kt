@@ -33,6 +33,7 @@ import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
+import kotlin.random.Random
 
 // --- Tipos de contenido que consumen las pantallas de lección ---
 // (antes vivían en los *MockData.kt; ahora el contenido llega del backend).
@@ -95,6 +96,14 @@ fun MissionContent.hasPlayableContent(): Boolean = when (mechanic) {
     "matching" -> questions.any { it.pairs.isNotEmpty() }
     else -> questions.isNotEmpty() && questions.all { it.options.isNotEmpty() }
 }
+
+/**
+ * Mezcla el orden de las opciones de cada pregunta. En la base la correcta
+ * suele ser la primera, y mostrarlas tal cual llegan dejaba ganar tocando
+ * siempre la de arriba. Las preguntas mantienen su orden.
+ */
+fun List<LessonQuestion>.withShuffledOptions(random: Random = Random.Default): List<LessonQuestion> =
+    map { question -> question.copy(options = question.options.shuffled(random)) }
 
 /** Relación de conceptos: la misión trae una sola pregunta con todos los pares. */
 fun MissionContent.toMatchingPairs(): List<MatchingPair> =

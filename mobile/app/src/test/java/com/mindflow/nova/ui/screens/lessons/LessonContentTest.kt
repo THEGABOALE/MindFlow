@@ -9,6 +9,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.random.Random
 
 /**
  * Tests de los mappers que convierten el contenido crudo del backend
@@ -185,5 +186,22 @@ class LessonContentTest {
         assertFalse(missionContent("true_false", listOf(withOption, noOptions)).hasPlayableContent())
         assertTrue(missionContent("matching", listOf(withPair)).hasPlayableContent())
         assertFalse(missionContent("matching", listOf(withPair.copy(pairs = emptyList()))).hasPlayableContent())
+    }
+
+    @Test
+    fun `mezclar las opciones cambia su orden pero no las preguntas ni lo que dice cada opcion`() {
+        val options = (1..4).map { LessonOption(id = it, text = "Opción $it", isCorrect = it == 1, feedback = "") }
+        val questions = listOf(
+            LessonQuestion(id = 10, prompt = "Primera", options = options),
+            LessonQuestion(id = 20, prompt = "Segunda", options = options)
+        )
+
+        val shuffled = questions.withShuffledOptions(Random(7))
+
+        assertEquals(listOf(10, 20), shuffled.map { it.id })
+        shuffled.forEach { question -> assertEquals(options.toSet(), question.options.toSet()) }
+        // Mezclando varias veces, la correcta no puede quedar siempre arriba.
+        val firstIds = (1..20).map { seed -> questions.withShuffledOptions(Random(seed))[0].options.first().id }
+        assertTrue(firstIds.any { it != 1 })
     }
 }

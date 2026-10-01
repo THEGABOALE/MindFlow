@@ -81,6 +81,9 @@ fun LessonPlayScreen(
     var showExitConfirmation by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
+    // Se mezcla una sola vez por intento: si se mezclara en cada recomposición,
+    // las opciones cambiarían de lugar mientras el estudiante elige.
+    val shuffledQuestions = remember(questions) { questions.withShuffledOptions() }
 
     fun finish() {
         stage = LessonStage.SUBMITTING
@@ -132,7 +135,7 @@ fun LessonPlayScreen(
             }
 
             LessonStage.IN_PROGRESS -> {
-                val question = questions[currentIndex]
+                val question = shuffledQuestions[currentIndex]
                 val selectedOption = question.options.firstOrNull { it.id == selectedOptionId }
                 val progress = when (phase) {
                     QuestionPhase.ANSWERING -> currentIndex.toFloat() / questions.size
