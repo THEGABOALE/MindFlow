@@ -131,6 +131,12 @@ psql -U postgres -d mindflow_db -f src/database/data.sql
 
 También se pueden ejecutar abriendo los archivos en SQLTools, desde VS Code.
 
+`schema.sql` borra y vuelve a crear todas las tablas, así que es solo para empezar de cero. Una base que ya tiene datos, como la de producción, se actualiza con los archivos de `src/database/migrations/`, en orden. Cada uno se puede correr más de una vez sin problema:
+
+```bash
+psql "$DATABASE_URL" -f src/database/migrations/2026-10-01-client-attempt-id.sql
+```
+
 ### Ejecución
 
 ```bash
@@ -166,6 +172,7 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 | GET | `/api/missions/:missionId` | Con sesión | Misión con sus preguntas |
 | POST | `/api/missions/:missionId/attempts` | Estudiante | Abre un intento, si la misión es de su nivel y ya completó la anterior |
 | POST | `/api/missions/attempts/:attemptId/finish` | Estudiante | Califica las respuestas y actualiza progreso y racha |
+| POST | `/api/sync/attempts` | Estudiante | Sube los intentos jugados en el teléfono (hasta 50 por lote); repetir el lote no duplica nada |
 | GET | `/api/teacher/me/students` | Docente | Estudiantes de sus salas |
 | GET | `/api/coordinator/me/overview` | Coordinador | Resumen de su centro |
 | GET | `/api/admin/overview` | Admin | Resumen global |
@@ -174,7 +181,7 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
 
-La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad y solo una vez cada 24 horas por misión. El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
+La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad de la misión, y cada repaso siguiente de la misma misión dentro de 24 horas paga la mitad del anterior, hasta un mínimo de 1 semilla (50, 25, 13, 6…). El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
 
 Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
 
