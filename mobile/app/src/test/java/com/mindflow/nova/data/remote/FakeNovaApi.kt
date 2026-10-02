@@ -25,6 +25,8 @@ import retrofit2.Response
 class FakeNovaApi : NovaApiService {
 
     val syncRequests = mutableListOf<SyncAttemptsRequest>()
+    /** El Authorization con que llegó cada subida, en el mismo orden que [syncRequests]. */
+    val syncAuthorizations = mutableListOf<String>()
 
     /** Por defecto acepta todo con un resultado completo y sin progreso. */
     var onSync: suspend (SyncAttemptsRequest) -> Response<SyncAttemptsResponse> = { request ->
@@ -38,8 +40,9 @@ class FakeNovaApi : NovaApiService {
         )
     }
 
-    override suspend fun syncAttempts(request: SyncAttemptsRequest): Response<SyncAttemptsResponse> {
+    override suspend fun syncAttempts(authorization: String, request: SyncAttemptsRequest): Response<SyncAttemptsResponse> {
         syncRequests += request
+        syncAuthorizations += authorization
         return onSync(request)
     }
 

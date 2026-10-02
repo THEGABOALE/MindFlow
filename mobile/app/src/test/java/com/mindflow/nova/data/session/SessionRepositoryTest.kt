@@ -115,6 +115,17 @@ class SessionRepositoryTest {
     }
 
     @Test
+    fun `el token solo se entrega para la cuenta de la sesion`() {
+        loggedIn()
+
+        assertEquals("tok", session.tokenFor(user.id))
+        assertNull(session.tokenFor(99))
+
+        session.logout()
+        assertNull(session.tokenFor(user.id))
+    }
+
+    @Test
     fun `cerrar sesion borra la cuenta del telefono pero no los pendientes`() = runTest {
         loggedIn()
         local.saveUser(user)

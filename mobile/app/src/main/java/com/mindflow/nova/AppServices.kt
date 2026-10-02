@@ -44,7 +44,7 @@ object AppServices {
         localStore = RoomLocalStore(NovaDatabase.create(context).dao())
         // Crear la sesión deja el interceptor listo para firmar las peticiones.
         session = SessionRepository(SessionStorage(context), localStore)
-        sync = SyncRepository(api = { RetrofitClient.api }, store = localStore)
+        sync = SyncRepository(api = { RetrofitClient.api }, store = localStore, tokenFor = session::tokenFor)
     }
 
     /**

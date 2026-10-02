@@ -28,7 +28,7 @@ class AttemptRecorderTest {
     private val userId = 7
     private val local = FakeLocalStore()
     private val api = FakeNovaApi()
-    private val sync = SyncRepository(api = { api }, store = local, tzOffset = { -360 })
+    private val sync = SyncRepository(api = { api }, store = local, tokenFor = { "token" }, tzOffset = { -360 })
     private var scheduled = 0
     private fun recorder(store: LocalStore = local, user: Int? = userId) = OfflineAttemptRecorder(
         local = store, sync = sync, currentUserId = { user }, scheduleSync = { scheduled++ }

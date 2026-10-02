@@ -57,6 +57,15 @@ class SessionRepository(
     /** De quién es la sesión guardada, o null si no hay. */
     fun currentUserId(): Int? = storage.getUserId()
 
+    /**
+     * El token de la sesión solo si es de [userId]. El token se lee antes que
+     * el dueño: si en el medio se cierra sesión o entra otra cuenta, no coinciden.
+     */
+    fun tokenFor(userId: Int): String? {
+        val token = storage.getToken()?.takeIf { it.isNotBlank() } ?: return null
+        return token.takeIf { storage.getUserId() == userId }
+    }
+
     suspend fun loginWithId(loginId: String, password: String): SessionResult =
         runLogin {
             api().loginWithId(LoginIdRequest(loginId.trim(), password))

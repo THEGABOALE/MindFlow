@@ -16,6 +16,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -39,7 +40,11 @@ interface NovaApiService {
      * y responde, uno por uno, si los aceptó o por qué no.
      */
     @POST("api/sync/attempts")
-    suspend fun syncAttempts(@Body request: SyncAttemptsRequest): Response<SyncAttemptsResponse>
+    suspend fun syncAttempts(
+        /** El de la cuenta dueña de los intentos, no el de la sesión de ese momento. */
+        @Header("Authorization") authorization: String,
+        @Body request: SyncAttemptsRequest
+    ): Response<SyncAttemptsResponse>
 
     /**
      * Progreso acumulado del estudiante: semillas totales, misiones completadas, % por

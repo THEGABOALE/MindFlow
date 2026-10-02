@@ -25,7 +25,11 @@ class SyncRepositoryTest {
     private val userId = 7
     private val store = FakeLocalStore()
     private val api = FakeNovaApi()
-    private val sync = SyncRepository(api = { api }, store = store, tzOffset = { -360 })
+    /** Qué cuenta tiene la sesión abierta y con qué token. */
+    private var session: Pair<Int, String>? = userId to "token-ana"
+    private val sync = SyncRepository(
+        api = { api }, store = store, tokenFor = { id -> session?.takeIf { it.first == id }?.second }, tzOffset = { -360 }
+    )
 
     private fun pending(id: String, missionId: Int = 2, minute: Int = 0, user: Int = userId) = PendingAttempt(
         clientAttemptId = id,
@@ -173,6 +177,45 @@ class SyncRepositoryTest {
         assertEquals(streak, saved.streak)
         assertEquals("Ana", saved.fullName)
         assertTrue(report.progress!!.justActivatedStreak)
+    }
+
+    @Test
+    fun `los intentos van con el token de su cuenta`() = runTest {
+        store.addPending(pending("a"))
+
+        sync.syncPending(userId)
+
+        assertEquals(listOf("Bearer token-ana"), api.syncAuthorizations)
+    }
+
+    @Test
+    fun `si la sesion ya no es de esa cuenta no se manda nada`() = runTest {
+        store.addPending(pending("a"))
+        session = 99 to "token-otra"
+
+        val report = sync.syncPending(userId)
+
+        assertEquals(SyncStop.NEEDS_LOGIN, report.stoppedBy)
+        assertTrue(api.syncRequests.isEmpty())
+        assertEquals(1, store.pendingNow(userId).size)
+    }
+
+    @Test
+    fun `si se cambia de cuenta a mitad de la subida lo que falta sigue a nombre de la primera`() = runTest {
+        (0 until 60).forEach { store.addPending(pending("id-%03d".format(it)).copy(
+            finishedAt = "2026-10-01T10:%02d:00.000-06:00".format(it)
+        )) }
+        val defaultSync = api.onSync
+        api.onSync = { request ->
+            // Mientras se sube el primer lote, alguien cierra sesión y entra otra cuenta.
+            session = 99 to "token-otra"
+            defaultSync(request)
+        }
+
+        sync.syncPending(userId)
+
+        assertEquals(listOf("Bearer token-ana", "Bearer token-ana"), api.syncAuthorizations)
+        assertTrue(store.pendingNow(userId).isEmpty())
     }
 
     @Test

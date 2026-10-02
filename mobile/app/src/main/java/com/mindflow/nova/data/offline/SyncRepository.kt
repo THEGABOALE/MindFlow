@@ -50,10 +50,15 @@ data class RejectedNotice(val clientAttemptId: String, val message: String)
  *
  * La usan el cierre de una lección (con [syncNow]) y el trabajo en segundo
  * plano, por eso es una sola para toda la app.
+ *
+ * Cada subida usa el token de la cuenta dueña de la cola, tomado al empezar
+ * ([tokenFor] da null si la sesión ya no es de esa cuenta). Si se cambia de
+ * cuenta a mitad de camino, lo que falta se sigue mandando como de la primera.
  */
 class SyncRepository(
     private val api: () -> NovaApiService,
     private val store: LocalStore,
+    private val tokenFor: (userId: Int) -> String?,
     private val tzOffset: () -> Int = ::currentTzOffsetMinutes
 ) {
     // Dos subidas a la vez leerían la misma cola y mandarían dos veces lo mismo.
@@ -78,8 +83,16 @@ class SyncRepository(
         val rejected = mutableMapOf<String, String>()
         var progress: SyncProgress? = null
 
-        for (batch in store.pending(userId).chunked(MAX_BATCH)) {
-            val stop = sendBatch(userId, batch, accepted, rejected) { progress = it }
+        val pending = store.pending(userId)
+        if (pending.isEmpty()) return@withLock SyncReport(accepted, rejected, progress, stoppedBy = null)
+
+        // Sin sesión de esta cuenta no se manda nada: con otro token los
+        // intentos quedarían a nombre de otra persona.
+        val token = tokenFor(userId)
+            ?: return@withLock SyncReport(accepted, rejected, progress, SyncStop.NEEDS_LOGIN)
+
+        for (batch in pending.chunked(MAX_BATCH)) {
+            val stop = sendBatch(userId, token, batch, accepted, rejected) { progress = it }
 
             if (stop != null) return@withLock SyncReport(accepted, rejected, progress, stop)
         }
@@ -93,6 +106,7 @@ class SyncRepository(
 
     private suspend fun sendBatch(
         userId: Int,
+        token: String,
         batch: List<PendingAttempt>,
         accepted: MutableMap<String, SyncedAttempt>,
         rejected: MutableMap<String, String>,
@@ -106,7 +120,7 @@ class SyncRepository(
         )
 
         val response = try {
-            api().syncAttempts(request)
+            api().syncAttempts("Bearer $token", request)
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
