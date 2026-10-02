@@ -82,10 +82,7 @@ fun HomeDashboardContent(
     val currentIndex = currentMissionIndex(missionStates)
     val nextMission = missions.getOrNull(currentIndex)
     val completedCount = missionStates.count { it.isCompleted }
-    val levelProgressPercentage = progress?.levels
-        ?.firstOrNull { it.id == level.id }
-        ?.progressPercentage
-        ?: 0.0
+    val levelProgressPercentage = levelProgressPercentage(level, progress)
 
     var showStreakInfo by remember { mutableStateOf(false) }
     val streak = progress?.streak

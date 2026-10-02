@@ -27,6 +27,7 @@ import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
+import com.mindflow.nova.ui.screens.home.levelProgressPercentage
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
@@ -39,8 +40,7 @@ fun ProgressScreen(
     progress: StudentProgress?,
     modifier: Modifier = Modifier
 ) {
-    val levelProgress = progress?.levels?.firstOrNull { it.id == level.id }
-    val progressFraction = ((levelProgress?.progressPercentage ?: 0.0) / 100.0).toFloat()
+    val progressFraction = (levelProgressPercentage(level, progress) / 100.0).toFloat()
 
     Column(
         modifier = modifier
