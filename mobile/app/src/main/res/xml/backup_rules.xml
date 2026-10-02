@@ -7,4 +7,6 @@
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="nova_session.xml" />
+    <!-- La caché y los resultados pendientes son datos de menores: no se respaldan. -->
+    <exclude domain="database" path="nova.db" />
 </full-backup-content>

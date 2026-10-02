@@ -27,6 +27,7 @@ import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.MissionResponse
+import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.ui.components.ScopedViewModels
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -140,15 +141,26 @@ fun MissionContent.toTrueFalseQuestions(): List<TrueFalseQuestion> =
     }
 
 /**
- * Todo lo que una pantalla de lección necesita para reportar el resultado de
- * un intento al backend: con qué intento está jugando y cómo cerrarlo o
- * empezar uno nuevo (reintentar).
+ * Todo lo que una pantalla de lección necesita para guardar el resultado de
+ * un intento: con qué intento está jugando y cómo cerrarlo o empezar uno
+ * nuevo (reintentar).
  */
 class LessonAttempt(
-    val id: Int,
+    val id: String,
     val onRetry: () -> Unit,
-    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> AttemptResult?
+    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome
 )
+
+/** El resultado para mostrar si el intento quedó guardado (subido o pendiente); null si no. */
+internal val LessonOutcome.savedResult: AttemptResult?
+    get() = when (this) {
+        is LessonOutcome.Synced -> result
+        is LessonOutcome.Pending -> result
+        else -> null
+    }
+
+/** Nota de la pantalla de resultado cuando el intento quedó guardado sin subir. */
+internal const val PENDING_RESULT_NOTICE = "Tu resultado se guardó y se subirá cuando haya conexión"
 
 /**
  * Muestra la lección de una misión según su mecánica. Las mecánicas que todavía
@@ -287,7 +299,7 @@ private fun LessonContentError(message: String, onExit: () -> Unit) {
     }
 }
 
-/** Se muestra mientras el backend corrige y guarda el intento recién cerrado. */
+/** Se muestra mientras se guarda el intento recién cerrado y se intenta subirlo. */
 @Composable
 fun LessonSubmitting() {
     Box(
@@ -310,12 +322,28 @@ fun LessonSubmitting() {
     }
 }
 
-/** Pantalla compartida: se perdió la conexión al querer guardar el resultado del intento. */
+/**
+ * Pantalla compartida: el servidor no aceptó el intento (por ejemplo, porque la
+ * misión anterior no está completada). [message] es su motivo.
+ */
+@Composable
+fun LessonRejected(message: String, onRetry: () -> Unit, onExit: () -> Unit) {
+    LessonEndScreen(
+        title = "No se pudo guardar este intento",
+        message = message,
+        primaryLabel = "Volver al inicio",
+        onPrimary = onExit,
+        secondaryLabel = "Reintentar",
+        onSecondary = onRetry
+    )
+}
+
+/** Pantalla compartida: no se pudo guardar el resultado ni siquiera en el teléfono. */
 @Composable
 fun LessonSubmitError(onRetry: () -> Unit, onExit: () -> Unit) {
     LessonEndScreen(
         title = "No se pudo guardar tu resultado",
-        message = "Revisa tu conexión e inténtalo de nuevo. Si vuelves a intentar, empieza un intento nuevo.",
+        message = "No pudimos guardar tu resultado en el teléfono. Inténtalo de nuevo.",
         primaryLabel = "Reintentar",
         onPrimary = onRetry,
         secondaryLabel = "Salir",

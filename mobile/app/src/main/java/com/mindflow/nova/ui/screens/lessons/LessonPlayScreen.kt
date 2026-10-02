@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
@@ -52,7 +53,7 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 import kotlinx.coroutines.launch
 
 private enum class QuestionPhase { ANSWERING, ANSWERED }
-private enum class LessonStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR }
+private enum class LessonStage { IN_PROGRESS, SUBMITTING, OUT_OF_PLUMAS, COMPLETED, SUBMIT_ERROR, REJECTED }
 
 /**
  * Lección de preguntas de opción múltiple (Lección 1 - "Bienvenida a NOVA").
@@ -80,6 +81,8 @@ fun LessonPlayScreen(
     var stage by remember { mutableStateOf(LessonStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
+    var pendingNotice by remember { mutableStateOf(false) }
+    var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
     // Se mezcla una sola vez por intento: si se mezclara en cada recomposición,
     // las opciones cambiarían de lugar mientras el estudiante elige.
@@ -88,12 +91,19 @@ fun LessonPlayScreen(
     fun finish() {
         stage = LessonStage.SUBMITTING
         scope.launch {
-            val result = attempt.submit(answers.toList(), false)
-            if (result != null) {
-                attemptResult = result
-                stage = if (result.status == "completed") LessonStage.COMPLETED else LessonStage.OUT_OF_PLUMAS
-            } else {
-                stage = LessonStage.SUBMIT_ERROR
+            val outcome = attempt.submit(answers.toList(), false)
+            val result = outcome.savedResult
+            when {
+                result != null -> {
+                    attemptResult = result
+                    pendingNotice = outcome is LessonOutcome.Pending
+                    stage = if (result.status == "completed") LessonStage.COMPLETED else LessonStage.OUT_OF_PLUMAS
+                }
+                outcome is LessonOutcome.Rejected -> {
+                    rejectedMessage = outcome.message
+                    stage = LessonStage.REJECTED
+                }
+                else -> stage = LessonStage.SUBMIT_ERROR
             }
         }
     }
@@ -120,11 +130,14 @@ fun LessonPlayScreen(
 
             LessonStage.SUBMIT_ERROR -> LessonSubmitError(onRetry = attempt.onRetry, onExit = onExit)
 
+            LessonStage.REJECTED -> LessonRejected(message = rejectedMessage, onRetry = attempt.onRetry, onExit = onExit)
+
             LessonStage.COMPLETED -> {
                 LessonCompletedScreen(
                     subtitle = "${attemptResult?.correctAnswers ?: correctCount} de ${questions.size} preguntas correctas",
                     rewardAmount = attemptResult?.pointsEarned ?: 0,
                     streak = attemptResult?.streak,
+                    notice = if (pendingNotice) PENDING_RESULT_NOTICE else null,
                     onContinue = onExit
                 )
             }

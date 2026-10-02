@@ -8,12 +8,12 @@ import androidx.security.crypto.MasterKey
 /**
  * Guarda el token de sesión en el dispositivo, cifrado.
  *
- * El token es lo único que se persiste: el rol y el centro NO se guardan acá
- * porque el backend los resuelve contra la base en cada petición, así que
- * tenerlos cacheados solo daría datos viejos si a la persona la cambian de
- * rol o de sala.
+ * Solo se guardan el token y el id de la persona: el rol y el centro NO van
+ * acá porque el backend los resuelve contra la base en cada petición. Para
+ * abrir sin conexión, la cuenta completa se guarda aparte (LocalStore) y se
+ * busca con este id.
  */
-class SessionStorage(context: Context) {
+class SessionStorage(context: Context) : TokenStore {
 
     private val prefs: SharedPreferences = try {
         openEncrypted(context)
@@ -35,18 +35,25 @@ class SessionStorage(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
+    override fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
 
-    fun saveToken(token: String) {
+    override fun saveToken(token: String) {
         prefs.edit().putString(KEY_TOKEN, token).apply()
     }
 
-    fun clear() {
+    override fun getUserId(): Int? = prefs.getInt(KEY_USER_ID, 0).takeIf { it > 0 }
+
+    override fun saveUserId(userId: Int) {
+        prefs.edit().putInt(KEY_USER_ID, userId).apply()
+    }
+
+    override fun clear() {
         prefs.edit().clear().apply()
     }
 
     private companion object {
         const val PREFS_NAME = "nova_session"
         const val KEY_TOKEN = "session_token"
+        const val KEY_USER_ID = "session_user_id"
     }
 }

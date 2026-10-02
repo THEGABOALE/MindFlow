@@ -1,6 +1,5 @@
 package com.mindflow.nova.ui.screens.lessons
 
-import com.mindflow.nova.data.mission.AttemptStartResult
 import com.mindflow.nova.data.mission.MissionContentResult
 import com.mindflow.nova.data.mission.MissionRepository
 import com.mindflow.nova.data.model.AnswerSubmission
@@ -8,6 +7,9 @@ import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.MissionOption
 import com.mindflow.nova.data.model.MissionQuestion
+import com.mindflow.nova.data.offline.AttemptRecorder
+import com.mindflow.nova.data.offline.FinishedAttempt
+import com.mindflow.nova.data.offline.LessonOutcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -16,7 +18,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -35,39 +36,43 @@ class LessonViewModelTest {
     )
 
     private val result = AttemptResult(
-        id = 50, missionId = 3, score = 100, correctAnswers = 8, wrongAnswers = 0,
+        id = 0, missionId = 3, score = 100, correctAnswers = 8, wrongAnswers = 0,
         plumasLeft = 3, pointsEarned = 200, isReview = false, status = "completed"
     )
 
-    /** Repositorio falso: responde lo configurado y anota qué se le pidió. */
-    private inner class FakeRepository : MissionRepository {
-        var contentResult: (Int) -> MissionContentResult = { MissionContentResult.Loaded(content(it)) }
-        var startResults = ArrayDeque<AttemptStartResult>()
-        var finishResult: AttemptResult? = result
+    /** Repositorio falso: responde lo configurado y cuenta cuántas veces se le pidió contenido. */
+    private class FakeRepository(var contentResult: (Int) -> MissionContentResult) : MissionRepository {
         var contentCalls = 0
-        var startCalls = 0
-        val finished = mutableListOf<Triple<Int, List<AnswerSubmission>, Boolean>>()
-        private var nextAttemptId = 50
 
         override suspend fun loadContent(missionId: Int): MissionContentResult {
             contentCalls++
             return contentResult(missionId)
         }
 
-        override suspend fun startAttempt(missionId: Int): AttemptStartResult {
-            startCalls++
-            return startResults.removeFirstOrNull() ?: AttemptStartResult.Started(nextAttemptId++)
-        }
+        override suspend fun prefetch(missionIds: List<Int>) = Unit
+    }
 
-        override suspend fun finishAttempt(
-            attemptId: Int,
-            answers: List<AnswerSubmission>,
-            timedOut: Boolean
-        ): AttemptResult? {
-            finished += Triple(attemptId, answers, timedOut)
-            return finishResult
+    private class FakeRecorder(var outcome: LessonOutcome) : AttemptRecorder {
+        val recorded = mutableListOf<FinishedAttempt>()
+
+        override suspend fun record(attempt: FinishedAttempt): LessonOutcome {
+            recorded += attempt
+            return outcome
         }
     }
+
+    private val repo = FakeRepository { MissionContentResult.Loaded(content(it)) }
+    private val recorder = FakeRecorder(LessonOutcome.Synced(result))
+    private var clock = 1_000_000L
+    private var nextId = 0
+
+    private fun viewModel() = LessonViewModel(
+        repository = repo,
+        recorder = recorder,
+        now = { clock },
+        newId = { "intento-${++nextId}" },
+        tzOffset = { -360 }
+    )
 
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -77,142 +82,108 @@ class LessonViewModelTest {
 
     @Test
     fun `antes de abrir esta cargando y no pidio nada`() {
-        val repo = FakeRepository()
-        val viewModel = LessonViewModel(repo)
+        val viewModel = viewModel()
 
         assertEquals(LessonState.Loading, viewModel.state.value)
-        assertEquals(0, repo.contentCalls + repo.startCalls)
+        assertEquals(0, repo.contentCalls)
     }
 
     @Test
-    fun `abrir carga el contenido y abre el primer intento`() {
-        val viewModel = LessonViewModel(FakeRepository())
+    fun `abrir carga el contenido y crea el intento en el telefono`() {
+        val viewModel = viewModel()
 
         viewModel.open(3)
 
-        val state = viewModel.state.value as LessonState.Playing
-        assertEquals(3, state.content.id)
-        assertEquals(50, state.attemptId)
-        assertEquals(1, state.attemptNumber)
+        assertEquals(LessonState.Playing(content(3), "intento-1", 1), viewModel.state.value)
     }
 
     @Test
     fun `abrir la misma mision dos veces no vuelve a pedir nada`() {
-        val repo = FakeRepository()
-        val viewModel = LessonViewModel(repo)
+        val viewModel = viewModel()
 
         viewModel.open(3)
         viewModel.open(3)
 
         assertEquals(1, repo.contentCalls)
-        assertEquals(1, repo.startCalls)
+        assertEquals(1, nextId)
     }
 
     @Test
-    fun `si el contenido no carga queda el error y no se abre ningun intento`() {
-        val repo = FakeRepository()
-        repo.contentResult = { MissionContentResult.Failed("No se pudo cargar la misión (HTTP 404)") }
-        val viewModel = LessonViewModel(repo)
+    fun `si el contenido no carga queda el error`() {
+        repo.contentResult = { MissionContentResult.Failed("Esta misión todavía no está descargada.") }
+        val viewModel = viewModel()
 
         viewModel.open(3)
 
-        assertEquals(LessonState.Error("No se pudo cargar la misión (HTTP 404)"), viewModel.state.value)
-        assertEquals(0, repo.startCalls)
+        assertEquals(LessonState.Error("Esta misión todavía no está descargada."), viewModel.state.value)
     }
 
     @Test
-    fun `una mision sin preguntas avisa y no abre ningun intento`() {
-        val repo = FakeRepository()
+    fun `una mision sin preguntas avisa y no crea ningun intento`() {
         repo.contentResult = { MissionContentResult.Loaded(content(it, questions = emptyList())) }
-        val viewModel = LessonViewModel(repo)
+        val viewModel = viewModel()
 
         viewModel.open(5)
 
         assertEquals(LessonState.Error(EMPTY_MISSION_MESSAGE), viewModel.state.value)
-        assertEquals(0, repo.startCalls)
+        assertEquals(0, nextId)
     }
 
     @Test
-    fun `si el intento no se puede abrir queda el error`() {
-        val repo = FakeRepository()
-        repo.startResults.add(AttemptStartResult.Failed("No se pudo iniciar el intento (HTTP 500)"))
-        val viewModel = LessonViewModel(repo)
-
-        viewModel.open(3)
-
-        assertEquals(LessonState.Error("No se pudo iniciar el intento (HTTP 500)"), viewModel.state.value)
-    }
-
-    @Test
-    fun `reintentar abre otro intento sin volver a pedir el contenido`() {
-        val repo = FakeRepository()
-        val viewModel = LessonViewModel(repo)
+    fun `reintentar crea otro intento sin volver a pedir el contenido`() {
+        val viewModel = viewModel()
         viewModel.open(3)
 
         viewModel.retry()
 
-        val state = viewModel.state.value as LessonState.Playing
-        assertEquals(51, state.attemptId)
-        assertEquals(2, state.attemptNumber)
+        assertEquals(LessonState.Playing(content(3), "intento-2", 2), viewModel.state.value)
         assertEquals(1, repo.contentCalls)
-        assertEquals(2, repo.startCalls)
-    }
-
-    @Test
-    fun `reintentar despues de un fallo al abrir el intento vuelve a probar`() {
-        val repo = FakeRepository()
-        repo.startResults.add(AttemptStartResult.Failed("sin red"))
-        val viewModel = LessonViewModel(repo)
-        viewModel.open(3)
-
-        viewModel.retry()
-
-        assertTrue(viewModel.state.value is LessonState.Playing)
     }
 
     @Test
     fun `reintentar sin contenido cargado no hace nada`() {
-        val repo = FakeRepository()
         repo.contentResult = { MissionContentResult.Failed("x") }
-        val viewModel = LessonViewModel(repo)
+        val viewModel = viewModel()
         viewModel.open(3)
 
         viewModel.retry()
 
         assertEquals(LessonState.Error("x"), viewModel.state.value)
-        assertEquals(0, repo.startCalls)
     }
 
     @Test
-    fun `cerrar manda las respuestas al intento en curso y devuelve el resultado`() = runTest {
-        val repo = FakeRepository()
-        val viewModel = LessonViewModel(repo)
+    fun `terminar entrega al recorder el intento en curso con sus horas`() = runTest {
+        val viewModel = viewModel()
         viewModel.open(3)
-        viewModel.retry() // el intento en curso ahora es el 51
-        val answers = listOf(AnswerSubmission(questionId = 1, selectedOptionId = 2))
+        clock += 5_000
+        viewModel.retry() // el intento en curso ahora es el 2, empezado en este momento
+        val startedRetry = clock
+        clock += 42_000
+        val answers = listOf(AnswerSubmission(questionId = 1, selectedOptionId = 1))
 
         val outcome = viewModel.finishAttempt(answers, timedOut = true)
 
-        assertEquals(result, outcome)
-        assertEquals(listOf(Triple(51, answers, true)), repo.finished)
+        assertEquals(LessonOutcome.Synced(result), outcome)
+        assertEquals(
+            listOf(FinishedAttempt("intento-2", content(3), answers, true, startedRetry, clock, -360)),
+            recorder.recorded
+        )
     }
 
     @Test
-    fun `cerrar sin una leccion en curso devuelve null y no llama al backend`() = runTest {
-        val repo = FakeRepository()
-        val viewModel = LessonViewModel(repo)
-
-        assertNull(viewModel.finishAttempt(emptyList(), timedOut = false))
-        assertTrue(repo.finished.isEmpty())
-    }
-
-    @Test
-    fun `si el backend no guarda el resultado, cerrar devuelve null`() = runTest {
-        val repo = FakeRepository()
-        repo.finishResult = null
-        val viewModel = LessonViewModel(repo)
+    fun `terminar devuelve lo que diga el recorder`() = runTest {
+        recorder.outcome = LessonOutcome.Rejected("Primero completa la misión anterior")
+        val viewModel = viewModel()
         viewModel.open(3)
 
-        assertNull(viewModel.finishAttempt(emptyList(), timedOut = false))
+        assertEquals(LessonOutcome.Rejected("Primero completa la misión anterior"), viewModel.finishAttempt(emptyList(), false))
+    }
+
+    @Test
+    fun `terminar sin una leccion en curso no guarda nada`() = runTest {
+        val viewModel = viewModel()
+
+        assertEquals(LessonOutcome.SaveFailed, viewModel.finishAttempt(emptyList(), timedOut = false))
+        assertTrue(recorder.recorded.isEmpty())
     }
 }

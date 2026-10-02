@@ -3,7 +3,6 @@ package com.mindflow.nova
 import android.app.Application
 import com.mindflow.nova.data.remote.RetrofitClient
 import com.mindflow.nova.data.session.SessionRepository
-import com.mindflow.nova.data.session.SessionStorage
 import com.mindflow.nova.data.session.ThemePreferences
 
 /**
@@ -21,8 +20,11 @@ class NovaApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        session = SessionRepository(SessionStorage(this))
+        AppServices.init(this)
+        session = AppServices.session
         themePreferences = ThemePreferences(this)
         RetrofitClient.warmUp()
+        // Lo que quedó sin subir la última vez se sube apenas haya red.
+        if (session.hasStoredToken()) AppServices.scheduleSync()
     }
 }

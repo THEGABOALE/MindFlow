@@ -223,7 +223,9 @@ fun LessonCompletedScreen(
     title: String = "¡Nivel completado!",
     rewardLabel: String = "semillas",
     streak: AttemptStreak? = null,
-    extraContent: (@Composable () -> Unit)? = null
+    extraContent: (@Composable () -> Unit)? = null,
+    /** Aclaración bajo la recompensa, por ejemplo que el resultado todavía no se subió. */
+    notice: String? = null
 ) {
     // Si esta misión fue la primera del día, encendió (o descongeló) la racha:
     // antes de salir se muestra el momento de la llamarada. Si la racha ya
@@ -318,6 +320,17 @@ fun LessonCompletedScreen(
             color = NovaTextSecondary,
             fontSize = 12.sp
         )
+
+        if (notice != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = notice,
+                color = NovaTextSecondary,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
 
         if (streak != null && streak.isActive && !streak.justActivated) {
             Spacer(modifier = Modifier.height(16.dp))

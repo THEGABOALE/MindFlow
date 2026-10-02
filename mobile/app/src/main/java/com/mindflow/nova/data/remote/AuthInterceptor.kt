@@ -7,13 +7,16 @@ import okhttp3.Response
  * Agrega "Authorization: Bearer <token>" a cada petición cuando hay sesión
  * abierta. Las rutas públicas (niveles, unirse por código, health) funcionan
  * igual sin token, así que no hace falta distinguirlas acá.
+ *
+ * Si la petición ya trae su propio Authorization (la subida de intentos, que
+ * va con el token de la cuenta dueña de la cola) se respeta.
  */
 class AuthInterceptor(private val tokenProvider: () -> String?) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = tokenProvider()
 
-        val request = if (token.isNullOrBlank()) {
+        val request = if (token.isNullOrBlank() || chain.request().header("Authorization") != null) {
             chain.request()
         } else {
             chain.request()
