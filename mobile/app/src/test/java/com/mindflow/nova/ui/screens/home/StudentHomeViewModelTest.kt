@@ -103,6 +103,7 @@ class StudentHomeViewModelTest {
 
     private val notices = MutableStateFlow<List<RejectedNotice>>(emptyList())
     private val missions = FakeMissions()
+    private val network = MutableStateFlow(true)
 
     private fun repository(
         levels: LevelsResult = LevelsResult.Loaded(listOf(otherLevel, level)),
@@ -114,7 +115,8 @@ class StudentHomeViewModelTest {
         repository = repo,
         missions = missions,
         rejectedNotices = notices,
-        onNoticesSeen = { notices.value = emptyList() }
+        onNoticesSeen = { notices.value = emptyList() },
+        networkAvailable = network
     )
 
     @Before
@@ -217,6 +219,34 @@ class StudentHomeViewModelTest {
 
         assertFalse(viewModel.state.value.offline)
         assertEquals(300, viewModel.state.value.progress?.totalPoints)
+    }
+
+    @Test
+    fun `al volver la red se vuelve a preguntar y se quita sin conexion`() {
+        network.value = false
+        val repo = repository(progress = null)
+        val viewModel = viewModel(repo)
+        viewModel.start()
+        assertTrue(viewModel.state.value.offline)
+
+        repo.progress = progress(2, 400)
+        network.value = true
+
+        assertFalse(viewModel.state.value.offline)
+        assertEquals(400, viewModel.state.value.progress?.totalPoints)
+    }
+
+    @Test
+    fun `con red pero sin respuesta del servidor sigue sin conexion`() {
+        network.value = false
+        val repo = repository(progress = null)
+        val viewModel = viewModel(repo)
+        viewModel.start()
+
+        network.value = true
+
+        assertTrue(viewModel.state.value.offline)
+        assertEquals(2, repo.progressCalls)
     }
 
     @Test

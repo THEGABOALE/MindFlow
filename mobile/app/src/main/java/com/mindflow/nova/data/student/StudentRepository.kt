@@ -36,7 +36,11 @@ interface StudentRepository {
     /** La cuenta con su sala, o null si no se pudo obtener. */
     suspend fun loadCurrentUser(): SessionUser?
 
-    /** Semillas, misiones completadas, racha y avance por nivel, o null si no se pudo obtener. */
+    /**
+     * Pide al servidor el progreso (semillas, misiones completadas, racha y
+     * avance por nivel) y lo guarda. Null si el servidor no respondió: lo
+     * guardado se lee siempre con [observeProgress].
+     */
     suspend fun loadProgress(userId: Int): StudentProgress?
 
     /** El último progreso del servidor más lo jugado sin subir; cambia cuando cambia cualquiera de los dos. */
@@ -97,12 +101,9 @@ class RemoteStudentRepository(
             api().getStudentProgress(userId).let { if (it.isSuccessful) it.body()?.student else null }
         }
 
-        if (fresh != null) {
-            localOrNull { local.saveProgress(userId, fresh) }
-            return fresh
-        }
+        if (fresh != null) localOrNull { local.saveProgress(userId, fresh) }
 
-        return localOrNull { local.progress(userId) }
+        return fresh
     }
 
     override fun observeProgress(userId: Int): Flow<StudentProgress?> =

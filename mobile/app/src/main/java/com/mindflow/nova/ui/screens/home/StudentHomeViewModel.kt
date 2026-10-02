@@ -68,7 +68,8 @@ class StudentHomeViewModel(
     private val repository: StudentRepository = RemoteStudentRepository(),
     private val missions: MissionRepository = RemoteMissionRepository(),
     private val rejectedNotices: Flow<List<RejectedNotice>> = AppServices.sync.rejectedNotices,
-    private val onNoticesSeen: () -> Unit = { AppServices.sync.consumeNotices() }
+    private val onNoticesSeen: () -> Unit = { AppServices.sync.consumeNotices() },
+    private val networkAvailable: Flow<Boolean> = AppServices.networkAvailable
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StudentHomeState())
@@ -79,6 +80,7 @@ class StudentHomeViewModel(
     private var observeJob: Job? = null
     private var observedUserId: Int? = null
     private var noticesJob: Job? = null
+    private var networkJob: Job? = null
     /** Las misiones del nivel se descargan una vez, y solo si la ruta llegó por red. */
     private var prefetchDone = false
     private var levelsFromNetwork = false
@@ -91,6 +93,16 @@ class StudentHomeViewModel(
         if (noticesJob?.isActive != true) {
             noticesJob = viewModelScope.launch {
                 rejectedNotices.collect { notices -> _state.update { it.copy(notice = rejectionNotice(notices)) } }
+            }
+        }
+
+        // Al volver la red se vuelve a preguntar al servidor: si responde, se
+        // quita "Sin conexión" sin esperar a salir de una lección.
+        if (networkJob?.isActive != true) {
+            networkJob = viewModelScope.launch {
+                networkAvailable.collect { available ->
+                    if (available && _state.value.offline) refreshProgress()
+                }
             }
         }
 

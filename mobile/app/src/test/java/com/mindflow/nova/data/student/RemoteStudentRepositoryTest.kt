@@ -96,13 +96,18 @@ class RemoteStudentRepositoryTest {
     }
 
     @Test
-    fun `el progreso por red se guarda y sin red sale de lo guardado`() = runTest {
+    fun `el progreso por red se guarda y sin red se avisa con null`() = runTest {
         api.onProgress = { Response.success(StudentProgressResponse("ok", "OK", progress)) }
         assertEquals(progress, repository.loadProgress(userId))
         assertEquals(progress, local.progress(userId))
 
+        // El Inicio usa el null para mostrar "Sin conexión"; lo guardado sigue a mano.
         api.onProgress = { httpError(500) }
-        assertEquals(progress, repository.loadProgress(userId))
+        assertNull(repository.loadProgress(userId))
+        assertEquals(progress, repository.observeProgress(userId).first())
+
+        api.onProgress = { throw IOException("sin red") }
+        assertNull(repository.loadProgress(userId))
     }
 
     @Test

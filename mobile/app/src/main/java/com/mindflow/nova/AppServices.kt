@@ -13,8 +13,10 @@ import com.mindflow.nova.data.local.RoomLocalStore
 import com.mindflow.nova.data.offline.SyncRepository
 import com.mindflow.nova.data.offline.SyncWorker
 import com.mindflow.nova.data.remote.RetrofitClient
+import com.mindflow.nova.data.remote.networkAvailability
 import com.mindflow.nova.data.session.SessionRepository
 import com.mindflow.nova.data.session.SessionStorage
+import kotlinx.coroutines.flow.Flow
 import java.util.concurrent.TimeUnit
 
 /**
@@ -33,6 +35,9 @@ object AppServices {
         private set
 
     private lateinit var appContext: Context
+
+    /** True cuando hay red, false cuando se pierde. */
+    val networkAvailable: Flow<Boolean> by lazy { networkAvailability(appContext) }
 
     fun init(context: Context) {
         appContext = context.applicationContext
