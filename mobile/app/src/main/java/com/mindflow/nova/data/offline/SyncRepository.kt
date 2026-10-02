@@ -8,10 +8,7 @@ import com.mindflow.nova.data.model.SyncedAttempt
 import com.mindflow.nova.data.remote.NovaApiService
 import com.mindflow.nova.data.remote.currentTzOffsetMinutes
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
@@ -64,19 +61,18 @@ class SyncRepository(
     // Dos subidas a la vez leerían la misma cola y mandarían dos veces lo mismo.
     private val mutex = Mutex()
 
-    private val _rejectedNotices = MutableStateFlow<List<RejectedNotice>>(emptyList())
+    /**
+     * Intentos de [userId] que el servidor no aceptó, para avisar en el Inicio.
+     * Quedan guardados en el teléfono: un rechazo que llega en segundo plano
+     * se ve aunque la app se haya cerrado antes de abrir el Inicio.
+     */
+    fun rejectedNotices(userId: Int): Flow<List<RejectedNotice>> = store.observeNotices(userId)
 
-    /** Intentos que el servidor no aceptó, para avisar una vez en el Inicio. */
-    val rejectedNotices: StateFlow<List<RejectedNotice>> = _rejectedNotices.asStateFlow()
-
-    fun consumeNotices() {
-        _rejectedNotices.value = emptyList()
-    }
+    /** Ya los vio: se borran. */
+    suspend fun consumeNotices(userId: Int) = store.clearNotices(userId)
 
     /** Quita el aviso de un intento cuyo rechazo ya se mostró (al cerrar la lección). */
-    fun dismissNotice(clientAttemptId: String) {
-        _rejectedNotices.update { notices -> notices.filterNot { it.clientAttemptId == clientAttemptId } }
-    }
+    suspend fun dismissNotice(clientAttemptId: String) = store.removeNotice(clientAttemptId)
 
     suspend fun syncPending(userId: Int): SyncReport = mutex.withLock {
         val accepted = mutableMapOf<String, SyncedAttempt>()
@@ -155,8 +151,7 @@ class SyncRepository(
             done += id
         }
 
-        store.removePending(done)
-        if (notices.isNotEmpty()) _rejectedNotices.update { it + notices }
+        store.settlePending(userId, done, notices)
 
         body.progress?.let { synced ->
             onProgress(synced)

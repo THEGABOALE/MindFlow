@@ -114,7 +114,7 @@ class StudentHomeViewModelTest {
     private fun viewModel(repo: FakeRepository) = StudentHomeViewModel(
         repository = repo,
         missions = missions,
-        rejectedNotices = notices,
+        rejectedNotices = { userId -> notices.map { all -> if (userId == 2) all else emptyList() } },
         onNoticesSeen = { notices.value = emptyList() },
         networkAvailable = network
     )

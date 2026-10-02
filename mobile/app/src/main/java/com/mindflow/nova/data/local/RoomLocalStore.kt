@@ -9,6 +9,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.offline.PendingAttempt
+import com.mindflow.nova.data.offline.RejectedNotice
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -74,9 +75,15 @@ class RoomLocalStore(
     override fun observePending(userId: Int): Flow<List<PendingAttempt>> =
         dao.observePending(userId).map { list -> list.map(::toPending) }
 
-    override suspend fun removePending(clientAttemptIds: List<String>) {
-        if (clientAttemptIds.isNotEmpty()) dao.deletePending(clientAttemptIds)
-    }
+    override suspend fun settlePending(userId: Int, doneIds: List<String>, notices: List<RejectedNotice>) =
+        dao.settlePending(doneIds, notices.map { RejectedNoticeEntity(it.clientAttemptId, userId, it.message, now()) })
+
+    override fun observeNotices(userId: Int): Flow<List<RejectedNotice>> =
+        dao.observeNotices(userId).map { list -> list.map { RejectedNotice(it.clientAttemptId, it.message) } }
+
+    override suspend fun clearNotices(userId: Int) = dao.deleteNotices(userId)
+
+    override suspend fun removeNotice(clientAttemptId: String) = dao.deleteNotice(clientAttemptId)
 
     override suspend fun clearAccount(userId: Int) {
         dao.deleteUser(userId)

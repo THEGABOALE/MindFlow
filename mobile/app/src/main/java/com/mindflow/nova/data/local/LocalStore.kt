@@ -5,6 +5,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.offline.PendingAttempt
+import com.mindflow.nova.data.offline.RejectedNotice
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 
@@ -31,9 +32,17 @@ interface LocalStore {
     suspend fun addPending(attempt: PendingAttempt)
     suspend fun pending(userId: Int): List<PendingAttempt>
     fun observePending(userId: Int): Flow<List<PendingAttempt>>
-    suspend fun removePending(clientAttemptIds: List<String>)
+    /**
+     * Saca de la cola de [userId] lo que el servidor ya resolvió y guarda los
+     * avisos de los rechazados, en una sola escritura: si la app se cierra en
+     * el medio, no queda un intento borrado sin su aviso.
+     */
+    suspend fun settlePending(userId: Int, doneIds: List<String>, notices: List<RejectedNotice>)
+    fun observeNotices(userId: Int): Flow<List<RejectedNotice>>
+    suspend fun clearNotices(userId: Int)
+    suspend fun removeNotice(clientAttemptId: String)
 
-    /** Borra la caché de la cuenta al cerrar sesión; los pendientes se quedan. */
+    /** Borra la caché de la cuenta al cerrar sesión; los pendientes y sus avisos se quedan. */
     suspend fun clearAccount(userId: Int)
 }
 

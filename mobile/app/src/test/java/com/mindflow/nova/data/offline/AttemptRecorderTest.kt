@@ -16,6 +16,7 @@ import com.mindflow.nova.data.model.SyncAttemptResult
 import com.mindflow.nova.data.remote.FakeNovaApi
 import com.mindflow.nova.data.remote.FakeNovaApi.Companion.rejectedResult
 import com.mindflow.nova.data.remote.FakeNovaApi.Companion.syncOk
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -138,7 +139,7 @@ class AttemptRecorderTest {
         assertEquals(LessonOutcome.Rejected("Primero completa la misión anterior"), outcome)
         assertTrue(local.pendingNow(userId).isEmpty())
         // Ya lo vio al cerrar la lección: el Inicio no lo repite.
-        assertTrue(sync.rejectedNotices.value.isEmpty())
+        assertTrue(sync.rejectedNotices(userId).first().isEmpty())
     }
 
     @Test

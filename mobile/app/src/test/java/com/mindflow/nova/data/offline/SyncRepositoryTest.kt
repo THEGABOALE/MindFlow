@@ -13,6 +13,7 @@ import com.mindflow.nova.data.remote.FakeNovaApi.Companion.syncOk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -70,10 +71,24 @@ class SyncRepositoryTest {
 
         assertEquals(mapOf("b" to "Primero completa la misión anterior"), report.rejected)
         assertTrue(store.pendingNow(userId).isEmpty())
-        assertEquals(listOf(RejectedNotice("b", "Primero completa la misión anterior")), sync.rejectedNotices.value)
+        assertEquals(listOf(RejectedNotice("b", "Primero completa la misión anterior")), sync.rejectedNotices(userId).first())
 
-        sync.consumeNotices()
-        assertTrue(sync.rejectedNotices.value.isEmpty())
+        sync.consumeNotices(userId)
+        assertTrue(sync.rejectedNotices(userId).first().isEmpty())
+    }
+
+    @Test
+    fun `el aviso queda guardado aunque se cierre la app antes de verlo`() = runTest {
+        store.addPending(pending("b"))
+        api.onSync = { syncOk(listOf(rejectedResult("b", "Primero completa la misión anterior"))) }
+        sync.syncPending(userId)
+
+        // Otra apertura de la app: una SyncRepository nueva sobre el mismo almacenamiento.
+        val afterRestart = SyncRepository(api = { api }, store = store, tokenFor = { "token-ana" })
+
+        assertEquals(listOf(RejectedNotice("b", "Primero completa la misión anterior")), afterRestart.rejectedNotices(userId).first())
+        // Y es solo de su cuenta.
+        assertTrue(afterRestart.rejectedNotices(99).first().isEmpty())
     }
 
     @Test
@@ -85,7 +100,7 @@ class SyncRepositoryTest {
 
         sync.dismissNotice("a")
 
-        assertEquals(listOf(RejectedNotice("b", "dos")), sync.rejectedNotices.value)
+        assertEquals(listOf(RejectedNotice("b", "dos")), sync.rejectedNotices(userId).first())
     }
 
     @Test

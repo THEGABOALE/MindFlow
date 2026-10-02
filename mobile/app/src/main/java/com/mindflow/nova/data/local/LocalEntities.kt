@@ -32,3 +32,12 @@ data class PendingAttemptEntity(
     val provisionalJson: String,
     val createdAt: Long
 )
+
+/** Un intento que el servidor no aceptó, con su motivo, hasta que la persona lo vea en el Inicio. */
+@Entity(tableName = "rejected_notice", indices = [Index("userId")])
+data class RejectedNoticeEntity(
+    @PrimaryKey val clientAttemptId: String,
+    val userId: Int,
+    val message: String,
+    val createdAt: Long
+)

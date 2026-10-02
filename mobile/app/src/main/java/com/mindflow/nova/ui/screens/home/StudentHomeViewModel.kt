@@ -67,8 +67,8 @@ internal fun rejectionNotice(notices: List<RejectedNotice>): String? = when (not
 class StudentHomeViewModel(
     private val repository: StudentRepository = RemoteStudentRepository(),
     private val missions: MissionRepository = RemoteMissionRepository(),
-    private val rejectedNotices: Flow<List<RejectedNotice>> = AppServices.sync.rejectedNotices,
-    private val onNoticesSeen: () -> Unit = { AppServices.sync.consumeNotices() },
+    private val rejectedNotices: (userId: Int) -> Flow<List<RejectedNotice>> = AppServices.sync::rejectedNotices,
+    private val onNoticesSeen: suspend (userId: Int) -> Unit = AppServices.sync::consumeNotices,
     private val networkAvailable: Flow<Boolean> = AppServices.networkAvailable
 ) : ViewModel() {
 
@@ -79,7 +79,6 @@ class StudentHomeViewModel(
     private var refreshJob: Job? = null
     private var observeJob: Job? = null
     private var observedUserId: Int? = null
-    private var noticesJob: Job? = null
     private var networkJob: Job? = null
     /** Las misiones del nivel se descargan una vez, y solo si la ruta llegó por red. */
     private var prefetchDone = false
@@ -89,12 +88,6 @@ class StudentHomeViewModel(
     fun start() {
         if (started) return
         started = true
-
-        if (noticesJob?.isActive != true) {
-            noticesJob = viewModelScope.launch {
-                rejectedNotices.collect { notices -> _state.update { it.copy(notice = rejectionNotice(notices)) } }
-            }
-        }
 
         // Al volver la red se vuelve a preguntar al servidor: si responde, se
         // quita "Sin conexión" sin esperar a salir de una lección.
@@ -129,7 +122,8 @@ class StudentHomeViewModel(
 
     /** Quita el aviso de rechazos: ya lo vio. */
     fun dismissNotice() {
-        onNoticesSeen()
+        val userId = _state.value.user?.id ?: return
+        viewModelScope.launch { onNoticesSeen(userId) }
     }
 
     /**
@@ -169,11 +163,17 @@ class StudentHomeViewModel(
         observeJob?.cancel()
         observedUserId = userId
         observeJob = viewModelScope.launch {
-            combine(repository.observeProgress(userId), repository.observePendingCount(userId)) { progress, pending ->
-                progress to pending
-            }.collect { (progress, pending) ->
+            combine(
+                repository.observeProgress(userId),
+                repository.observePendingCount(userId),
+                rejectedNotices(userId)
+            ) { progress, pending, notices ->
+                Triple(progress, pending, notices)
+            }.collect { (progress, pending, notices) ->
                 // Si todavía no hay nada guardado se conserva lo que se tenía.
-                _state.update { it.copy(progress = progress ?: it.progress, pendingCount = pending) }
+                _state.update {
+                    it.copy(progress = progress ?: it.progress, pendingCount = pending, notice = rejectionNotice(notices))
+                }
             }
         }
     }

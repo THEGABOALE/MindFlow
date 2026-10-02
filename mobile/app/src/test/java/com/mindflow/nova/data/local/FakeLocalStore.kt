@@ -5,6 +5,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
 import com.mindflow.nova.data.offline.PendingAttempt
+import com.mindflow.nova.data.offline.RejectedNotice
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -18,6 +19,8 @@ class FakeLocalStore(private val now: () -> Long = { 0L }) : LocalStore {
     private val missions = MutableStateFlow<Map<Int, Pair<MissionContent, Long>>>(emptyMap())
     private val progress = MutableStateFlow<Map<Int, StudentProgress>>(emptyMap())
     private val pending = MutableStateFlow<Map<String, PendingAttempt>>(emptyMap())
+    /** Avisos por clientAttemptId, con el userId de su dueño. */
+    private val notices = MutableStateFlow<Map<String, Pair<Int, RejectedNotice>>>(emptyMap())
 
     val clearedAccounts = mutableListOf<Int>()
 
@@ -46,8 +49,14 @@ class FakeLocalStore(private val now: () -> Long = { 0L }) : LocalStore {
     override suspend fun pending(userId: Int): List<PendingAttempt> = pendingNow(userId)
     override fun observePending(userId: Int): Flow<List<PendingAttempt>> =
         pending.map { all -> all.values.filter { it.userId == userId }.sortedBy { it.finishedAt } }
-    override suspend fun removePending(clientAttemptIds: List<String>) =
-        pending.update { it - clientAttemptIds.toSet() }
+    override suspend fun settlePending(userId: Int, doneIds: List<String>, notices: List<RejectedNotice>) {
+        this.notices.update { all -> all + notices.associate { it.clientAttemptId to (userId to it) } }
+        pending.update { it - doneIds.toSet() }
+    }
+    override fun observeNotices(userId: Int): Flow<List<RejectedNotice>> =
+        notices.map { all -> all.values.filter { it.first == userId }.map { it.second } }
+    override suspend fun clearNotices(userId: Int) = notices.update { all -> all.filterValues { it.first != userId } }
+    override suspend fun removeNotice(clientAttemptId: String) = notices.update { it - clientAttemptId }
 
     override suspend fun clearAccount(userId: Int) {
         clearedAccounts += userId
