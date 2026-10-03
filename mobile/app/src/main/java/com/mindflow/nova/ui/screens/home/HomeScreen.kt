@@ -84,6 +84,8 @@ fun HomeScreen(
     activeMission?.let { mission ->
         LessonHost(
             mission = mission,
+            // Las semillas que ve el estudiante (oficiales más pendientes), para el "+30 s".
+            seedBalance = progress?.totalPoints ?: 0,
             onExit = {
                 activeMission = null
                 // Al salir de una lección se vuelve a pedir el progreso, para que

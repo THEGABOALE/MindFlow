@@ -142,13 +142,18 @@ fun MissionContent.toTrueFalseQuestions(): List<TrueFalseQuestion> =
 
 /**
  * Todo lo que una pantalla de lección necesita para guardar el resultado de
- * un intento: con qué intento está jugando y cómo cerrarlo o empezar uno
- * nuevo (reintentar).
+ * un intento: con qué intento está jugando, cómo cerrarlo o empezar uno nuevo
+ * (reintentar), y en las misiones con reloj, cómo pausarlo y comprar el
+ * "+30 s" con las semillas que tiene ([seedBalance]).
  */
 class LessonAttempt(
     val id: String,
     val onRetry: () -> Unit,
-    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome
+    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome,
+    val onPauseClock: () -> Unit = {},
+    val onResumeClock: () -> Unit = {},
+    val onBuyExtraTime: () -> Unit = {},
+    val seedBalance: Int = 0
 )
 
 /** El resultado para mostrar si el intento quedó guardado (subido o pendiente); null si no. */
@@ -169,7 +174,7 @@ internal const val PENDING_RESULT_NOTICE = "Tu resultado se guardó y se subirá
  * mientras la lección está abierta.
  */
 @Composable
-fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
+fun LessonHost(mission: MissionResponse, seedBalance: Int, onExit: () -> Unit) {
     val mechanic = mission.mechanic
 
     // "Atrás" mientras la lección carga, si no se pudo abrir o en el
@@ -183,7 +188,7 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
     }
 
     ScopedViewModels {
-        LessonHostContent(mission = mission, mechanic = mechanic, onExit = onExit)
+        LessonHostContent(mission = mission, mechanic = mechanic, seedBalance = seedBalance, onExit = onExit)
     }
 }
 
@@ -191,6 +196,7 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
 private fun LessonHostContent(
     mission: MissionResponse,
     mechanic: String,
+    seedBalance: Int,
     onExit: () -> Unit,
     viewModel: LessonViewModel = viewModel()
 ) {
@@ -210,7 +216,11 @@ private fun LessonHostContent(
             val attempt = LessonAttempt(
                 id = current.attemptId,
                 onRetry = viewModel::retry,
-                submit = viewModel::finishAttempt
+                submit = viewModel::finishAttempt,
+                onPauseClock = viewModel::pauseClock,
+                onResumeClock = viewModel::resumeClock,
+                onBuyExtraTime = viewModel::buyExtraTime,
+                seedBalance = seedBalance
             )
 
             when (mechanic) {
