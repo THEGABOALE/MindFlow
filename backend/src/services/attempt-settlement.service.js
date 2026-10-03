@@ -9,19 +9,26 @@
 const missionRepository = require("../repositories/mission.repository");
 const attemptRepository = require("../repositories/attempt.repository");
 const levelProgressRepository = require("../repositories/level-progress.repository");
-const { REVIEW_PAY_WINDOW_HOURS, decideAttemptOutcome, gradeAttempt } = require("./mission-grading.service");
+const {
+  REVIEW_PAY_WINDOW_HOURS,
+  decideAttemptOutcome,
+  extraTimePurchase,
+  gradeAttempt
+} = require("./mission-grading.service");
 
 /**
  * @param db conexión de la transacción
  * @param {object} args
- * @param {(fields: {score:number, correctAnswers:number, wrongAnswers:number, pointsEarned:number, isReview:boolean, status:string}) => Promise<number>} args.save
+ * @param {(fields: {score:number, correctAnswers:number, wrongAnswers:number, pointsEarned:number, isReview:boolean, status:string, seedsSpent:number}) => Promise<number>} args.save
  *   guarda el intento cerrado (actualiza el abierto o inserta uno nuevo) y devuelve su id
  * @param {Date} [args.finishedAt] cuándo se terminó el intento, si se jugó en el
  *   teléfono; si no viene, se toma la hora actual
+ * @param {boolean} [args.usedExtraTime] si compró el potenciador "+30 s" (solo
+ *   intentos del teléfono)
  */
 const settleAttempt = async (db, {
   userId, missionId, levelId, pointsReward, maxPlumas, timeLimitSeconds,
-  answers, timedOut, elapsedSeconds, finishedAt = null, save
+  answers, timedOut, elapsedSeconds, finishedAt = null, usedExtraTime = false, save
 }) => {
   // La corrección recorre las preguntas reales de la misión, no lo que mande
   // el cliente: omitir o duplicar respuestas no cambia el puntaje.
@@ -42,9 +49,17 @@ const settleAttempt = async (db, {
     ? await attemptRepository.countPaidReviewsNear(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS, finishedAt)
     : 0;
 
+  // El potenciador se paga con el saldo previo a este intento. La fila del
+  // estudiante ya está bloqueada, así que dos subidas no gastan lo mismo.
+  const { seedsSpent, extraSeconds } = extraTimePurchase({
+    usedExtraTime,
+    timeLimitSeconds,
+    balance: usedExtraTime ? await attemptRepository.findSeedBalance(db, userId) : 0
+  });
+
   const outcome = decideAttemptOutcome({
     correctAnswers, wrongAnswers, maxPlumas, pointsReward,
-    timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby
+    timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby, extraSeconds
   });
 
   const attemptId = await save({
@@ -53,7 +68,8 @@ const settleAttempt = async (db, {
     wrongAnswers,
     pointsEarned: outcome.pointsEarned,
     isReview,
-    status: outcome.status
+    status: outcome.status,
+    seedsSpent
   });
 
   for (const row of answerRows) {
@@ -90,6 +106,7 @@ const settleAttempt = async (db, {
     pointsEarned: outcome.pointsEarned,
     isReview,
     status: outcome.status,
+    seedsSpent,
     levelProgress
   };
 };

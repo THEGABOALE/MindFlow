@@ -7,6 +7,7 @@ const userRepository = require("../repositories/user.repository");
 const { missionStartBlock } = require("../services/mission-access.service");
 const { settleAttempt } = require("../services/attempt-settlement.service");
 const { parseSyncBatch, checkAttemptTimes } = require("../services/attempt-sync.service");
+const { playedSeconds } = require("../services/mission-grading.service");
 const { loadStreak } = require("../services/streak-query.service");
 const { respondServerError } = require("../utils/server-error");
 
@@ -35,7 +36,8 @@ const syncOne = (userId, item) =>
         plumasLeft: Math.max(existing.max_plumas - existing.wrong_answers, 0),
         pointsEarned: existing.points_earned,
         isReview: existing.is_review,
-        status: existing.status
+        status: existing.status,
+        seedsSpent: existing.seeds_spent
       });
     }
 
@@ -62,8 +64,10 @@ const syncOne = (userId, item) =>
       timeLimitSeconds: mission.time_limit_seconds,
       answers: item.answers,
       timedOut: item.timedOut,
-      elapsedSeconds: (item.finishedAt.getTime() - item.startedAt.getTime()) / 1000,
+      // Sin contar la pausa del reloj (con su tope).
+      elapsedSeconds: playedSeconds(item),
       finishedAt: item.finishedAt,
+      usedExtraTime: item.usedExtraTime,
       save: (fields) =>
         attemptRepository.insertSettledAttempt(db, {
           ...fields,
@@ -83,7 +87,8 @@ const syncOne = (userId, item) =>
       plumasLeft: settled.plumasLeft,
       pointsEarned: settled.pointsEarned,
       isReview: settled.isReview,
-      status: settled.status
+      status: settled.status,
+      seedsSpent: settled.seedsSpent
     });
   });
 

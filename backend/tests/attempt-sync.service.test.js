@@ -48,6 +48,25 @@ describe("parseSyncBatch", () => {
     expect(parseSyncBatch({ attempts: [null] }).error).toBeDefined();
   });
 
+  test("la pausa y el potenciador son opcionales", () => {
+    const [parsed] = parseSyncBatch({ attempts: [item()] }).attempts;
+    expect(parsed.pausedSeconds).toBe(0);
+    expect(parsed.usedExtraTime).toBe(false);
+  });
+
+  test("los acepta cuando vienen", () => {
+    const [parsed] = parseSyncBatch({ attempts: [item({ pausedSeconds: 42, usedExtraTime: true })] }).attempts;
+    expect(parsed.pausedSeconds).toBe(42);
+    expect(parsed.usedExtraTime).toBe(true);
+  });
+
+  test("rechaza una pausa que no es un entero positivo o un potenciador que no es booleano", () => {
+    expect(parseSyncBatch({ attempts: [item({ pausedSeconds: -1 })] }).error).toBeDefined();
+    expect(parseSyncBatch({ attempts: [item({ pausedSeconds: 1.5 })] }).error).toBeDefined();
+    expect(parseSyncBatch({ attempts: [item({ pausedSeconds: "10" })] }).error).toBeDefined();
+    expect(parseSyncBatch({ attempts: [item({ usedExtraTime: "true" })] }).error).toBeDefined();
+  });
+
   test("timedOut es opcional y el huso inválido cae en UTC", () => {
     const parsed = parseSyncBatch({ tzOffsetMinutes: 9999, attempts: [item({ timedOut: undefined })] });
     expect(parsed.attempts[0].timedOut).toBe(false);
