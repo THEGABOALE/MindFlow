@@ -14,7 +14,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.mechanicLabel
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -102,6 +103,16 @@ fun StartLessonDialog(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = if (isReplay) ZafiroLines.START_REVIEW else ZafiroLines.START_MISSION,
+                    color = NovaPurple,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
+
                 Spacer(modifier = Modifier.height(22.dp))
 
                 Button(
@@ -109,7 +120,7 @@ fun StartLessonDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NovaPurple,
-                        contentColor = Color.White
+                        contentColor = NovaOnPurple
                     ),
                     shape = RoundedCornerShape(20.dp)
                 ) {

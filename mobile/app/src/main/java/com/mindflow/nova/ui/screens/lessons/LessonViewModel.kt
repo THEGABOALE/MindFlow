@@ -11,6 +11,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.offline.AttemptRecorder
 import com.mindflow.nova.data.offline.FinishedAttempt
 import com.mindflow.nova.data.offline.LessonOutcome
+import com.mindflow.nova.data.offline.MAX_PAUSE_SECONDS
 import com.mindflow.nova.data.offline.OfflineAttemptRecorder
 import com.mindflow.nova.data.remote.currentTzOffsetMinutes
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,6 +67,12 @@ class LessonViewModel(
     private var attemptNumber = 0
     private var startedAtMs = 0L
 
+    // Reloj del intento en curso: cuánto estuvo en pausa (la app en segundo
+    // plano) y si se compró el "+30 s". Se reinicia con cada intento.
+    private var pausedAtMs: Long? = null
+    private var pausedTotalMs = 0L
+    private var usedExtraTime = false
+
     /** Carga la misión y empieza su primer intento. Llamarlo de nuevo con la misma misión no hace nada. */
     fun open(missionId: Int) {
         if (this.missionId == missionId) return
@@ -96,9 +103,39 @@ class LessonViewModel(
         startAttempt(content)
     }
 
+    /** La app pasó a segundo plano: el reloj del intento se detiene. Repetirlo no cuenta doble. */
+    fun pauseClock() {
+        if (pausedAtMs == null) pausedAtMs = now()
+    }
+
+    /**
+     * La app volvió: el reloj sigue. Devuelve cuántos segundos de esta pausa
+     * pasaron del tope de pausa gratis ([MAX_PAUSE_SECONDS] sumando todas las
+     * pausas del intento): el servidor los cuenta como jugados, así que la
+     * pantalla tiene que descontarlos del reloj.
+     */
+    fun resumeClock(): Int {
+        val since = pausedAtMs ?: return 0
+        val overCapBefore = secondsOverPauseCap(pausedTotalMs)
+        pausedTotalMs += now() - since
+        pausedAtMs = null
+        return secondsOverPauseCap(pausedTotalMs) - overCapBefore
+    }
+
+    private fun secondsOverPauseCap(pausedMs: Long): Int =
+        ((pausedMs / 1000).toInt() - MAX_PAUSE_SECONDS).coerceAtLeast(0)
+
+    /** El estudiante compró el "+30 s" en este intento. Se cobra al guardarlo. */
+    fun buyExtraTime() {
+        usedExtraTime = true
+    }
+
     /** Guarda el intento en curso y dice cómo quedó: subido, pendiente, rechazado o sin guardar. */
     suspend fun finishAttempt(answers: List<AnswerSubmission>, timedOut: Boolean): LessonOutcome {
         val playing = _state.value as? LessonState.Playing ?: return LessonOutcome.SaveFailed
+        val finishedAtMs = now()
+        // Si termina estando en pausa, la pausa cuenta hasta el final.
+        val pausedMs = pausedTotalMs + (pausedAtMs?.let { finishedAtMs - it } ?: 0L)
 
         return recorder.record(
             FinishedAttempt(
@@ -107,8 +144,10 @@ class LessonViewModel(
                 answers = answers,
                 timedOut = timedOut,
                 startedAtMs = startedAtMs,
-                finishedAtMs = now(),
-                tzOffsetMinutes = tzOffset()
+                finishedAtMs = finishedAtMs,
+                tzOffsetMinutes = tzOffset(),
+                pausedSeconds = (pausedMs / 1000).toInt(),
+                usedExtraTime = usedExtraTime
             )
         )
     }
@@ -116,6 +155,9 @@ class LessonViewModel(
     private fun startAttempt(content: MissionContent) {
         attemptNumber += 1
         startedAtMs = now()
+        pausedAtMs = null
+        pausedTotalMs = 0L
+        usedExtraTime = false
         _state.value = LessonState.Playing(content, newId(), attemptNumber)
     }
 }

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mindflow.nova.data.model.StudentStreak
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaFireAccent
 import com.mindflow.nova.ui.theme.NovaFireBackground
 import com.mindflow.nova.ui.theme.NovaIceAccent
@@ -469,7 +470,7 @@ fun StreakInfoDialog(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NovaPurple,
-                        contentColor = Color.White
+                        contentColor = NovaOnPurple
                     ),
                     shape = RoundedCornerShape(20.dp)
                 ) {

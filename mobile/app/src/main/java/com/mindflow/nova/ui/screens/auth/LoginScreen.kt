@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -72,6 +73,7 @@ import com.mindflow.nova.data.session.SessionResult
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaLoginButton
 import com.mindflow.nova.ui.theme.NovaLoginCard
+import com.mindflow.nova.ui.theme.NovaLoginFooterText
 import com.mindflow.nova.ui.theme.NovaLoginFieldBorder
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -329,7 +331,7 @@ fun LoginScreen(
                     enabled = canSubmit,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(39.dp),
+                        .heightIn(min = 39.dp),
                     shape = RoundedCornerShape(100.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NovaLoginButton,
@@ -349,7 +351,7 @@ fun LoginScreen(
 
                 Text(
                     text = "¿No recuerdas tu contraseña? Contacta a tu colegio",
-                    color = Color(0xFF737378),
+                    color = NovaLoginFooterText,
                     fontSize = 10.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -375,7 +377,7 @@ private fun GoogleButton(isConnecting: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(39.dp)
+            .heightIn(min = 39.dp)
             .background(Color.White, RoundedCornerShape(100.dp))
             .border(1.dp, Color(0x1A1D1B20), RoundedCornerShape(100.dp))
             .then(if (!isConnecting) Modifier.clickable(onClick = onClick) else Modifier),

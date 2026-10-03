@@ -8,6 +8,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -50,13 +56,16 @@ import com.mindflow.nova.data.model.StudentStreak
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.components.StreakBadge
 import com.mindflow.nova.ui.components.StreakCelebrationScreen
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
-import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 
@@ -68,25 +77,6 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 
 const val LESSON_MAX_PLUMAS = 3
 const val LESSON_SEMILLAS_REWARD = 50
-
-@Composable
-fun MascotaPlaceholder(modifier: Modifier = Modifier, label: String = "Mascota") {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = NovaLightPurple
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                color = NovaPurple,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
 
 @Composable
 fun PlumasIndicator(plumas: Int, maxPlumas: Int = LESSON_MAX_PLUMAS) {
@@ -225,7 +215,11 @@ fun LessonCompletedScreen(
     streak: AttemptStreak? = null,
     extraContent: (@Composable () -> Unit)? = null,
     /** Aclaración bajo la recompensa, por ejemplo que el resultado todavía no se subió. */
-    notice: String? = null
+    notice: String? = null,
+    /** Lo gastado en potenciadores durante el intento, si hubo. */
+    spentNotice: String? = null,
+    /** Lo que dice Zafiro al terminar. */
+    zafiroLine: String = ZafiroLines.COMPLETED
 ) {
     // Si esta misión fue la primera del día, encendió (o descongeló) la racha:
     // antes de salir se muestra el momento de la llamarada. Si la racha ya
@@ -238,14 +232,8 @@ fun LessonCompletedScreen(
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        MascotaPlaceholder(modifier = Modifier.size(140.dp), label = "Mascota\n(celebrando)")
+    ClosingColumn {
+        ZafiroBox(ZafiroPose.CELEBRA, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -264,6 +252,10 @@ fun LessonCompletedScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ZafiroSays(zafiroLine)
 
         if (extraContent != null) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -321,11 +313,11 @@ fun LessonCompletedScreen(
             fontSize = 12.sp
         )
 
-        if (notice != null) {
+        listOfNotNull(spentNotice, notice).forEach { line ->
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = notice,
+                text = line,
                 color = NovaTextSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -345,7 +337,7 @@ fun LessonCompletedScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NovaPurple,
-                contentColor = Color.White
+                contentColor = NovaOnPurple
             ),
             shape = RoundedCornerShape(20.dp)
         ) {
@@ -365,16 +357,14 @@ fun LessonEndScreen(
     primaryLabel: String,
     onPrimary: () -> Unit,
     secondaryLabel: String,
-    onSecondary: () -> Unit
+    onSecondary: () -> Unit,
+    /** Lo gastado en potenciadores durante el intento, si hubo. */
+    spentNotice: String? = null,
+    /** Lo que dice Zafiro en este cierre, si dice algo. */
+    zafiroLine: String? = null
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        MascotaPlaceholder(modifier = Modifier.size(140.dp), label = "Mascota\n(sin plumas)")
+    ClosingColumn {
+        ZafiroBox(ZafiroPose.TRISTE, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -395,6 +385,22 @@ fun LessonEndScreen(
             textAlign = TextAlign.Center
         )
 
+        if (zafiroLine != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            ZafiroSays(zafiroLine)
+        }
+
+        if (spentNotice != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = spentNotice,
+                color = NovaTextSecondary,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+
         Spacer(modifier = Modifier.height(28.dp))
 
         Button(
@@ -402,7 +408,7 @@ fun LessonEndScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NovaPurple,
-                contentColor = Color.White
+                contentColor = NovaOnPurple
             ),
             shape = RoundedCornerShape(20.dp)
         ) {
@@ -419,4 +425,36 @@ fun LessonEndScreen(
             Text(text = secondaryLabel, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+/**
+ * Columna de los cierres: centrada cuando todo entra y desplazable cuando no
+ * (fuente grande en un teléfono bajo), para que el botón siempre se alcance.
+ */
+@Composable
+private fun ClosingColumn(content: @Composable ColumnScope.() -> Unit) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            content = content
+        )
+    }
+}
+
+/** Una frase de Zafiro en los cierres, en el color de la marca. */
+@Composable
+private fun ZafiroSays(line: String) {
+    Text(
+        text = line,
+        color = NovaPurple,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center
+    )
 }

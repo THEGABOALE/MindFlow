@@ -111,7 +111,10 @@ class SyncRepository(
         val request = SyncAttemptsRequest(
             tzOffsetMinutes = tzOffset(),
             attempts = batch.map {
-                SyncAttemptItem(it.clientAttemptId, it.missionId, it.startedAt, it.finishedAt, it.timedOut, it.answers)
+                SyncAttemptItem(
+                    it.clientAttemptId, it.missionId, it.startedAt, it.finishedAt, it.timedOut, it.answers,
+                    pausedSeconds = it.pausedSeconds, usedExtraTime = it.usedExtraTime
+                )
             }
         )
 

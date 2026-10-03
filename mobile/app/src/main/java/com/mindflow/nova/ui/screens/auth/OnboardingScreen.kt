@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -46,11 +47,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mindflow.nova.ui.components.ScopedViewModels
+import com.mindflow.nova.ui.components.zafiro.ZafiroIllustration
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaLoginButton
 import com.mindflow.nova.ui.theme.NovaLoginFieldBorder
@@ -129,11 +132,8 @@ private fun WelcomePage(onNext: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Ilustración pendiente de diseño: en el wireframe es un placeholder gris.
-        MascotaIllustrationPlaceholder(
-            label = "Mascota saludando al usuario",
-            bubble = "Globo de texto de la mascota diciéndole hola al usuario"
-        )
+        // Zafiro todavía no tiene arte: en el wireframe es un recuadro gris.
+        ZafiroIllustration(ZafiroPose.SALUDA, line = ZafiroLines.WELCOME)
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -192,7 +192,7 @@ private fun AccessCodePage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        MascotaIllustrationPlaceholder(label = "Mascota, indicando esto (lock in)")
+        ZafiroIllustration(ZafiroPose.EXPLICA, line = ZafiroLines.ACCESS_CODE)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -244,7 +244,7 @@ private fun AccessCodePage(
 
         Button(
             onClick = { viewModel.join(code) },
-            modifier = Modifier.fillMaxWidth().height(42.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp),
             enabled = code.isNotBlank() && !isLoading,
             shape = RoundedCornerShape(100.dp),
             colors = ButtonDefaults.buttonColors(
@@ -265,34 +265,6 @@ private val UppercaseTransformation = VisualTransformation { text ->
         AnnotatedString(text.text.map { it.uppercaseChar() }.joinToString("")),
         OffsetMapping.Identity
     )
-}
-
-@Composable
-private fun MascotaIllustrationPlaceholder(label: String, bubble: String? = null) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-            .background(Color(0xFF626262), RoundedCornerShape(16.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = label, color = Color.White, fontSize = 14.sp, textAlign = TextAlign.Center)
-
-            if (bubble != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(color = Color(0xFFD9D9D9), shape = RoundedCornerShape(16.dp)) {
-                    Text(
-                        text = bubble,
-                        color = NovaText,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable

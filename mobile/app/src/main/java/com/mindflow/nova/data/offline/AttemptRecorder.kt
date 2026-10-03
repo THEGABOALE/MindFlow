@@ -26,7 +26,10 @@ sealed class LessonOutcome {
     object SaveFailed : LessonOutcome()
 }
 
-/** Un intento recién terminado, con las horas del dispositivo. */
+/**
+ * Un intento recién terminado, con las horas del dispositivo, los segundos
+ * que el reloj estuvo en pausa y si se compró el "+30 s".
+ */
 data class FinishedAttempt(
     val clientAttemptId: String,
     val content: MissionContent,
@@ -34,7 +37,9 @@ data class FinishedAttempt(
     val timedOut: Boolean,
     val startedAtMs: Long,
     val finishedAtMs: Long,
-    val tzOffsetMinutes: Int
+    val tzOffsetMinutes: Int,
+    val pausedSeconds: Int = 0,
+    val usedExtraTime: Boolean = false
 )
 
 interface AttemptRecorder {
@@ -108,13 +113,22 @@ class OfflineAttemptRecorder(
                 abs(epochFromIso(it.finishedAt) - attempt.finishedAtMs) < REVIEW_PAY_WINDOW_MS
         }
 
+        // El "+30 s" se paga con el saldo que se ve en el teléfono (el oficial
+        // más lo pendiente); al subir, el servidor lo vuelve a revisar.
+        val purchase = extraTimePurchase(
+            usedExtraTime = attempt.usedExtraTime,
+            timeLimitSeconds = attempt.content.timeLimitSeconds,
+            balance = before?.totalPoints ?: 0
+        )
+
         val outcome = gradeLocally(
             content = attempt.content,
             answers = attempt.answers,
             timedOut = attempt.timedOut,
-            elapsedSeconds = (attempt.finishedAtMs - attempt.startedAtMs) / 1000.0,
+            elapsedSeconds = playedSeconds(attempt.startedAtMs, attempt.finishedAtMs, attempt.pausedSeconds),
             isReview = isReview,
-            paidReviewsNearby = paidReviewsNearby
+            paidReviewsNearby = paidReviewsNearby,
+            extraSeconds = purchase.extraSeconds
         )
 
         val result = AttemptResult(
@@ -126,7 +140,8 @@ class OfflineAttemptRecorder(
             plumasLeft = outcome.plumasLeft,
             pointsEarned = outcome.pointsEarned,
             isReview = outcome.isReview,
-            status = outcome.status
+            status = outcome.status,
+            seedsSpent = purchase.seedsSpent
         )
 
         // La racha con este intento incluido. Lo enciende si es lo primero que se juega hoy.
@@ -147,7 +162,9 @@ class OfflineAttemptRecorder(
         tzOffsetMinutes = attempt.tzOffsetMinutes,
         timedOut = attempt.timedOut,
         answers = attempt.answers,
-        provisional = result
+        provisional = result,
+        pausedSeconds = attempt.pausedSeconds,
+        usedExtraTime = attempt.usedExtraTime
     )
 
     private fun StudentStreak.playedOn(day: String) = lastActivityDate == day
@@ -162,6 +179,7 @@ class OfflineAttemptRecorder(
         pointsEarned = pointsEarned,
         isReview = isReview,
         status = status,
+        seedsSpent = seedsSpent,
         streak = progress?.streak?.let {
             AttemptStreak(days = it.days, isActive = it.isActive, justActivated = progress.justActivatedStreak)
         }

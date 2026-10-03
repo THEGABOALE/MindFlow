@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -142,13 +143,19 @@ fun MissionContent.toTrueFalseQuestions(): List<TrueFalseQuestion> =
 
 /**
  * Todo lo que una pantalla de lección necesita para guardar el resultado de
- * un intento: con qué intento está jugando y cómo cerrarlo o empezar uno
- * nuevo (reintentar).
+ * un intento: con qué intento está jugando, cómo cerrarlo o empezar uno nuevo
+ * (reintentar), y en las misiones con reloj, cómo pausarlo y comprar el
+ * "+30 s" con las semillas que tiene ([seedBalance]).
  */
 class LessonAttempt(
     val id: String,
     val onRetry: () -> Unit,
-    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome
+    val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome,
+    val onPauseClock: () -> Unit = {},
+    /** Devuelve los segundos que la pausa pasó del tope gratis, para descontarlos del reloj. */
+    val onResumeClock: () -> Int = { 0 },
+    val onBuyExtraTime: () -> Unit = {},
+    val seedBalance: Int = 0
 )
 
 /** El resultado para mostrar si el intento quedó guardado (subido o pendiente); null si no. */
@@ -169,7 +176,7 @@ internal const val PENDING_RESULT_NOTICE = "Tu resultado se guardó y se subirá
  * mientras la lección está abierta.
  */
 @Composable
-fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
+fun LessonHost(mission: MissionResponse, seedBalance: Int, onExit: () -> Unit) {
     val mechanic = mission.mechanic
 
     // "Atrás" mientras la lección carga, si no se pudo abrir o en el
@@ -177,13 +184,22 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
     // encima, que pide confirmar antes de abandonar a mitad de la lección.
     BackHandler(onBack = onExit)
 
-    if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
-        MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
-        return
-    }
-
-    ScopedViewModels {
-        LessonHostContent(mission = mission, mechanic = mechanic, onExit = onExit)
+    // El fondo llega hasta los bordes, pero el contenido deja libre el lugar
+    // de la barra de estado y la de navegación: con la fuente grande la barra
+    // de arriba de la lección crece y, si no, queda debajo de la hora.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(NovaBackground)
+            .systemBarsPadding()
+    ) {
+        if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
+            MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
+        } else {
+            ScopedViewModels {
+                LessonHostContent(mission = mission, mechanic = mechanic, seedBalance = seedBalance, onExit = onExit)
+            }
+        }
     }
 }
 
@@ -191,6 +207,7 @@ fun LessonHost(mission: MissionResponse, onExit: () -> Unit) {
 private fun LessonHostContent(
     mission: MissionResponse,
     mechanic: String,
+    seedBalance: Int,
     onExit: () -> Unit,
     viewModel: LessonViewModel = viewModel()
 ) {
@@ -210,7 +227,11 @@ private fun LessonHostContent(
             val attempt = LessonAttempt(
                 id = current.attemptId,
                 onRetry = viewModel::retry,
-                submit = viewModel::finishAttempt
+                submit = viewModel::finishAttempt,
+                onPauseClock = viewModel::pauseClock,
+                onResumeClock = viewModel::resumeClock,
+                onBuyExtraTime = viewModel::buyExtraTime,
+                seedBalance = seedBalance
             )
 
             when (mechanic) {

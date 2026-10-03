@@ -2,6 +2,8 @@ package com.mindflow.nova.ui.screens.lessons
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,10 +14,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
@@ -30,10 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
@@ -42,11 +54,14 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
-import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
+import com.mindflow.nova.ui.theme.NovaError
+import com.mindflow.nova.ui.theme.NovaErrorBackground
 import com.mindflow.nova.ui.theme.NovaNeutralCard
+import com.mindflow.nova.ui.theme.NovaSuccess
+import com.mindflow.nova.ui.theme.NovaSuccessBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -87,6 +102,7 @@ fun LessonPlayScreen(
     // Se mezcla una sola vez por intento: si se mezclara en cada recomposición,
     // las opciones cambiarían de lugar mientras el estudiante elige.
     val shuffledQuestions = remember(questions) { questions.withShuffledOptions() }
+    val haptic = LocalHapticFeedback.current
 
     fun finish() {
         stage = LessonStage.SUBMITTING
@@ -146,6 +162,7 @@ fun LessonPlayScreen(
                 LessonEndScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en la lección",
+                    zafiroLine = ZafiroLines.OUT_OF_PLUMAS,
                     primaryLabel = "Reintentar nivel",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
@@ -176,28 +193,36 @@ fun LessonPlayScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    if (phase == QuestionPhase.ANSWERING) {
-                        QuestionHeader(prompt = question.prompt)
+                    // Con la fuente grande la pregunta puede no entrar: se desplaza y
+                    // el botón de abajo queda siempre entero.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        if (phase == QuestionPhase.ANSWERING) {
+                            QuestionHeader(prompt = question.prompt)
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            question.options.forEach { option ->
-                                AnswerOptionRow(
-                                    text = option.text,
-                                    isSelected = option.id == selectedOptionId,
-                                    onClick = { selectedOptionId = option.id }
-                                )
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                question.options.forEach { option ->
+                                    AnswerOptionRow(
+                                        text = option.text,
+                                        isSelected = option.id == selectedOptionId,
+                                        onClick = { selectedOptionId = option.id }
+                                    )
+                                }
                             }
+                        } else {
+                            LessonResultReveal(
+                                question = question,
+                                selectedOptionId = selectedOptionId
+                            )
                         }
-                    } else {
-                        LessonResultReveal(
-                            question = question,
-                            selectedOptionId = selectedOptionId
-                        )
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     val buttonLabel = when {
                         phase == QuestionPhase.ANSWERING -> "Continuar"
@@ -214,6 +239,7 @@ fun LessonPlayScreen(
                                         correctCount++
                                     } else {
                                         plumas = (plumas - 1).coerceAtLeast(0)
+                                        haptic.performHapticFeedback(HapticFeedbackType.Reject)
                                     }
                                 }
                                 phase = QuestionPhase.ANSWERED
@@ -257,7 +283,7 @@ fun LessonPlayScreen(
 @Composable
 private fun QuestionHeader(prompt: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        MascotaPlaceholder(modifier = Modifier.size(72.dp))
+        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.sizeIn(minWidth = 72.dp, minHeight = 72.dp))
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -322,7 +348,7 @@ private fun LessonResultReveal(
 
     Column {
         Row(verticalAlignment = Alignment.Top) {
-            MascotaPlaceholder(modifier = Modifier.size(96.dp))
+            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.sizeIn(minWidth = 96.dp, minHeight = 96.dp))
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -333,7 +359,7 @@ private fun LessonResultReveal(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Mascota explica:",
+                        text = "Zafiro explica:",
                         color = NovaPurple,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -342,7 +368,10 @@ private fun LessonResultReveal(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = selectedOption?.feedback ?: "",
+                        text = ZafiroLines.feedback(
+                            isCorrect = selectedOption?.isCorrect == true,
+                            explanation = selectedOption?.feedback.orEmpty()
+                        ),
                         color = NovaText,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
@@ -355,26 +384,51 @@ private fun LessonResultReveal(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             question.options.forEach { option ->
-                val suffix = when {
-                    option.isCorrect -> "Respuesta correcta"
-                    option.id == selectedOptionId -> "Respuesta incorrecta (elegida)"
-                    else -> "Respuesta incorrecta"
+                val reveal = answerReveal(isCorrect = option.isCorrect, isChosen = option.id == selectedOptionId)
+                val suffix = when (reveal) {
+                    AnswerReveal.CORRECT -> "Respuesta correcta"
+                    AnswerReveal.WRONG_CHOSEN -> "Respuesta incorrecta (elegida)"
+                    AnswerReveal.NEUTRAL -> "Respuesta incorrecta"
+                }
+                val (background, textColor) = when (reveal) {
+                    AnswerReveal.CORRECT -> NovaSuccessBackground to NovaSuccess
+                    AnswerReveal.WRONG_CHOSEN -> NovaErrorBackground to NovaError
+                    AnswerReveal.NEUTRAL -> NovaNeutralCard to NovaTextSecondary
                 }
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = NovaNeutralCard
+                    color = background
                 ) {
-                    Text(
-                        text = "${option.text} — $suffix",
+                    Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        color = NovaTextSecondary,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RevealIcon(reveal, textColor)
+
+                        Text(
+                            text = "${option.text} — $suffix",
+                            color = textColor,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            fontWeight = if (reveal == AnswerReveal.NEUTRAL) FontWeight.Normal else FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RevealIcon(reveal: AnswerReveal, tint: Color) {
+    val icon = when (reveal) {
+        AnswerReveal.CORRECT -> Icons.Rounded.CheckCircle
+        AnswerReveal.WRONG_CHOSEN -> Icons.Rounded.Cancel
+        AnswerReveal.NEUTRAL -> return
+    }
+    // Sin descripción: el texto de al lado ya dice si es correcta o no.
+    Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+    Spacer(modifier = Modifier.width(8.dp))
 }

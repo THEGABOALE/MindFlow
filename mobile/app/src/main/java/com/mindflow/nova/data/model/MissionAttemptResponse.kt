@@ -24,7 +24,9 @@ data class AttemptResult(
     /** "completed" o "failed". */
     val status: String,
     /** La racha después de este intento: la del servidor si ya se subió, o la calculada en el teléfono. */
-    val streak: AttemptStreak? = null
+    val streak: AttemptStreak? = null,
+    /** Semillas gastadas en el potenciador "+30 s" durante el intento. */
+    val seedsSpent: Int = 0
 )
 
 data class AttemptStreak(

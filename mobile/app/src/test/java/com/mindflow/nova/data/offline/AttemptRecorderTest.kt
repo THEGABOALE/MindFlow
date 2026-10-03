@@ -208,6 +208,63 @@ class AttemptRecorderTest {
         assertFalse(outcome.result.streak!!.justActivated)
     }
 
+    /** Relaciona conceptos con reloj de 45 s, terminada después de [durationS] segundos. */
+    private fun timed(durationS: Int, pausedSeconds: Int = 0, usedExtraTime: Boolean = false) = FinishedAttempt(
+        clientAttemptId = "nuevo", content = content.copy(timeLimitSeconds = 45), answers = perfect, timedOut = false,
+        startedAtMs = startedAt, finishedAtMs = startedAt + durationS * 1000L, tzOffsetMinutes = -360,
+        pausedSeconds = pausedSeconds, usedExtraTime = usedExtraTime
+    )
+
+    @Test
+    fun `con saldo el +30 s cobra 500 y alarga el reloj`() = runTest {
+        offline()
+        local.saveProgress(userId, officialProgress().copy(totalPoints = 600))
+
+        val outcome = recorder().record(timed(durationS = 80, usedExtraTime = true)) as LessonOutcome.Pending
+
+        assertEquals("completed", outcome.result.status)
+        assertEquals(500, outcome.result.seedsSpent)
+        val saved = local.pendingNow(userId).single()
+        assertTrue(saved.usedExtraTime)
+        assertEquals(0, saved.pausedSeconds)
+    }
+
+    @Test
+    fun `sin saldo el +30 s no cuenta y se pierde por tiempo`() = runTest {
+        offline()
+        local.saveProgress(userId, officialProgress().copy(totalPoints = 300))
+
+        val outcome = recorder().record(timed(durationS = 80, usedExtraTime = true)) as LessonOutcome.Pending
+
+        assertEquals("failed", outcome.result.status)
+        assertEquals(0, outcome.result.seedsSpent)
+    }
+
+    @Test
+    fun `la pausa no cuenta como tiempo jugado`() = runTest {
+        offline()
+
+        val outcome = recorder().record(timed(durationS = 200, pausedSeconds = 170)) as LessonOutcome.Pending
+
+        assertEquals("completed", outcome.result.status)
+        assertEquals(170, local.pendingNow(userId).single().pausedSeconds)
+    }
+
+    @Test
+    fun `si sube, lo gastado es lo que dice el servidor`() = runTest {
+        local.saveProgress(userId, officialProgress().copy(totalPoints = 600))
+        api.onSync = {
+            syncOk(listOf(SyncAttemptResult(
+                clientAttemptId = "nuevo", status = "accepted",
+                attempt = SyncedAttempt(3, 100, 2, 0, 3, 90, false, "completed", seedsSpent = 500)
+            )))
+        }
+
+        val outcome = recorder().record(timed(durationS = 80, usedExtraTime = true)) as LessonOutcome.Synced
+
+        assertEquals(500, outcome.result.seedsSpent)
+    }
+
     @Test
     fun `si no se puede guardar en el telefono no se sube nada`() = runTest {
         val failing = object : LocalStore by local {

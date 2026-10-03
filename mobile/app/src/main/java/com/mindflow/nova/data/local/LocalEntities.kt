@@ -1,5 +1,6 @@
 package com.mindflow.nova.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -30,7 +31,10 @@ data class PendingAttemptEntity(
     val timedOut: Boolean,
     val answersJson: String,
     val provisionalJson: String,
-    val createdAt: Long
+    val createdAt: Long,
+    // Desde la versión 3: la pausa del reloj y el potenciador "+30 s".
+    @ColumnInfo(defaultValue = "0") val pausedSeconds: Int = 0,
+    @ColumnInfo(defaultValue = "0") val usedExtraTime: Boolean = false
 )
 
 /** Un intento que el servidor no aceptó, con su motivo, hasta que la persona lo vea en el Inicio. */

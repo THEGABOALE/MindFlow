@@ -66,7 +66,9 @@ class RoomLocalStore(
                 timedOut = attempt.timedOut,
                 answersJson = gson.toJson(attempt.answers),
                 provisionalJson = gson.toJson(attempt.provisional),
-                createdAt = now()
+                createdAt = now(),
+                pausedSeconds = attempt.pausedSeconds,
+                usedExtraTime = attempt.usedExtraTime
             )
         )
 
@@ -100,6 +102,8 @@ class RoomLocalStore(
         tzOffsetMinutes = entity.tzOffsetMinutes,
         timedOut = entity.timedOut,
         answers = gson.fromJson(entity.answersJson, answersType),
-        provisional = gson.fromJson(entity.provisionalJson, AttemptResult::class.java)
+        provisional = gson.fromJson(entity.provisionalJson, AttemptResult::class.java),
+        pausedSeconds = entity.pausedSeconds,
+        usedExtraTime = entity.usedExtraTime
     )
 }

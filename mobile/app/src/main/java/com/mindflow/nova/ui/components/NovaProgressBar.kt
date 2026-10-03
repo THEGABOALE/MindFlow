@@ -3,6 +3,7 @@ package com.mindflow.nova.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mindflow.nova.ui.theme.NovaTrack
+import com.mindflow.nova.ui.theme.NovaTrackBorder
 import com.mindflow.nova.ui.theme.NovaHeroGradient
 
 @Composable
@@ -33,6 +35,8 @@ fun NovaProgressBar(progress: Float) {
             .height(9.dp)
             .clip(RoundedCornerShape(50.dp))
             .background(NovaTrack)
+            // Sobre la tarjeta lila la parte vacía casi no se distingue: el borde la marca.
+            .border(1.dp, NovaTrackBorder, RoundedCornerShape(50.dp))
     ) {
         Box(
             modifier = Modifier

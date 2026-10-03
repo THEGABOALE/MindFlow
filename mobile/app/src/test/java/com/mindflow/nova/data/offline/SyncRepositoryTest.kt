@@ -195,6 +195,17 @@ class SyncRepositoryTest {
     }
 
     @Test
+    fun `la pausa y el potenciador viajan con cada intento`() = runTest {
+        store.addPending(pending("a").copy(pausedSeconds = 42, usedExtraTime = true))
+
+        sync.syncPending(userId)
+
+        val item = api.syncRequests.single().attempts.single()
+        assertEquals(42, item.pausedSeconds)
+        assertTrue(item.usedExtraTime)
+    }
+
+    @Test
     fun `los intentos van con el token de su cuenta`() = runTest {
         store.addPending(pending("a"))
 

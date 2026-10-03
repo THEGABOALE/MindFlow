@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -45,7 +44,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
@@ -58,6 +56,9 @@ import com.mindflow.nova.ui.screens.lessons.MissionState
 import com.mindflow.nova.ui.screens.lessons.common.MechanicChip
 import com.mindflow.nova.ui.screens.lessons.computeMissionStates
 import com.mindflow.nova.ui.screens.lessons.currentMissionIndex
+import com.mindflow.nova.ui.components.zafiro.ZafiroBadge
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaHeroGradient
@@ -180,31 +181,20 @@ private fun WelcomeBanner() {
                     lineHeight = 21.sp,
                     color = Color.White.copy(alpha = 0.92f)
                 )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = ZafiroLines.HOME,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            MascotaBadge()
-        }
-    }
-}
-
-@Composable
-private fun MascotaBadge() {
-    Surface(
-        modifier = Modifier.size(86.dp),
-        shape = CircleShape,
-        color = Color.White.copy(alpha = 0.18f),
-        border = BorderStroke(2.dp, Color.White.copy(alpha = 0.35f))
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = "Mascota",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            ZafiroBadge()
         }
     }
 }
@@ -444,7 +434,7 @@ private fun MissionRouteRow(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NovaPurple,
-                            contentColor = Color.White
+                            contentColor = NovaOnPurple
                         ),
                         shape = RoundedCornerShape(20.dp)
                     ) {

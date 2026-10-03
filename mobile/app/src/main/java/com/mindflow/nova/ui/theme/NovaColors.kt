@@ -7,6 +7,9 @@ import androidx.compose.ui.graphics.Color
 // Tokens que cambian con el tema (claro/oscuro): leen de la paleta activa.
 // Los valores concretos viven en NovaPalette.kt.
 val NovaPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.purple
+
+/** Texto e iconos de un botón morado: blanco en claro, oscuro en modo oscuro. */
+val NovaOnPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.onPurple
 val NovaBlue: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.blue
 val NovaLightPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.lightPurple
 val NovaSoftPurple: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.softPurple
@@ -23,6 +26,7 @@ val NovaBorder: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.c
 
 /** Parte vacía de las barras de progreso. */
 val NovaTrack: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.track
+val NovaTrackBorder: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.trackBorder
 val NovaDark: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.dark
 val NovaLocked: Color @Composable @ReadOnlyComposable get() = LocalNovaPalette.current.locked
 
@@ -57,5 +61,8 @@ val NovaIceAccent: Color @Composable @ReadOnlyComposable get() = LocalNovaPalett
 
 // Wireframe de Login/Splash: tonos propios de esa pantalla (siempre en claro), distintos al morado del resto de la app.
 val NovaLoginCard = Color(0xFFDBC0F9)
+
+/** Texto chico sobre la tarjeta del login (5,7:1 sobre [NovaLoginCard]). */
+val NovaLoginFooterText = Color(0xFF4E4452)
 val NovaLoginButton = Color(0xFF160065)
 val NovaLoginFieldBorder = Color(0xFFCCCCD1)

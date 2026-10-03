@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import com.mindflow.nova.BuildConfig
 import com.mindflow.nova.data.model.SessionUser
 import com.mindflow.nova.data.model.StudentProgress
+import com.mindflow.nova.ui.components.StatPair
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
@@ -94,26 +95,26 @@ fun ProfileScreen(
 
         ProfileHeaderCard(user = user)
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ProfileStat(
-                value = progress?.missionsCompleted ?: 0,
-                label = "misiones completadas",
-                accentColor = NovaPurple,
-                backgroundColor = NovaLightPurple,
-                modifier = Modifier.weight(1f)
-            )
-
-            ProfileStat(
-                value = progress?.totalPoints ?: 0,
-                label = "semillas",
-                accentColor = NovaGold,
-                backgroundColor = NovaGoldLight,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        StatPair(
+            first = { statModifier ->
+                ProfileStat(
+                    value = progress?.missionsCompleted ?: 0,
+                    label = "misiones completadas",
+                    accentColor = NovaPurple,
+                    backgroundColor = NovaLightPurple,
+                    modifier = statModifier
+                )
+            },
+            second = { statModifier ->
+                ProfileStat(
+                    value = progress?.totalPoints ?: 0,
+                    label = "semillas",
+                    accentColor = NovaGold,
+                    backgroundColor = NovaGoldLight,
+                    modifier = statModifier
+                )
+            }
+        )
 
         user?.let { AccountInfoCard(it) }
 

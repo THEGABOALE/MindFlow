@@ -20,7 +20,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -34,8 +42,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.offline.EXTRA_TIME_SECONDS
 import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
@@ -43,7 +58,6 @@ import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
-import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -93,10 +107,14 @@ fun MatchingLessonScreen(
     var stage by remember { mutableStateOf(MatchingStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var secondsLeft by remember { mutableStateOf(timeLimitSeconds) }
-    var feedback by remember { mutableStateOf("¡Vas bien! Elige un par") }
+    var feedback by remember { mutableStateOf(ZafiroLines.MATCHING_PLAYING) }
     var justLostPluma by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     var pendingNotice by remember { mutableStateOf(false) }
+    // El reloj se detiene mientras la app está en segundo plano; y el "+30 s"
+    // se puede comprar una sola vez por intento.
+    var clockPaused by remember { mutableStateOf(false) }
+    var extraTimeUsed by remember { mutableStateOf(false) }
     var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
@@ -123,10 +141,30 @@ fun MatchingLessonScreen(
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> if (stage == MatchingStage.IN_PROGRESS && !clockPaused) {
+                    clockPaused = true
+                    attempt.onPauseClock()
+                }
+                Lifecycle.Event.ON_START -> if (clockPaused) {
+                    clockPaused = false
+                    // Lo que pasó del tope de pausa gratis corre como jugado.
+                    secondsLeft = (secondsLeft - attempt.onResumeClock()).coerceAtLeast(0)
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     LaunchedEffect(Unit) {
         while (secondsLeft > 0 && stage == MatchingStage.IN_PROGRESS) {
             delay(1000)
-            secondsLeft -= 1
+            if (!clockPaused) secondsLeft -= 1
         }
         if (secondsLeft <= 0 && stage == MatchingStage.IN_PROGRESS) {
             finish(timedOut = true, targetStage = MatchingStage.TIME_UP)
@@ -148,7 +186,7 @@ fun MatchingLessonScreen(
         if (termId == matchPairId) {
             matchedIds = matchedIds + termId
             correctCount++
-            feedback = "¡Correcto!"
+            feedback = ZafiroLines.CORRECT
             selectedTermId = null
             if (matchedIds.size == pairs.size) {
                 finish(timedOut = false, targetStage = MatchingStage.COMPLETED)
@@ -157,7 +195,7 @@ fun MatchingLessonScreen(
             wrongCount++
             justLostPluma = true
             plumas = (plumas - 1).coerceAtLeast(0)
-            feedback = "Casi... -1 pluma"
+            feedback = ZafiroLines.MATCHING_WRONG
             wrongPair = termId to matchPairId
             if (plumas == 0) {
                 finish(timedOut = false, targetStage = MatchingStage.OUT_OF_PLUMAS)
@@ -202,6 +240,7 @@ fun MatchingLessonScreen(
                     rewardLabel = "semillas (según tus aciertos)",
                     streak = attemptResult?.streak,
                     notice = if (pendingNotice) PENDING_RESULT_NOTICE else null,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0),
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -216,10 +255,12 @@ fun MatchingLessonScreen(
                 LessonEndScreen(
                     title = "¡Se acabó el tiempo!",
                     message = "Completaste ${matchedIds.size} de ${pairs.size} pares antes de que se acabara",
+                    zafiroLine = ZafiroLines.TIME_UP,
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
-                    onSecondary = onExit
+                    onSecondary = onExit,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0)
                 )
             }
 
@@ -227,10 +268,12 @@ fun MatchingLessonScreen(
                 LessonEndScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en el minijuego",
+                    zafiroLine = ZafiroLines.OUT_OF_PLUMAS,
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
-                    onSecondary = onExit
+                    onSecondary = onExit,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0)
                 )
             }
 
@@ -258,10 +301,25 @@ fun MatchingLessonScreen(
                         fontSize = 15.sp
                     )
 
+                    if (showExtraTime(secondsLeft, extraTimeUsed, hasTimeLimit = mission.timeLimitSeconds != null)) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ExtraTimeButton(
+                            balance = attempt.seedBalance,
+                            onBuy = {
+                                extraTimeUsed = true
+                                secondsLeft += EXTRA_TIME_SECONDS
+                                attempt.onBuyExtraTime()
+                            }
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Con la fuente grande las 9 tarjetas no entran: las columnas se desplazan.
                     Row(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(
@@ -317,7 +375,7 @@ fun MatchingLessonScreen(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MascotaPlaceholder(modifier = Modifier.size(32.dp), label = "🙂")
+                            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.sizeIn(minWidth = 32.dp, minHeight = 32.dp), compact = true)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = feedback,
@@ -394,7 +452,14 @@ private fun MatchingItemCard(
                 modifier = Modifier.weight(1f),
                 color = NovaText,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                // En la media pantalla de cada columna, una palabra larga se corta
+                // con guion ("Consenti-miento") en vez de partirse sin aviso.
+                style = LocalTextStyle.current.copy(
+                    hyphens = Hyphens.Auto,
+                    lineBreak = LineBreak.Paragraph,
+                    localeList = LocaleList("es")
+                )
             )
 
             Box(

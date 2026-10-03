@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -168,6 +169,111 @@ class LessonViewModelTest {
             listOf(FinishedAttempt("intento-2", content(3), answers, true, startedRetry, clock, -360)),
             recorder.recorded
         )
+    }
+
+    @Test
+    fun `la pausa del reloj se descuenta del intento`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        clock += 10_000
+        viewModel.pauseClock()
+        clock += 60_000
+        viewModel.resumeClock()
+        clock += 30_000
+
+        viewModel.finishAttempt(emptyList(), timedOut = false)
+
+        assertEquals(60, recorder.recorded.single().pausedSeconds)
+        assertFalse(recorder.recorded.single().usedExtraTime)
+    }
+
+    @Test
+    fun `pausar dos veces seguidas no cuenta doble`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 20_000
+        viewModel.pauseClock()
+        clock += 20_000
+        viewModel.resumeClock()
+        viewModel.resumeClock()
+
+        viewModel.finishAttempt(emptyList(), timedOut = false)
+
+        assertEquals(40, recorder.recorded.single().pausedSeconds)
+    }
+
+    @Test
+    fun `volver de una pausa corta no adelanta el reloj`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 60_000
+
+        assertEquals(0, viewModel.resumeClock())
+    }
+
+    @Test
+    fun `volver de una pausa de mas de cinco minutos adelanta el reloj lo que se paso`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 400_000
+
+        assertEquals(100, viewModel.resumeClock())
+    }
+
+    @Test
+    fun `los cinco minutos libres se cuentan sumando todas las pausas`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 200_000
+        assertEquals(0, viewModel.resumeClock())
+        viewModel.pauseClock()
+        clock += 200_000
+
+        assertEquals(100, viewModel.resumeClock())
+        assertEquals(0, viewModel.resumeClock())
+    }
+
+    @Test
+    fun `terminar en pausa cierra la pausa con la hora de fin`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 15_500
+
+        viewModel.finishAttempt(emptyList(), timedOut = false)
+
+        assertEquals(15, recorder.recorded.single().pausedSeconds)
+    }
+
+    @Test
+    fun `comprar +30 s queda en el intento`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+
+        viewModel.buyExtraTime()
+        viewModel.finishAttempt(emptyList(), timedOut = false)
+
+        assertTrue(recorder.recorded.single().usedExtraTime)
+    }
+
+    @Test
+    fun `reintentar empieza sin pausa ni potenciador`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.buyExtraTime()
+        viewModel.pauseClock()
+        clock += 30_000
+        viewModel.resumeClock()
+
+        viewModel.retry()
+        viewModel.finishAttempt(emptyList(), timedOut = false)
+
+        assertEquals(0, recorder.recorded.single().pausedSeconds)
+        assertFalse(recorder.recorded.single().usedExtraTime)
     }
 
     @Test
