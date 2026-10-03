@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,6 +94,7 @@ fun TrueFalseLessonScreen(
     var pendingNotice by remember { mutableStateOf(false) }
     var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
+    val haptic = LocalHapticFeedback.current
 
     fun finish() {
         stage = TruthStage.SUBMITTING
@@ -246,7 +253,7 @@ fun TrueFalseLessonScreen(
                             text = "VERDADERO",
                             modifier = Modifier.weight(1f),
                             state = truthButtonState(
-                                phase = phase,
+                                answered = phase == TruthPhase.ANSWERED,
                                 thisValue = true,
                                 selected = selectedAnswer,
                                 correctAnswer = question.correctAnswer
@@ -258,7 +265,7 @@ fun TrueFalseLessonScreen(
                             text = "FALSO",
                             modifier = Modifier.weight(1f),
                             state = truthButtonState(
-                                phase = phase,
+                                answered = phase == TruthPhase.ANSWERED,
                                 thisValue = false,
                                 selected = selectedAnswer,
                                 correctAnswer = question.correctAnswer
@@ -284,6 +291,7 @@ fun TrueFalseLessonScreen(
                                     correctCount++
                                 } else {
                                     plumas = (plumas - 1).coerceAtLeast(0)
+                                    haptic.performHapticFeedback(HapticFeedbackType.Reject)
                                 }
                                 phase = TruthPhase.ANSWERED
                             } else {
@@ -323,21 +331,6 @@ fun TrueFalseLessonScreen(
     }
 }
 
-private enum class TrueFalseButtonState { IDLE, SELECTED, CORRECT, WRONG }
-
-private fun truthButtonState(
-    phase: TruthPhase,
-    thisValue: Boolean,
-    selected: Boolean?,
-    correctAnswer: Boolean
-): TrueFalseButtonState {
-    if (phase == TruthPhase.ANSWERING) {
-        return if (selected == thisValue) TrueFalseButtonState.SELECTED else TrueFalseButtonState.IDLE
-    }
-    if (selected != thisValue) return TrueFalseButtonState.IDLE
-    return if (thisValue == correctAnswer) TrueFalseButtonState.CORRECT else TrueFalseButtonState.WRONG
-}
-
 @Composable
 private fun TrueFalseButton(
     text: String,
@@ -358,10 +351,21 @@ private fun TrueFalseButton(
         shape = RoundedCornerShape(16.dp),
         color = background
     ) {
-        Box(
+        Row(
             modifier = Modifier.padding(vertical = 18.dp),
-            contentAlignment = Alignment.Center
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            val icon = when (state) {
+                TrueFalseButtonState.CORRECT -> Icons.Rounded.CheckCircle
+                TrueFalseButtonState.WRONG -> Icons.Rounded.Cancel
+                else -> null
+            }
+            if (icon != null) {
+                // Sin descripción: el botón ya dice VERDADERO o FALSO y la explicación de Zafiro, si acertó.
+                Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+            }
             Text(
                 text = text,
                 color = contentColor,

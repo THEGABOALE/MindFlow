@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
@@ -30,6 +34,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +54,11 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
+import com.mindflow.nova.ui.theme.NovaError
+import com.mindflow.nova.ui.theme.NovaErrorBackground
 import com.mindflow.nova.ui.theme.NovaNeutralCard
+import com.mindflow.nova.ui.theme.NovaSuccess
+import com.mindflow.nova.ui.theme.NovaSuccessBackground
 import com.mindflow.nova.ui.theme.NovaPurple
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -89,6 +99,7 @@ fun LessonPlayScreen(
     // Se mezcla una sola vez por intento: si se mezclara en cada recomposición,
     // las opciones cambiarían de lugar mientras el estudiante elige.
     val shuffledQuestions = remember(questions) { questions.withShuffledOptions() }
+    val haptic = LocalHapticFeedback.current
 
     fun finish() {
         stage = LessonStage.SUBMITTING
@@ -217,6 +228,7 @@ fun LessonPlayScreen(
                                         correctCount++
                                     } else {
                                         plumas = (plumas - 1).coerceAtLeast(0)
+                                        haptic.performHapticFeedback(HapticFeedbackType.Reject)
                                     }
                                 }
                                 phase = QuestionPhase.ANSWERED
@@ -361,26 +373,51 @@ private fun LessonResultReveal(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             question.options.forEach { option ->
-                val suffix = when {
-                    option.isCorrect -> "Respuesta correcta"
-                    option.id == selectedOptionId -> "Respuesta incorrecta (elegida)"
-                    else -> "Respuesta incorrecta"
+                val reveal = answerReveal(isCorrect = option.isCorrect, isChosen = option.id == selectedOptionId)
+                val suffix = when (reveal) {
+                    AnswerReveal.CORRECT -> "Respuesta correcta"
+                    AnswerReveal.WRONG_CHOSEN -> "Respuesta incorrecta (elegida)"
+                    AnswerReveal.NEUTRAL -> "Respuesta incorrecta"
+                }
+                val (background, textColor) = when (reveal) {
+                    AnswerReveal.CORRECT -> NovaSuccessBackground to NovaSuccess
+                    AnswerReveal.WRONG_CHOSEN -> NovaErrorBackground to NovaError
+                    AnswerReveal.NEUTRAL -> NovaNeutralCard to NovaTextSecondary
                 }
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    color = NovaNeutralCard
+                    color = background
                 ) {
-                    Text(
-                        text = "${option.text} — $suffix",
+                    Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        color = NovaTextSecondary,
-                        fontSize = 12.sp,
-                        lineHeight = 16.sp
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RevealIcon(reveal, textColor)
+
+                        Text(
+                            text = "${option.text} — $suffix",
+                            color = textColor,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            fontWeight = if (reveal == AnswerReveal.NEUTRAL) FontWeight.Normal else FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RevealIcon(reveal: AnswerReveal, tint: Color) {
+    val icon = when (reveal) {
+        AnswerReveal.CORRECT -> Icons.Rounded.CheckCircle
+        AnswerReveal.WRONG_CHOSEN -> Icons.Rounded.Cancel
+        AnswerReveal.NEUTRAL -> return
+    }
+    // Sin descripción: el texto de al lado ya dice si es correcta o no.
+    Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+    Spacer(modifier = Modifier.width(8.dp))
 }
