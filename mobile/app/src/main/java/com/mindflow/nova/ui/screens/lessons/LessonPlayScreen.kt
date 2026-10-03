@@ -34,6 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
@@ -42,7 +45,6 @@ import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
-import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
@@ -146,6 +148,7 @@ fun LessonPlayScreen(
                 LessonEndScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en la lección",
+                    zafiroLine = ZafiroLines.OUT_OF_PLUMAS,
                     primaryLabel = "Reintentar nivel",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
@@ -257,7 +260,7 @@ fun LessonPlayScreen(
 @Composable
 private fun QuestionHeader(prompt: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        MascotaPlaceholder(modifier = Modifier.size(72.dp))
+        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.size(72.dp))
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -322,7 +325,7 @@ private fun LessonResultReveal(
 
     Column {
         Row(verticalAlignment = Alignment.Top) {
-            MascotaPlaceholder(modifier = Modifier.size(96.dp))
+            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.size(96.dp))
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -333,7 +336,7 @@ private fun LessonResultReveal(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "Mascota explica:",
+                        text = "Zafiro explica:",
                         color = NovaPurple,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -342,7 +345,10 @@ private fun LessonResultReveal(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = selectedOption?.feedback ?: "",
+                        text = ZafiroLines.feedback(
+                            isCorrect = selectedOption?.isCorrect == true,
+                            explanation = selectedOption?.feedback.orEmpty()
+                        ),
                         color = NovaText,
                         fontSize = 13.sp,
                         lineHeight = 18.sp

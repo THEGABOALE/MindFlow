@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.mechanicLabel
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
@@ -101,6 +102,16 @@ fun StartLessonDialog(
                         textAlign = TextAlign.Center
                     )
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = if (isReplay) ZafiroLines.START_REVIEW else ZafiroLines.START_MISSION,
+                    color = NovaPurple,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
+                )
 
                 Spacer(modifier = Modifier.height(22.dp))
 

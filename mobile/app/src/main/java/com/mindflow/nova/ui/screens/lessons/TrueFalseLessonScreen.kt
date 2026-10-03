@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
@@ -41,7 +44,6 @@ import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
-import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaChoiceIdle
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -145,6 +147,7 @@ fun TrueFalseLessonScreen(
                 LessonEndScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en la lección",
+                    zafiroLine = ZafiroLines.OUT_OF_PLUMAS,
                     primaryLabel = "Reintentar nivel",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
@@ -176,7 +179,7 @@ fun TrueFalseLessonScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        MascotaPlaceholder(modifier = Modifier.size(72.dp))
+                        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.size(72.dp))
 
                         Spacer(modifier = Modifier.width(12.dp))
 
@@ -221,14 +224,14 @@ fun TrueFalseLessonScreen(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Text(
-                                    text = "Mascota explica:",
+                                    text = "Zafiro explica:",
                                     color = NovaPurple,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = question.explanation,
+                                    text = ZafiroLines.feedback(isCorrectSelection, question.explanation),
                                     color = NovaText,
                                     fontSize = 13.sp,
                                     lineHeight = 18.sp

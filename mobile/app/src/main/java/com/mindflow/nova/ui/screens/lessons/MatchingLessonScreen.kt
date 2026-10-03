@@ -39,6 +39,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mindflow.nova.data.model.AnswerSubmission
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.data.model.AttemptResult
 import com.mindflow.nova.data.offline.EXTRA_TIME_SECONDS
 import com.mindflow.nova.data.offline.LessonOutcome
@@ -48,7 +51,6 @@ import com.mindflow.nova.ui.screens.lessons.common.LESSON_MAX_PLUMAS
 import com.mindflow.nova.ui.screens.lessons.common.LessonCompletedScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonEndScreen
 import com.mindflow.nova.ui.screens.lessons.common.LessonTopBar
-import com.mindflow.nova.ui.screens.lessons.common.MascotaPlaceholder
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBackground
@@ -98,7 +100,7 @@ fun MatchingLessonScreen(
     var stage by remember { mutableStateOf(MatchingStage.IN_PROGRESS) }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var secondsLeft by remember { mutableStateOf(timeLimitSeconds) }
-    var feedback by remember { mutableStateOf("¡Vas bien! Elige un par") }
+    var feedback by remember { mutableStateOf(ZafiroLines.MATCHING_PLAYING) }
     var justLostPluma by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     var pendingNotice by remember { mutableStateOf(false) }
@@ -176,7 +178,7 @@ fun MatchingLessonScreen(
         if (termId == matchPairId) {
             matchedIds = matchedIds + termId
             correctCount++
-            feedback = "¡Correcto!"
+            feedback = ZafiroLines.CORRECT
             selectedTermId = null
             if (matchedIds.size == pairs.size) {
                 finish(timedOut = false, targetStage = MatchingStage.COMPLETED)
@@ -185,7 +187,7 @@ fun MatchingLessonScreen(
             wrongCount++
             justLostPluma = true
             plumas = (plumas - 1).coerceAtLeast(0)
-            feedback = "Casi... -1 pluma"
+            feedback = ZafiroLines.MATCHING_WRONG
             wrongPair = termId to matchPairId
             if (plumas == 0) {
                 finish(timedOut = false, targetStage = MatchingStage.OUT_OF_PLUMAS)
@@ -245,6 +247,7 @@ fun MatchingLessonScreen(
                 LessonEndScreen(
                     title = "¡Se acabó el tiempo!",
                     message = "Completaste ${matchedIds.size} de ${pairs.size} pares antes de que se acabara",
+                    zafiroLine = ZafiroLines.TIME_UP,
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
@@ -257,6 +260,7 @@ fun MatchingLessonScreen(
                 LessonEndScreen(
                     title = "¡Te quedaste sin plumas!",
                     message = "Necesitas plumas para seguir en el minijuego",
+                    zafiroLine = ZafiroLines.OUT_OF_PLUMAS,
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
@@ -360,7 +364,7 @@ fun MatchingLessonScreen(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MascotaPlaceholder(modifier = Modifier.size(32.dp), label = "🙂")
+                            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.size(32.dp), compact = true)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = feedback,

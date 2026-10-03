@@ -55,8 +55,10 @@ import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaGold
 import com.mindflow.nova.ui.theme.NovaGoldLight
-import com.mindflow.nova.ui.theme.NovaLightPurple
 import com.mindflow.nova.ui.theme.NovaPurple
+import com.mindflow.nova.ui.components.zafiro.ZafiroBox
+import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.components.zafiro.ZafiroPose
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
 
@@ -68,25 +70,6 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 
 const val LESSON_MAX_PLUMAS = 3
 const val LESSON_SEMILLAS_REWARD = 50
-
-@Composable
-fun MascotaPlaceholder(modifier: Modifier = Modifier, label: String = "Mascota") {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = NovaLightPurple
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                color = NovaPurple,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
 
 @Composable
 fun PlumasIndicator(plumas: Int, maxPlumas: Int = LESSON_MAX_PLUMAS) {
@@ -227,7 +210,9 @@ fun LessonCompletedScreen(
     /** Aclaración bajo la recompensa, por ejemplo que el resultado todavía no se subió. */
     notice: String? = null,
     /** Lo gastado en potenciadores durante el intento, si hubo. */
-    spentNotice: String? = null
+    spentNotice: String? = null,
+    /** Lo que dice Zafiro al terminar. */
+    zafiroLine: String = ZafiroLines.COMPLETED
 ) {
     // Si esta misión fue la primera del día, encendió (o descongeló) la racha:
     // antes de salir se muestra el momento de la llamarada. Si la racha ya
@@ -247,7 +232,7 @@ fun LessonCompletedScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        MascotaPlaceholder(modifier = Modifier.size(140.dp), label = "Mascota\n(celebrando)")
+        ZafiroBox(ZafiroPose.CELEBRA, modifier = Modifier.size(140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -266,6 +251,10 @@ fun LessonCompletedScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ZafiroSays(zafiroLine)
 
         if (extraContent != null) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -369,7 +358,9 @@ fun LessonEndScreen(
     secondaryLabel: String,
     onSecondary: () -> Unit,
     /** Lo gastado en potenciadores durante el intento, si hubo. */
-    spentNotice: String? = null
+    spentNotice: String? = null,
+    /** Lo que dice Zafiro en este cierre, si dice algo. */
+    zafiroLine: String? = null
 ) {
     Column(
         modifier = Modifier
@@ -378,7 +369,7 @@ fun LessonEndScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        MascotaPlaceholder(modifier = Modifier.size(140.dp), label = "Mascota\n(sin plumas)")
+        ZafiroBox(ZafiroPose.TRISTE, modifier = Modifier.size(140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -398,6 +389,11 @@ fun LessonEndScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
+
+        if (zafiroLine != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            ZafiroSays(zafiroLine)
+        }
 
         if (spentNotice != null) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -434,4 +430,16 @@ fun LessonEndScreen(
             Text(text = secondaryLabel, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+/** Una frase de Zafiro en los cierres, en el color de la marca. */
+@Composable
+private fun ZafiroSays(line: String) {
+    Text(
+        text = line,
+        color = NovaPurple,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center
+    )
 }
