@@ -2,9 +2,7 @@ package com.mindflow.nova.ui.screens.progress
 
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.data.model.LevelResponse
 import com.mindflow.nova.data.model.StudentProgress
+import com.mindflow.nova.ui.components.StatPair
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaGold
@@ -106,26 +105,26 @@ fun ProgressScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ProgressStatCard(
-                title = "misiones completadas",
-                value = progress?.missionsCompleted ?: 0,
-                modifier = Modifier.weight(1f)
-            )
-
-            ProgressStatCard(
-                title = "semillas",
-                value = progress?.totalPoints ?: 0,
-                // Dorado en vez de morado: las semillas son la "moneda" del
-                // juego, conviene que se distingan de una tarjeta mas.
-                accentColor = NovaGold,
-                backgroundColor = NovaGoldLight,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        StatPair(
+            first = { statModifier ->
+                ProgressStatCard(
+                    title = "misiones completadas",
+                    value = progress?.missionsCompleted ?: 0,
+                    modifier = statModifier
+                )
+            },
+            second = { statModifier ->
+                ProgressStatCard(
+                    title = "semillas",
+                    value = progress?.totalPoints ?: 0,
+                    // Dorado en vez de morado: las semillas son la "moneda" del
+                    // juego, conviene que se distingan de una tarjeta mas.
+                    accentColor = NovaGold,
+                    backgroundColor = NovaGoldLight,
+                    modifier = statModifier
+                )
+            }
+        )
     }
 }
 

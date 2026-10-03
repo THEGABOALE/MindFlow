@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -233,7 +234,7 @@ fun LessonCompletedScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        ZafiroBox(ZafiroPose.CELEBRA, modifier = Modifier.size(140.dp))
+        ZafiroBox(ZafiroPose.CELEBRA, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -370,7 +371,7 @@ fun LessonEndScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        ZafiroBox(ZafiroPose.TRISTE, modifier = Modifier.size(140.dp))
+        ZafiroBox(ZafiroPose.TRISTE, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
 

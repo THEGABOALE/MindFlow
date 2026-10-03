@@ -2,6 +2,8 @@ package com.mindflow.nova.ui.screens.lessons
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -190,28 +193,36 @@ fun LessonPlayScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    if (phase == QuestionPhase.ANSWERING) {
-                        QuestionHeader(prompt = question.prompt)
+                    // Con la fuente grande la pregunta puede no entrar: se desplaza y
+                    // el botón de abajo queda siempre entero.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        if (phase == QuestionPhase.ANSWERING) {
+                            QuestionHeader(prompt = question.prompt)
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            question.options.forEach { option ->
-                                AnswerOptionRow(
-                                    text = option.text,
-                                    isSelected = option.id == selectedOptionId,
-                                    onClick = { selectedOptionId = option.id }
-                                )
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                question.options.forEach { option ->
+                                    AnswerOptionRow(
+                                        text = option.text,
+                                        isSelected = option.id == selectedOptionId,
+                                        onClick = { selectedOptionId = option.id }
+                                    )
+                                }
                             }
+                        } else {
+                            LessonResultReveal(
+                                question = question,
+                                selectedOptionId = selectedOptionId
+                            )
                         }
-                    } else {
-                        LessonResultReveal(
-                            question = question,
-                            selectedOptionId = selectedOptionId
-                        )
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     val buttonLabel = when {
                         phase == QuestionPhase.ANSWERING -> "Continuar"
@@ -272,7 +283,7 @@ fun LessonPlayScreen(
 @Composable
 private fun QuestionHeader(prompt: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.size(72.dp))
+        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.sizeIn(minWidth = 72.dp, minHeight = 72.dp))
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -337,7 +348,7 @@ private fun LessonResultReveal(
 
     Column {
         Row(verticalAlignment = Alignment.Top) {
-            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.size(96.dp))
+            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.sizeIn(minWidth = 96.dp, minHeight = 96.dp))
 
             Spacer(modifier = Modifier.width(12.dp))
 

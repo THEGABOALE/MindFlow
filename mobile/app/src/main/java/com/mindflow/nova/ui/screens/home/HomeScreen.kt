@@ -19,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -277,7 +279,7 @@ private fun NovaBottomNavigation(
                 )
             },
             label = {
-                Text(text = "Inicio")
+                NavLabel("Inicio")
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = NovaPurple,
@@ -298,7 +300,7 @@ private fun NovaBottomNavigation(
                 )
             },
             label = {
-                Text(text = "Lecciones")
+                NavLabel("Lecciones")
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = NovaPurple,
@@ -319,7 +321,7 @@ private fun NovaBottomNavigation(
                 )
             },
             label = {
-                Text(text = "Progreso")
+                NavLabel("Progreso")
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = NovaPurple,
@@ -340,7 +342,7 @@ private fun NovaBottomNavigation(
                 )
             },
             label = {
-                Text(text = "Perfil")
+                NavLabel("Perfil")
             },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = NovaPurple,
@@ -351,6 +353,17 @@ private fun NovaBottomNavigation(
             )
         )
     }
+}
+
+/** Etiqueta de una pestaña: con la fuente grande se corta con "…" en vez de partir la palabra. */
+@Composable
+private fun NavLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
 }
 
 @Composable

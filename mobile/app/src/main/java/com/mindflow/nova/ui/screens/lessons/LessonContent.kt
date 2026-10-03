@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -182,13 +183,22 @@ fun LessonHost(mission: MissionResponse, seedBalance: Int, onExit: () -> Unit) {
     // encima, que pide confirmar antes de abandonar a mitad de la lección.
     BackHandler(onBack = onExit)
 
-    if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
-        MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
-        return
-    }
-
-    ScopedViewModels {
-        LessonHostContent(mission = mission, mechanic = mechanic, seedBalance = seedBalance, onExit = onExit)
+    // El fondo llega hasta los bordes, pero el contenido deja libre el lugar
+    // de la barra de estado y la de navegación: con la fuente grande la barra
+    // de arriba de la lección crece y, si no, queda debajo de la hora.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(NovaBackground)
+            .systemBarsPadding()
+    ) {
+        if (mechanic != "multiple_choice" && mechanic != "matching" && mechanic != "true_false") {
+            MiniGamePlaceholderScreen(mission = mission, onBack = onExit)
+        } else {
+            ScopedViewModels {
+                LessonHostContent(mission = mission, mechanic = mechanic, seedBalance = seedBalance, onExit = onExit)
+            }
+        }
     }
 }
 

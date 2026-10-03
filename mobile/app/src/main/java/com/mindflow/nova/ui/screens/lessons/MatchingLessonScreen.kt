@@ -20,6 +20,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.text.intl.LocaleList
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -307,8 +314,11 @@ fun MatchingLessonScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Con la fuente grande las 9 tarjetas no entran: las columnas se desplazan.
                     Row(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(
@@ -364,7 +374,7 @@ fun MatchingLessonScreen(
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.size(32.dp), compact = true)
+                            ZafiroBox(ZafiroPose.EXPLICA, modifier = Modifier.sizeIn(minWidth = 32.dp, minHeight = 32.dp), compact = true)
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = feedback,
@@ -441,7 +451,14 @@ private fun MatchingItemCard(
                 modifier = Modifier.weight(1f),
                 color = NovaText,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                // En la media pantalla de cada columna, una palabra larga se corta
+                // con guion ("Consenti-miento") en vez de partirse sin aviso.
+                style = LocalTextStyle.current.copy(
+                    hyphens = Hyphens.Auto,
+                    lineBreak = LineBreak.Paragraph,
+                    localeList = LocaleList("es")
+                )
             )
 
             Box(

@@ -14,8 +14,9 @@ object ZafiroLines {
     const val WRONG = "Casi. Mira por qué:"
     const val MATCHING_PLAYING = "¡Vas bien! Elige un par."
     const val MATCHING_WRONG = "Casi, ese no era. ¡Tú puedes!"
-    const val OUT_OF_PLUMAS = "Se acabaron las plumas, pero lo que aprendiste se queda contigo. ¿Lo intentamos de nuevo?"
-    const val TIME_UP = "¡Se acabó el tiempo! La próxima vez puedes pausar o pedir más tiempo."
+    // Los cierres ya dicen en el título qué pasó: Zafiro no lo repite.
+    const val OUT_OF_PLUMAS = "Lo que aprendiste se queda contigo. ¿Lo intentamos de nuevo?"
+    const val TIME_UP = "No pasa nada. La próxima vez puedes pausar o pedir más tiempo."
     const val COMPLETED = "¡Lo lograste! Cada misión te hace más fuerte."
 
     val all = listOf(

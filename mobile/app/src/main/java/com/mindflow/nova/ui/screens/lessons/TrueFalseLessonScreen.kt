@@ -2,6 +2,8 @@ package com.mindflow.nova.ui.screens.lessons
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -185,96 +188,104 @@ fun TrueFalseLessonScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.size(72.dp))
+                    // Con la fuente grande la pregunta puede no entrar: se desplaza y
+                    // el botón de abajo queda siempre entero.
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            ZafiroBox(ZafiroPose.PIENSA, modifier = Modifier.sizeIn(minWidth = 72.dp, minHeight = 72.dp))
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(18.dp),
+                                color = NovaNeutralCard
+                            ) {
+                                Text(
+                                    text = "¿Tú qué crees?",
+                                    modifier = Modifier.padding(14.dp),
+                                    color = NovaText,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Surface(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
-                            color = NovaNeutralCard
+                            color = NovaLightPurple
                         ) {
                             Text(
-                                text = "¿Tú qué crees?",
-                                modifier = Modifier.padding(14.dp),
+                                text = question.statement,
+                                modifier = Modifier.padding(16.dp),
                                 color = NovaText,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (phase == TruthPhase.ANSWERED) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(18.dp),
+                                color = NovaNeutralCard
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        text = "Zafiro explica:",
+                                        color = NovaPurple,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = ZafiroLines.feedback(isCorrectSelection, question.explanation),
+                                        color = NovaText,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TrueFalseButton(
+                                text = "VERDADERO",
+                                modifier = Modifier.weight(1f),
+                                state = truthButtonState(
+                                    answered = phase == TruthPhase.ANSWERED,
+                                    thisValue = true,
+                                    selected = selectedAnswer,
+                                    correctAnswer = question.correctAnswer
+                                ),
+                                onClick = { if (phase == TruthPhase.ANSWERING) selectedAnswer = true }
+                            )
+
+                            TrueFalseButton(
+                                text = "FALSO",
+                                modifier = Modifier.weight(1f),
+                                state = truthButtonState(
+                                    answered = phase == TruthPhase.ANSWERED,
+                                    thisValue = false,
+                                    selected = selectedAnswer,
+                                    correctAnswer = question.correctAnswer
+                                ),
+                                onClick = { if (phase == TruthPhase.ANSWERING) selectedAnswer = false }
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        color = NovaLightPurple
-                    ) {
-                        Text(
-                            text = question.statement,
-                            modifier = Modifier.padding(16.dp),
-                            color = NovaText,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (phase == TruthPhase.ANSWERED) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            color = NovaNeutralCard
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Text(
-                                    text = "Zafiro explica:",
-                                    color = NovaPurple,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = ZafiroLines.feedback(isCorrectSelection, question.explanation),
-                                    color = NovaText,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TrueFalseButton(
-                            text = "VERDADERO",
-                            modifier = Modifier.weight(1f),
-                            state = truthButtonState(
-                                answered = phase == TruthPhase.ANSWERED,
-                                thisValue = true,
-                                selected = selectedAnswer,
-                                correctAnswer = question.correctAnswer
-                            ),
-                            onClick = { if (phase == TruthPhase.ANSWERING) selectedAnswer = true }
-                        )
-
-                        TrueFalseButton(
-                            text = "FALSO",
-                            modifier = Modifier.weight(1f),
-                            state = truthButtonState(
-                                answered = phase == TruthPhase.ANSWERED,
-                                thisValue = false,
-                                selected = selectedAnswer,
-                                correctAnswer = question.correctAnswer
-                            ),
-                            onClick = { if (phase == TruthPhase.ANSWERING) selectedAnswer = false }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
 
                     val buttonLabel = when {
                         phase == TruthPhase.ANSWERING -> "Continuar"

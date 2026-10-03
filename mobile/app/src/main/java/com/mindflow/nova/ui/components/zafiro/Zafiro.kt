@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -53,10 +54,12 @@ fun ZafiroBox(
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = if (compact) ZAFIRO_NAME.take(1) else ZAFIRO_NAME,
+                modifier = Modifier.padding(4.dp),
                 color = NovaPurple,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
     }
@@ -109,7 +112,9 @@ fun ZafiroBadge(modifier: Modifier = Modifier) {
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
