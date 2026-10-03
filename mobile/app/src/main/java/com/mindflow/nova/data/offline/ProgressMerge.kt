@@ -9,7 +9,7 @@ import com.mindflow.nova.data.model.StudentStreak
  * oficial y los pendientes desaparecen.
  *
  * - Las misiones completadas pendientes (sin contar repasos) se suman una vez.
- * - Las semillas provisionales se suman todas.
+ * - Las semillas provisionales se suman todas, menos lo gastado en potenciadores.
  * - La racha se recalcula con [today]: lo último guardado puede ser de otro
  *   día, y lo jugado sin conexión cuenta para el día en que se jugó.
  *
@@ -25,7 +25,7 @@ fun mergePending(official: StudentProgress?, pending: List<PendingAttempt>, toda
         .filterNot { it in official.completedMissionIds }
 
     return official.copy(
-        totalPoints = official.totalPoints + pending.sumOf { it.provisional.pointsEarned },
+        totalPoints = official.totalPoints + pending.sumOf { it.provisional.pointsEarned - it.provisional.seedsSpent },
         missionsCompleted = official.missionsCompleted + newlyCompleted.size,
         completedMissionIds = official.completedMissionIds + newlyCompleted,
         // finishedAt va con el huso del dispositivo: sus primeros 10 caracteres son el día local.

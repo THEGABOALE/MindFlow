@@ -16,6 +16,12 @@ private const val MIN_REVIEW_POINTS = 1
 private const val TIME_LIMIT_GRACE_SECONDS = 15
 private const val DEFAULT_MAX_PLUMAS = 3
 
+/** Potenciador "+30 s": se compra con semillas de la cuenta, una vez por intento. */
+const val EXTRA_TIME_COST = 500
+const val EXTRA_TIME_SECONDS = 30
+/** La pausa (la app en segundo plano) es gratis, pero con tope. */
+const val MAX_PAUSE_SECONDS = 300
+
 /** Cada repaso cobrado de la misma misión dentro de esta ventana parte a la mitad lo que paga el siguiente. */
 const val REVIEW_PAY_WINDOW_MS = 24L * 60 * 60 * 1000
 
@@ -42,9 +48,26 @@ fun calculatePoints(
     return maxOf(MIN_REVIEW_POINTS, Math.round(reviewPoints).toInt())
 }
 
-/** Igual que en el servidor: el límite más 15 s de margen. */
-fun exceededTimeLimit(elapsedSeconds: Double, timeLimitSeconds: Int?): Boolean =
-    timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + TIME_LIMIT_GRACE_SECONDS
+/** Igual que en el servidor: el límite más los 30 s comprados, si los hay, y 15 s de margen. */
+fun exceededTimeLimit(elapsedSeconds: Double, timeLimitSeconds: Int?, extraSeconds: Int = 0): Boolean =
+    timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + extraSeconds + TIME_LIMIT_GRACE_SECONDS
+
+/** Segundos jugados: del inicio al fin, menos la pausa (entre 0 y el tope). */
+fun playedSeconds(startedAtMs: Long, finishedAtMs: Long, pausedSeconds: Int): Double =
+    (finishedAtMs - startedAtMs) / 1000.0 - pausedSeconds.coerceIn(0, MAX_PAUSE_SECONDS)
+
+data class ExtraTimePurchase(val seedsSpent: Int, val extraSeconds: Int)
+
+/**
+ * Si el "+30 s" se cobra: solo en una misión con reloj y si el saldo alcanza.
+ * Si no alcanza, no cuenta: ni cobra ni suma tiempo.
+ */
+fun extraTimePurchase(usedExtraTime: Boolean, timeLimitSeconds: Int?, balance: Int): ExtraTimePurchase =
+    if (usedExtraTime && timeLimitSeconds != null && balance >= EXTRA_TIME_COST) {
+        ExtraTimePurchase(seedsSpent = EXTRA_TIME_COST, extraSeconds = EXTRA_TIME_SECONDS)
+    } else {
+        ExtraTimePurchase(seedsSpent = 0, extraSeconds = 0)
+    }
 
 data class GradedAnswers(val correctAnswers: Int, val wrongAnswers: Int)
 
@@ -108,12 +131,13 @@ fun gradeLocally(
     timedOut: Boolean,
     elapsedSeconds: Double,
     isReview: Boolean,
-    paidReviewsNearby: Int
+    paidReviewsNearby: Int,
+    extraSeconds: Int = 0
 ): LocalOutcome {
     val maxPlumas = content.maxPlumas ?: DEFAULT_MAX_PLUMAS
     val (correct, wrong) = gradeAnswers(content, answers)
 
-    val ranOutOfTime = timedOut || exceededTimeLimit(elapsedSeconds, content.timeLimitSeconds)
+    val ranOutOfTime = timedOut || exceededTimeLimit(elapsedSeconds, content.timeLimitSeconds, extraSeconds)
     val failed = ranOutOfTime || wrong >= maxPlumas
     val total = correct + wrong
 

@@ -34,7 +34,8 @@ class ProgressMergeTest {
         day: String = today,
         status: String = "completed",
         points: Int = 50,
-        isReview: Boolean = false
+        isReview: Boolean = false,
+        spent: Int = 0
     ) = PendingAttempt(
         clientAttemptId = "id-${nextId++}",
         userId = 7,
@@ -46,7 +47,7 @@ class ProgressMergeTest {
         answers = emptyList(),
         provisional = AttemptResult(
             id = 0, missionId = missionId, score = 100, correctAnswers = 3, wrongAnswers = 0,
-            plumasLeft = 3, pointsEarned = points, isReview = isReview, status = status
+            plumasLeft = 3, pointsEarned = points, isReview = isReview, status = status, seedsSpent = spent
         )
     )
 
@@ -100,6 +101,13 @@ class ProgressMergeTest {
         val merged = mergePending(official(points = 100), listOf(pending(2, points = 75), pending(3, points = 50)), today)!!
 
         assertEquals(225, merged.totalPoints)
+    }
+
+    @Test
+    fun `las semillas gastadas en el potenciador se descuentan`() {
+        val merged = mergePending(official(points = 600), listOf(pending(2, points = 150, spent = 500)), today)!!
+
+        assertEquals(250, merged.totalPoints)
     }
 
     @Test

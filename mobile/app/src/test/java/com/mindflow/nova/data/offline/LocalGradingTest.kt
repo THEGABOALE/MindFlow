@@ -247,5 +247,40 @@ class LocalGradingTest {
         assertEquals(100, outcome.pointsEarned)
     }
 
+    @Test
+    fun `el tiempo jugado descuenta la pausa con tope de 5 minutos`() {
+        assertEquals(120.0, playedSeconds(0, 120_000, 0), 0.0)
+        assertEquals(30.0, playedSeconds(0, 120_000, 90), 0.0)
+        assertEquals(300.0, playedSeconds(0, 600_000, 9999), 0.0)
+        assertEquals(120.0, playedSeconds(0, 120_000, -50), 0.0)
+    }
+
+    @Test
+    fun `el +30 s se cobra solo con reloj y saldo suficiente`() {
+        assertEquals(ExtraTimePurchase(500, 30), extraTimePurchase(true, 45, 500))
+        assertEquals(ExtraTimePurchase(0, 0), extraTimePurchase(true, 45, 499))
+        assertEquals(ExtraTimePurchase(0, 0), extraTimePurchase(true, null, 9999))
+        assertEquals(ExtraTimePurchase(0, 0), extraTimePurchase(false, 45, 9999))
+    }
+
+    @Test
+    fun `los 30 s comprados se suman al limite`() {
+        assertFalse(exceededTimeLimit(90.0, 45, extraSeconds = 30))
+        assertTrue(exceededTimeLimit(90.5, 45, extraSeconds = 30))
+    }
+
+    @Test
+    fun `con el tiempo extra 80 s en una mision de 45 s sigue a tiempo`() {
+        val timed = content(twoChoices.questions, timeLimitSeconds = 45)
+
+        val withExtra = gradeLocally(timed, perfect(), timedOut = false, elapsedSeconds = 80.0,
+            isReview = false, paidReviewsNearby = 0, extraSeconds = 30)
+        val withoutExtra = gradeLocally(timed, perfect(), timedOut = false, elapsedSeconds = 80.0,
+            isReview = false, paidReviewsNearby = 0)
+
+        assertEquals("completed", withExtra.status)
+        assertEquals("failed", withoutExtra.status)
+    }
+
     private fun perfect() = listOf(AnswerSubmission(1, selectedOptionId = 10), AnswerSubmission(2, selectedOptionId = 20))
 }
