@@ -50,6 +50,7 @@ import com.mindflow.nova.data.model.StudentStreak
 import com.mindflow.nova.ui.components.NovaProgressBar
 import com.mindflow.nova.ui.components.StreakBadge
 import com.mindflow.nova.ui.components.StreakCelebrationScreen
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaOnText
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
@@ -336,7 +337,7 @@ fun LessonCompletedScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NovaPurple,
-                contentColor = Color.White
+                contentColor = NovaOnPurple
             ),
             shape = RoundedCornerShape(20.dp)
         ) {
@@ -413,7 +414,7 @@ fun LessonEndScreen(
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = NovaPurple,
-                contentColor = Color.White
+                contentColor = NovaOnPurple
             ),
             shape = RoundedCornerShape(20.dp)
         ) {

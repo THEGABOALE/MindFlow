@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,6 +48,7 @@ import com.mindflow.nova.ui.screens.lessons.LessonsMapScreen
 import com.mindflow.nova.ui.screens.lessons.common.StartLessonDialog
 import com.mindflow.nova.ui.screens.profile.ProfileScreen
 import com.mindflow.nova.ui.screens.progress.ProgressScreen
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaBorder
 import com.mindflow.nova.ui.theme.NovaLightPurple
@@ -414,7 +414,7 @@ private fun ErrorState(
 
                 Button(
                     onClick = onRetry,
-                    colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = NovaOnPurple),
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(text = "Reintentar", fontWeight = FontWeight.Bold)
@@ -475,7 +475,7 @@ private fun RejectedNoticeCard(message: String, onDismiss: () -> Unit) {
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.align(Alignment.End),
-                colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = NovaPurple, contentColor = NovaOnPurple),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(text = "Entendido", fontWeight = FontWeight.Bold)

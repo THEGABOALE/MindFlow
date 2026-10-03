@@ -72,6 +72,7 @@ import com.mindflow.nova.data.session.SessionResult
 import com.mindflow.nova.ui.theme.NovaBackground
 import com.mindflow.nova.ui.theme.NovaLoginButton
 import com.mindflow.nova.ui.theme.NovaLoginCard
+import com.mindflow.nova.ui.theme.NovaLoginFooterText
 import com.mindflow.nova.ui.theme.NovaLoginFieldBorder
 import com.mindflow.nova.ui.theme.NovaText
 import com.mindflow.nova.ui.theme.NovaTextSecondary
@@ -349,7 +350,7 @@ fun LoginScreen(
 
                 Text(
                     text = "¿No recuerdas tu contraseña? Contacta a tu colegio",
-                    color = Color(0xFF737378),
+                    color = NovaLoginFooterText,
                     fontSize = 10.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

@@ -17,6 +17,8 @@ internal val BrandPurple = Color(0xFF82368C)
 class NovaPalette(
     val isDark: Boolean,
     val purple: Color,
+    /** Texto e iconos sobre un relleno [purple] (botones principales). */
+    val onPurple: Color,
     val blue: Color,
     val lightPurple: Color,
     val softPurple: Color,
@@ -27,6 +29,8 @@ class NovaPalette(
     val surface: Color,
     val border: Color,
     val track: Color,
+    /** Borde de la parte vacía de las barras, para que se vea sobre fondos claros. */
+    val trackBorder: Color,
     val dark: Color,
     val locked: Color,
     val gold: Color,
@@ -47,6 +51,7 @@ class NovaPalette(
 val LightNovaPalette = NovaPalette(
     isDark = false,
     purple = BrandPurple,
+    onPurple = Color.White,
     blue = BrandBlue,
     lightPurple = Color(0xFFF5ECF7),
     softPurple = Color(0xFFE9D8EE),
@@ -57,11 +62,12 @@ val LightNovaPalette = NovaPalette(
     surface = Color.White,
     border = Color(0xFFE7D8EA),
     track = Color(0xFFEDE6EF),
+    trackBorder = Color(0xFF9580A0),
     dark = Color(0xFF211A2E),
     locked = Color(0xFFD9D2DC),
-    gold = Color(0xFFB8860B),
+    gold = Color(0xFF8A6408),
     goldLight = Color(0xFFFBF0DC),
-    success = Color(0xFF2E9E5B),
+    success = Color(0xFF1B7A45),
     successBackground = Color(0xFFE6F7EA),
     error = Color(0xFFC0392B),
     errorBackground = Color(0xFFFBE7E5),
@@ -79,6 +85,7 @@ val LightNovaPalette = NovaPalette(
 val DarkNovaPalette = NovaPalette(
     isDark = true,
     purple = Color(0xFFBE6ACB),
+    onPurple = Color(0xFF15111A),
     blue = Color(0xFF9C8FFF),
     lightPurple = Color(0xFF2B2233),
     softPurple = Color(0xFF3A2D44),
@@ -89,6 +96,7 @@ val DarkNovaPalette = NovaPalette(
     surface = Color(0xFF1F1A26),
     border = Color(0xFF3A3142),
     track = Color(0xFF3A3142),
+    trackBorder = Color(0xFF8C7B95),
     dark = Color(0xFF4B4166),
     locked = Color(0xFF3A3440),
     gold = Color(0xFFE0A93B),

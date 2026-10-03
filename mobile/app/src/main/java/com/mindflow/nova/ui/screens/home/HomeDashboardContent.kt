@@ -58,6 +58,7 @@ import com.mindflow.nova.ui.screens.lessons.computeMissionStates
 import com.mindflow.nova.ui.screens.lessons.currentMissionIndex
 import com.mindflow.nova.ui.components.zafiro.ZafiroBadge
 import com.mindflow.nova.ui.components.zafiro.ZafiroLines
+import com.mindflow.nova.ui.theme.NovaOnPurple
 import com.mindflow.nova.ui.theme.NovaSurface
 import com.mindflow.nova.ui.theme.NovaBlue
 import com.mindflow.nova.ui.theme.NovaHeroGradient
@@ -433,7 +434,7 @@ private fun MissionRouteRow(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NovaPurple,
-                            contentColor = Color.White
+                            contentColor = NovaOnPurple
                         ),
                         shape = RoundedCornerShape(20.dp)
                     ) {
