@@ -135,6 +135,7 @@ También se pueden ejecutar abriendo los archivos en SQLTools, desde VS Code.
 
 ```bash
 psql "$DATABASE_URL" -f src/database/migrations/2026-10-01-client-attempt-id.sql
+psql "$DATABASE_URL" -f src/database/migrations/2026-10-02-seeds-spent.sql
 ```
 
 ### Ejecución
@@ -181,7 +182,7 @@ Las rutas protegidas piden el header `Authorization: Bearer <token>`. El token s
 
 **Nota:** los datos de un estudiante los puede ver él mismo, el docente de su sala, el coordinador de su centro y el admin.
 
-La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad de la misión, y cada repaso siguiente de la misma misión dentro de 24 horas paga la mitad del anterior, hasta un mínimo de 1 semilla (50, 25, 13, 6…). El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
+La calificación, el límite de tiempo y las semillas los decide siempre el servidor. Un repaso paga la mitad de la misión, y cada repaso siguiente de la misma misión dentro de 24 horas paga la mitad del anterior, hasta un mínimo de 1 semilla (50, 25, 13, 6…). En las misiones con reloj, el tiempo se pausa mientras la app está en segundo plano (hasta 5 minutos por intento) y hay un potenciador "+30 s" que cuesta 500 semillas de la cuenta; si al subir el intento no le alcanzan, no se cobra y se califica con el tiempo normal. Las semillas del estudiante son lo ganado menos lo gastado. El login y los códigos de sala aceptan 10 intentos fallidos cada 15 minutos; después responden `429`.
 
 Al crear cuentas, el coordinador las crea en su propio centro. El admin indica `centerId`, que es obligatorio para docentes y coordinadores. Las contraseñas de estudiantes piden al menos 4 caracteres y las demás al menos 8.
 
