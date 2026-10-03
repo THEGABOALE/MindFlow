@@ -22,11 +22,18 @@ class ExtraTimeTest {
 
     @Test
     fun `el boton aparece cuando quedan 15 segundos o menos y no se compro`() {
-        assertTrue(showExtraTime(secondsLeft = 15, alreadyUsed = false))
-        assertTrue(showExtraTime(secondsLeft = 1, alreadyUsed = false))
-        assertFalse(showExtraTime(secondsLeft = 16, alreadyUsed = false))
-        assertFalse(showExtraTime(secondsLeft = 10, alreadyUsed = true))
-        assertFalse(showExtraTime(secondsLeft = 0, alreadyUsed = false))
+        assertTrue(showExtraTime(secondsLeft = 15, alreadyUsed = false, hasTimeLimit = true))
+        assertTrue(showExtraTime(secondsLeft = 1, alreadyUsed = false, hasTimeLimit = true))
+        assertFalse(showExtraTime(secondsLeft = 16, alreadyUsed = false, hasTimeLimit = true))
+        assertFalse(showExtraTime(secondsLeft = 10, alreadyUsed = true, hasTimeLimit = true))
+        assertFalse(showExtraTime(secondsLeft = 0, alreadyUsed = false, hasTimeLimit = true))
+    }
+
+    @Test
+    fun `sin limite de tiempo de la mision no se ofrece el boton`() {
+        // El reloj de respaldo no lo valida el servidor: comprar ahí cobraría
+        // en pantalla algo que nunca se cobra ni se respeta.
+        assertFalse(showExtraTime(secondsLeft = 10, alreadyUsed = false, hasTimeLimit = false))
     }
 
     @Test

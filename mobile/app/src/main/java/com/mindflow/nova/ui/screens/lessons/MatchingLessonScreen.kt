@@ -151,7 +151,8 @@ fun MatchingLessonScreen(
                 }
                 Lifecycle.Event.ON_START -> if (clockPaused) {
                     clockPaused = false
-                    attempt.onResumeClock()
+                    // Lo que pasó del tope de pausa gratis corre como jugado.
+                    secondsLeft = (secondsLeft - attempt.onResumeClock()).coerceAtLeast(0)
                 }
                 else -> Unit
             }
@@ -300,7 +301,7 @@ fun MatchingLessonScreen(
                         fontSize = 15.sp
                     )
 
-                    if (showExtraTime(secondsLeft, extraTimeUsed)) {
+                    if (showExtraTime(secondsLeft, extraTimeUsed, hasTimeLimit = mission.timeLimitSeconds != null)) {
                         Spacer(modifier = Modifier.height(10.dp))
                         ExtraTimeButton(
                             balance = attempt.seedBalance,

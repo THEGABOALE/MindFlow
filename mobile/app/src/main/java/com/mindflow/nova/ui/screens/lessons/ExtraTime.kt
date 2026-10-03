@@ -22,8 +22,12 @@ import com.mindflow.nova.ui.theme.NovaTextSecondary
 /** Segundos que quedan cuando aparece el botón: antes no hace falta. */
 private const val SHOW_EXTRA_TIME_AT_SECONDS = 15
 
-internal fun showExtraTime(secondsLeft: Int, alreadyUsed: Boolean): Boolean =
-    !alreadyUsed && secondsLeft in 1..SHOW_EXTRA_TIME_AT_SECONDS
+/**
+ * Solo en misiones con límite de tiempo propio: el reloj de respaldo (cuando
+ * la misión no trae límite) no lo valida el servidor, y ahí no cobra.
+ */
+internal fun showExtraTime(secondsLeft: Int, alreadyUsed: Boolean, hasTimeLimit: Boolean): Boolean =
+    hasTimeLimit && !alreadyUsed && secondsLeft in 1..SHOW_EXTRA_TIME_AT_SECONDS
 
 /** El precio si le alcanza; si no, cuántas semillas le faltan, para que tenga una meta. */
 internal fun extraTimeLabel(balance: Int): String =

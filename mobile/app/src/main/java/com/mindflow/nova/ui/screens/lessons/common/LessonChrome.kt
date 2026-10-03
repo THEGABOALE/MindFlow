@@ -8,6 +8,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -227,13 +232,7 @@ fun LessonCompletedScreen(
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    ClosingColumn {
         ZafiroBox(ZafiroPose.CELEBRA, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -364,13 +363,7 @@ fun LessonEndScreen(
     /** Lo que dice Zafiro en este cierre, si dice algo. */
     zafiroLine: String? = null
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
+    ClosingColumn {
         ZafiroBox(ZafiroPose.TRISTE, modifier = Modifier.sizeIn(minWidth = 140.dp, minHeight = 140.dp))
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -431,6 +424,26 @@ fun LessonEndScreen(
         ) {
             Text(text = secondaryLabel, fontWeight = FontWeight.Bold)
         }
+    }
+}
+
+/**
+ * Columna de los cierres: centrada cuando todo entra y desplazable cuando no
+ * (fuente grande en un teléfono bajo), para que el botón siempre se alcance.
+ */
+@Composable
+private fun ClosingColumn(content: @Composable ColumnScope.() -> Unit) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            content = content
+        )
     }
 }
 

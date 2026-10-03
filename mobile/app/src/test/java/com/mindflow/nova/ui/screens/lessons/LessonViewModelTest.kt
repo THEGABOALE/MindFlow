@@ -204,6 +204,40 @@ class LessonViewModelTest {
     }
 
     @Test
+    fun `volver de una pausa corta no adelanta el reloj`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 60_000
+
+        assertEquals(0, viewModel.resumeClock())
+    }
+
+    @Test
+    fun `volver de una pausa de mas de cinco minutos adelanta el reloj lo que se paso`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 400_000
+
+        assertEquals(100, viewModel.resumeClock())
+    }
+
+    @Test
+    fun `los cinco minutos libres se cuentan sumando todas las pausas`() = runTest {
+        val viewModel = viewModel()
+        viewModel.open(3)
+        viewModel.pauseClock()
+        clock += 200_000
+        assertEquals(0, viewModel.resumeClock())
+        viewModel.pauseClock()
+        clock += 200_000
+
+        assertEquals(100, viewModel.resumeClock())
+        assertEquals(0, viewModel.resumeClock())
+    }
+
+    @Test
     fun `terminar en pausa cierra la pausa con la hora de fin`() = runTest {
         val viewModel = viewModel()
         viewModel.open(3)

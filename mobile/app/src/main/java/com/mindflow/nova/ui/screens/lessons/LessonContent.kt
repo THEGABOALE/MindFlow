@@ -152,7 +152,8 @@ class LessonAttempt(
     val onRetry: () -> Unit,
     val submit: suspend (answers: List<AnswerSubmission>, timedOut: Boolean) -> LessonOutcome,
     val onPauseClock: () -> Unit = {},
-    val onResumeClock: () -> Unit = {},
+    /** Devuelve los segundos que la pausa pasó del tope gratis, para descontarlos del reloj. */
+    val onResumeClock: () -> Int = { 0 },
     val onBuyExtraTime: () -> Unit = {},
     val seedBalance: Int = 0
 )

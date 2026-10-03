@@ -11,6 +11,7 @@ import com.mindflow.nova.data.model.MissionContent
 import com.mindflow.nova.data.offline.AttemptRecorder
 import com.mindflow.nova.data.offline.FinishedAttempt
 import com.mindflow.nova.data.offline.LessonOutcome
+import com.mindflow.nova.data.offline.MAX_PAUSE_SECONDS
 import com.mindflow.nova.data.offline.OfflineAttemptRecorder
 import com.mindflow.nova.data.remote.currentTzOffsetMinutes
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,12 +108,22 @@ class LessonViewModel(
         if (pausedAtMs == null) pausedAtMs = now()
     }
 
-    /** La app volvió: el reloj sigue. */
-    fun resumeClock() {
-        val since = pausedAtMs ?: return
+    /**
+     * La app volvió: el reloj sigue. Devuelve cuántos segundos de esta pausa
+     * pasaron del tope de pausa gratis ([MAX_PAUSE_SECONDS] sumando todas las
+     * pausas del intento): el servidor los cuenta como jugados, así que la
+     * pantalla tiene que descontarlos del reloj.
+     */
+    fun resumeClock(): Int {
+        val since = pausedAtMs ?: return 0
+        val overCapBefore = secondsOverPauseCap(pausedTotalMs)
         pausedTotalMs += now() - since
         pausedAtMs = null
+        return secondsOverPauseCap(pausedTotalMs) - overCapBefore
     }
+
+    private fun secondsOverPauseCap(pausedMs: Long): Int =
+        ((pausedMs / 1000).toInt() - MAX_PAUSE_SECONDS).coerceAtLeast(0)
 
     /** El estudiante compró el "+30 s" en este intento. Se cobra al guardarlo. */
     fun buyExtraTime() {
