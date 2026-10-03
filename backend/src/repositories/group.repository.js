@@ -167,7 +167,8 @@ const findStudentsSummary = async (db, groupId) => {
     SELECT
       u.id,
       u.full_name,
-      COALESCE(SUM(a.points_earned), 0) AS total_points,
+      -- Lo ganado menos lo gastado en potenciadores, igual que ve el estudiante.
+      COALESCE(SUM(a.points_earned - a.seeds_spent), 0) AS total_points,
       COUNT(a.id) FILTER (WHERE a.status = 'completed' AND a.is_review = FALSE) AS missions_completed,
       MAX(a.finished_at) AS last_attempt_at,
       (

@@ -22,6 +22,14 @@ const MIN_REVIEW_POINTS = 1;
 // tarda la app entre abrir el intento y mostrar el reloj.
 const TIME_LIMIT_GRACE_SECONDS = 15;
 
+// Potenciador "+30 s": se compra con semillas de la cuenta, una vez por
+// intento. Es caro a propósito, para que sea una decisión y no un reflejo.
+const EXTRA_TIME_COST = 500;
+const EXTRA_TIME_SECONDS = 30;
+// La pausa (la app en segundo plano) es gratis, pero con tope: alcanza para
+// atender algo y volver, no para dejar el reloj parado.
+const MAX_PAUSE_SECONDS = 300;
+
 /**
  * @param {object} args
  * @param {number} [args.paidReviewsNearby] cuantos repasos de esta mision ya
@@ -137,8 +145,24 @@ const gradeAttempt = ({ questions, options, pairs, answers }) => {
 
 // El limite de tiempo lo mide el servidor con su propio reloj (desde que se
 // abrio el intento hasta que llega el cierre), no lo que diga la app.
-const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds }) =>
-  timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + TIME_LIMIT_GRACE_SECONDS;
+// extraSeconds son los 30 s del potenciador, si se compro.
+const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds, extraSeconds = 0 }) =>
+  timeLimitSeconds != null && elapsedSeconds > timeLimitSeconds + extraSeconds + TIME_LIMIT_GRACE_SECONDS;
+
+// Segundos jugados de un intento del telefono: del inicio al fin, menos la
+// pausa (entre 0 y el tope).
+const playedSeconds = ({ startedAt, finishedAt, pausedSeconds = 0 }) =>
+  (finishedAt.getTime() - startedAt.getTime()) / 1000 -
+  Math.min(Math.max(pausedSeconds, 0), MAX_PAUSE_SECONDS);
+
+/**
+ * Si el "+30 s" se cobra: solo en una mision con reloj y si el saldo
+ * alcanza. Si no alcanza, no cuenta: ni cobra ni suma tiempo.
+ */
+const extraTimePurchase = ({ usedExtraTime, timeLimitSeconds, balance }) =>
+  usedExtraTime && timeLimitSeconds != null && balance >= EXTRA_TIME_COST
+    ? { seedsSpent: EXTRA_TIME_COST, extraSeconds: EXTRA_TIME_SECONDS }
+    : { seedsSpent: 0, extraSeconds: 0 };
 
 /**
  * Resultado de un intento ya corregido: si se perdió (sin plumas o sin
@@ -146,12 +170,12 @@ const exceededTimeLimit = ({ elapsedSeconds, timeLimitSeconds }) =>
  */
 const decideAttemptOutcome = ({
   correctAnswers, wrongAnswers, maxPlumas, pointsReward,
-  timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby
+  timedOut, elapsedSeconds, timeLimitSeconds, isReview, paidReviewsNearby, extraSeconds = 0
 }) => {
   const ranOutOfPlumas = wrongAnswers >= maxPlumas;
   // La app avisa timedOut cuando su reloj llega a cero, pero eso solo puede
   // adelantar el fallo: el servidor también compara con las horas.
-  const ranOutOfTime = Boolean(timedOut) || exceededTimeLimit({ elapsedSeconds, timeLimitSeconds });
+  const ranOutOfTime = Boolean(timedOut) || exceededTimeLimit({ elapsedSeconds, timeLimitSeconds, extraSeconds });
   const failed = ranOutOfTime || ranOutOfPlumas;
 
   const totalAnswers = correctAnswers + wrongAnswers;
@@ -168,9 +192,14 @@ const decideAttemptOutcome = ({
 };
 
 module.exports = {
+  EXTRA_TIME_COST,
+  EXTRA_TIME_SECONDS,
+  MAX_PAUSE_SECONDS,
   REVIEW_PAY_WINDOW_HOURS,
   calculatePoints,
   decideAttemptOutcome,
   exceededTimeLimit,
-  gradeAttempt
+  extraTimePurchase,
+  gradeAttempt,
+  playedSeconds
 };

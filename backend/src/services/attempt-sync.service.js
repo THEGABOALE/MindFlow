@@ -44,7 +44,9 @@ const parseSyncBatch = (body) => {
       !Number.isInteger(item.missionId) ||
       !startedAt || !finishedAt ||
       !isAnswerList(item.answers) ||
-      (item.timedOut !== undefined && typeof item.timedOut !== "boolean")
+      (item.timedOut !== undefined && typeof item.timedOut !== "boolean") ||
+      (item.pausedSeconds !== undefined && !(Number.isInteger(item.pausedSeconds) && item.pausedSeconds >= 0)) ||
+      (item.usedExtraTime !== undefined && typeof item.usedExtraTime !== "boolean")
     ) {
       return { error: "Hay un intento mal armado en el lote" };
     }
@@ -55,6 +57,11 @@ const parseSyncBatch = (body) => {
       startedAt,
       finishedAt,
       timedOut: item.timedOut === true,
+      // Segundos con el reloj en pausa (la app en segundo plano). El tope se
+      // aplica al calificar.
+      pausedSeconds: item.pausedSeconds ?? 0,
+      // Si compró el potenciador "+30 s"; se cobra solo si le alcanza el saldo.
+      usedExtraTime: item.usedExtraTime === true,
       answers: item.answers
     });
   }

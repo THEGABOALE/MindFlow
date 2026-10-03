@@ -2,7 +2,9 @@ const {
   calculatePoints,
   decideAttemptOutcome,
   exceededTimeLimit,
-  gradeAttempt
+  extraTimePurchase,
+  gradeAttempt,
+  playedSeconds
 } = require("../src/services/mission-grading.service");
 
 describe("calculatePoints", () => {
@@ -88,6 +90,11 @@ describe("decideAttemptOutcome", () => {
     expect(decideAttemptOutcome({ ...base, isReview: true, paidReviewsNearby: 1 }).pointsEarned).toBe(50);
   });
 
+  test("con el tiempo extra comprado, 80 s en una mision de 45 s sigue a tiempo", () => {
+    expect(decideAttemptOutcome({ ...base, timeLimitSeconds: 45, elapsedSeconds: 80, extraSeconds: 30 }))
+      .toMatchObject({ failed: false, pointsEarned: 200 });
+  });
+
   test("sin respuestas el puntaje es 0", () => {
     expect(decideAttemptOutcome({ ...base, correctAnswers: 0, wrongAnswers: 0 }).score).toBe(0);
   });
@@ -106,6 +113,55 @@ describe("exceededTimeLimit", () => {
   test("despues del margen se pasa aunque la app no lo diga", () => {
     expect(exceededTimeLimit({ elapsedSeconds: 60.5, timeLimitSeconds: 45 })).toBe(true);
     expect(exceededTimeLimit({ elapsedSeconds: 120, timeLimitSeconds: 45 })).toBe(true);
+  });
+
+  test("los 30 s comprados se suman al limite", () => {
+    expect(exceededTimeLimit({ elapsedSeconds: 90, timeLimitSeconds: 45, extraSeconds: 30 })).toBe(false);
+    expect(exceededTimeLimit({ elapsedSeconds: 90.5, timeLimitSeconds: 45, extraSeconds: 30 })).toBe(true);
+  });
+});
+
+describe("playedSeconds", () => {
+  const startedAt = new Date("2026-10-02T15:00:00.000Z");
+  const finishedAt = new Date("2026-10-02T15:02:00.000Z"); // 120 s
+
+  test("sin pausa es el tiempo entre inicio y fin", () => {
+    expect(playedSeconds({ startedAt, finishedAt })).toBe(120);
+  });
+
+  test("descuenta la pausa", () => {
+    expect(playedSeconds({ startedAt, finishedAt, pausedSeconds: 90 })).toBe(30);
+  });
+
+  test("la pausa tiene un tope de 5 minutos", () => {
+    const later = new Date("2026-10-02T15:10:00.000Z"); // 600 s
+    expect(playedSeconds({ startedAt, finishedAt: later, pausedSeconds: 9999 })).toBe(300);
+  });
+
+  test("una pausa negativa no suma tiempo", () => {
+    expect(playedSeconds({ startedAt, finishedAt, pausedSeconds: -50 })).toBe(120);
+  });
+});
+
+describe("extraTimePurchase", () => {
+  test("con saldo suficiente cobra 500 y suma 30 s", () => {
+    expect(extraTimePurchase({ usedExtraTime: true, timeLimitSeconds: 45, balance: 500 }))
+      .toEqual({ seedsSpent: 500, extraSeconds: 30 });
+  });
+
+  test("sin saldo suficiente no cobra ni suma tiempo", () => {
+    expect(extraTimePurchase({ usedExtraTime: true, timeLimitSeconds: 45, balance: 499 }))
+      .toEqual({ seedsSpent: 0, extraSeconds: 0 });
+  });
+
+  test("en una mision sin reloj no tiene sentido y no se cobra", () => {
+    expect(extraTimePurchase({ usedExtraTime: true, timeLimitSeconds: null, balance: 9999 }))
+      .toEqual({ seedsSpent: 0, extraSeconds: 0 });
+  });
+
+  test("si no se uso, nada", () => {
+    expect(extraTimePurchase({ usedExtraTime: false, timeLimitSeconds: 45, balance: 9999 }))
+      .toEqual({ seedsSpent: 0, extraSeconds: 0 });
   });
 });
 
