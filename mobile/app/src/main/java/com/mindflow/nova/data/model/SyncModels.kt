@@ -17,7 +17,11 @@ data class SyncAttemptItem(
     val startedAt: String,
     val finishedAt: String,
     val timedOut: Boolean,
-    val answers: List<AnswerSubmission>
+    val answers: List<AnswerSubmission>,
+    /** Segundos con el reloj en pausa (la app en segundo plano). */
+    val pausedSeconds: Int = 0,
+    /** Si compró el potenciador "+30 s"; el servidor lo cobra solo si le alcanza el saldo. */
+    val usedExtraTime: Boolean = false
 )
 
 data class SyncAttemptsResponse(
@@ -46,7 +50,9 @@ data class SyncedAttempt(
     val pointsEarned: Int,
     val isReview: Boolean,
     /** "completed" o "failed". */
-    val status: String
+    val status: String,
+    /** Semillas que cobró el servidor por el "+30 s" (0 si no se usó o no alcanzaba). */
+    val seedsSpent: Int = 0
 )
 
 /** El progreso del estudiante después de guardar el lote. */

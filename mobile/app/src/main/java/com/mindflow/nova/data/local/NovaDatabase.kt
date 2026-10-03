@@ -13,7 +13,7 @@ import androidx.sqlite.execSQL
         CachedUserEntity::class, CachedLevelsEntity::class, CachedMissionEntity::class,
         CachedProgressEntity::class, PendingAttemptEntity::class, RejectedNoticeEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class NovaDatabase : RoomDatabase() {
@@ -37,9 +37,17 @@ abstract class NovaDatabase : RoomDatabase() {
             }
         }
 
+        /** La versión 3 guarda la pausa del reloj y el potenciador de cada pendiente. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.execSQL("ALTER TABLE `pending_attempt` ADD COLUMN `pausedSeconds` INTEGER NOT NULL DEFAULT 0")
+                connection.execSQL("ALTER TABLE `pending_attempt` ADD COLUMN `usedExtraTime` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun create(context: Context): NovaDatabase =
             Room.databaseBuilder(context, NovaDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }
