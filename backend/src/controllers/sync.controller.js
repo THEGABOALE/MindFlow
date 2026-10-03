@@ -68,6 +68,7 @@ const syncOne = (userId, item) =>
       elapsedSeconds: playedSeconds(item),
       finishedAt: item.finishedAt,
       usedExtraTime: item.usedExtraTime,
+      startedAt: item.startedAt,
       save: (fields) =>
         attemptRepository.insertSettledAttempt(db, {
           ...fields,

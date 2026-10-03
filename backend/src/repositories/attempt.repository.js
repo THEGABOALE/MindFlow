@@ -203,11 +203,18 @@ const findStudentTotals = async (db, userId) => {
   return { totalPoints: Number(totalPoints), missionsCompleted: Number(missionsCompleted) };
 };
 
-// Semillas que tiene para gastar: lo ganado menos lo ya gastado.
-const findSeedBalance = async (db, userId) => {
+// Semillas que tiene para gastar: lo ganado menos lo ya gastado. Con `at`,
+// solo cuenta los intentos terminados hasta ese momento (el saldo que tenía
+// entonces); las horas se pasan a la de la sesión, como en el resto.
+const findSeedBalance = async (db, userId, at = null) => {
   const result = await db.query(
-    "SELECT COALESCE(SUM(points_earned - seeds_spent), 0) AS balance FROM mission_attempts WHERE user_id = $1;",
-    [userId]
+    `
+    SELECT COALESCE(SUM(points_earned - seeds_spent), 0) AS balance
+    FROM mission_attempts
+    WHERE user_id = $1
+      AND ($2::timestamptz IS NULL OR finished_at <= $2::timestamptz AT TIME ZONE current_setting('TimeZone'));
+    `,
+    [userId, at ? at.toISOString() : null]
   );
 
   return Number(result.rows[0].balance);

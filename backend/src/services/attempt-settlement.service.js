@@ -25,10 +25,12 @@ const {
  *   teléfono; si no viene, se toma la hora actual
  * @param {boolean} [args.usedExtraTime] si compró el potenciador "+30 s" (solo
  *   intentos del teléfono)
+ * @param {Date} [args.startedAt] cuándo empezó el intento del teléfono, para
+ *   saber qué saldo tenía al comprar el potenciador
  */
 const settleAttempt = async (db, {
   userId, missionId, levelId, pointsReward, maxPlumas, timeLimitSeconds,
-  answers, timedOut, elapsedSeconds, finishedAt = null, usedExtraTime = false, save
+  answers, timedOut, elapsedSeconds, finishedAt = null, usedExtraTime = false, startedAt = null, save
 }) => {
   // La corrección recorre las preguntas reales de la misión, no lo que mande
   // el cliente: omitir o duplicar respuestas no cambia el puntaje.
@@ -49,13 +51,17 @@ const settleAttempt = async (db, {
     ? await attemptRepository.countPaidReviewsNear(db, userId, missionId, REVIEW_PAY_WINDOW_HOURS, finishedAt)
     : 0;
 
-  // El potenciador se paga con el saldo previo a este intento. La fila del
-  // estudiante ya está bloqueada, así que dos subidas no gastan lo mismo.
-  const { seedsSpent, extraSeconds } = extraTimePurchase({
-    usedExtraTime,
-    timeLimitSeconds,
-    balance: usedExtraTime ? await attemptRepository.findSeedBalance(db, userId) : 0
-  });
+  // El potenciador se paga con semillas que el estudiante ya tenía: tienen
+  // que alcanzar al empezar el intento (un intento viejo que se sube tarde
+  // no usa lo ganado después) y también hoy (dos compras no gastan las
+  // mismas semillas). La fila del estudiante ya está bloqueada.
+  const balance = usedExtraTime
+    ? Math.min(
+        await attemptRepository.findSeedBalance(db, userId, startedAt),
+        await attemptRepository.findSeedBalance(db, userId)
+      )
+    : 0;
+  const { seedsSpent, extraSeconds } = extraTimePurchase({ usedExtraTime, timeLimitSeconds, balance });
 
   const outcome = decideAttemptOutcome({
     correctAnswers, wrongAnswers, maxPlumas, pointsReward,

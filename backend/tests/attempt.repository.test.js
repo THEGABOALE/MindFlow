@@ -58,7 +58,16 @@ describe("findSeedBalance", () => {
 
     expect(await findSeedBalance(db, 7)).toBe(650);
     expect(db.calls[0].sql).toContain("SUM(points_earned - seeds_spent)");
-    expect(db.calls[0].params).toEqual([7]);
+    expect(db.calls[0].params).toEqual([7, null]);
+  });
+
+  test("con una hora, cuenta solo lo terminado hasta ese momento", async () => {
+    const db = fakeDb([{ balance: "450" }]);
+
+    await findSeedBalance(db, 7, new Date("2026-10-02T15:00:00.000Z"));
+
+    expect(db.calls[0].params).toEqual([7, "2026-10-02T15:00:00.000Z"]);
+    expect(db.calls[0].sql).toContain("finished_at <= $2::timestamptz AT TIME ZONE current_setting('TimeZone')");
   });
 });
 
