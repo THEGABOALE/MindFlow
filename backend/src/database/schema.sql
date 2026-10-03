@@ -119,6 +119,9 @@ CREATE TABLE mission_attempts (
   correct_answers INTEGER DEFAULT 0,
   wrong_answers INTEGER DEFAULT 0,
   points_earned INTEGER DEFAULT 0,
+  -- Semillas gastadas en potenciadores durante el intento (hoy, el "+30 s").
+  -- Las semillas de la cuenta son points_earned - seeds_spent.
+  seeds_spent INTEGER NOT NULL DEFAULT 0,
   is_review BOOLEAN DEFAULT FALSE,
   started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   finished_at TIMESTAMP,

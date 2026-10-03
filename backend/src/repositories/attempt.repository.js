@@ -82,7 +82,7 @@ const findByClientAttemptId = async (db, clientAttemptId) => {
   const result = await db.query(
     `
     SELECT a.id, a.user_id, a.mission_id, a.score, a.correct_answers, a.wrong_answers,
-           a.points_earned, a.is_review, a.status, m.max_plumas
+           a.points_earned, a.seeds_spent, a.is_review, a.status, m.max_plumas
     FROM mission_attempts a
     JOIN missions m ON m.id = a.mission_id
     WHERE a.client_attempt_id = $1
@@ -99,25 +99,25 @@ const findByClientAttemptId = async (db, clientAttemptId) => {
 // escriben con CURRENT_TIMESTAMP, para que la racha las lea igual.
 const insertSettledAttempt = async (db, {
   userId, missionId, clientAttemptId, startedAt, finishedAt,
-  score, correctAnswers, wrongAnswers, pointsEarned, isReview, status
+  score, correctAnswers, wrongAnswers, pointsEarned, isReview, status, seedsSpent = 0
 }) => {
   const result = await db.query(
     `
     INSERT INTO mission_attempts (
       user_id, mission_id, client_attempt_id, started_at, finished_at,
-      score, correct_answers, wrong_answers, points_earned, is_review, status
+      score, correct_answers, wrong_answers, points_earned, is_review, status, seeds_spent
     )
     VALUES (
       $1, $2, $3,
       $4::timestamptz AT TIME ZONE current_setting('TimeZone'),
       $5::timestamptz AT TIME ZONE current_setting('TimeZone'),
-      $6, $7, $8, $9, $10, $11
+      $6, $7, $8, $9, $10, $11, $12
     )
     RETURNING id;
     `,
     [
       userId, missionId, clientAttemptId, startedAt.toISOString(), finishedAt.toISOString(),
-      score, correctAnswers, wrongAnswers, pointsEarned, isReview, status
+      score, correctAnswers, wrongAnswers, pointsEarned, isReview, status, seedsSpent
     ]
   );
 
@@ -184,12 +184,13 @@ const findActivityDays = async (db, userId, tzOffsetMinutes) => {
   return result.rows;
 };
 
-// Semillas ganadas en total (sumando repasos) y misiones completadas sin contar repasos.
+// Semillas de la cuenta (lo ganado, sumando repasos, menos lo gastado en
+// potenciadores) y misiones completadas sin contar repasos.
 const findStudentTotals = async (db, userId) => {
   const result = await db.query(
     `
     SELECT
-      COALESCE(SUM(points_earned), 0) AS total_points,
+      COALESCE(SUM(points_earned - seeds_spent), 0) AS total_points,
       COUNT(*) FILTER (WHERE status = 'completed' AND is_review = FALSE) AS missions_completed
     FROM mission_attempts
     WHERE user_id = $1;
@@ -200,6 +201,16 @@ const findStudentTotals = async (db, userId) => {
   const { total_points: totalPoints, missions_completed: missionsCompleted } = result.rows[0];
 
   return { totalPoints: Number(totalPoints), missionsCompleted: Number(missionsCompleted) };
+};
+
+// Semillas que tiene para gastar: lo ganado menos lo ya gastado.
+const findSeedBalance = async (db, userId) => {
+  const result = await db.query(
+    "SELECT COALESCE(SUM(points_earned - seeds_spent), 0) AS balance FROM mission_attempts WHERE user_id = $1;",
+    [userId]
+  );
+
+  return Number(result.rows[0].balance);
 };
 
 // IDs de las misiones que el estudiante ya completo, de cualquier nivel.
@@ -218,6 +229,7 @@ const findCompletedMissionIds = async (db, userId) => {
 
 module.exports = {
   findStudentTotals,
+  findSeedBalance,
   findCompletedMissionIds,
   hasCompletedMission,
   countPaidReviewsNear,
