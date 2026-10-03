@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -34,8 +35,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mindflow.nova.data.model.AnswerSubmission
 import com.mindflow.nova.data.model.AttemptResult
+import com.mindflow.nova.data.offline.EXTRA_TIME_SECONDS
 import com.mindflow.nova.data.offline.LessonOutcome
 import com.mindflow.nova.data.model.MissionResponse
 import com.mindflow.nova.ui.screens.lessons.common.ExitConfirmationDialog
@@ -97,6 +102,10 @@ fun MatchingLessonScreen(
     var justLostPluma by remember { mutableStateOf(false) }
     var attemptResult by remember { mutableStateOf<AttemptResult?>(null) }
     var pendingNotice by remember { mutableStateOf(false) }
+    // El reloj se detiene mientras la app está en segundo plano; y el "+30 s"
+    // se puede comprar una sola vez por intento.
+    var clockPaused by remember { mutableStateOf(false) }
+    var extraTimeUsed by remember { mutableStateOf(false) }
     var rejectedMessage by remember { mutableStateOf("") }
     val answers = remember { mutableStateListOf<AnswerSubmission>() }
 
@@ -123,10 +132,29 @@ fun MatchingLessonScreen(
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> if (stage == MatchingStage.IN_PROGRESS && !clockPaused) {
+                    clockPaused = true
+                    attempt.onPauseClock()
+                }
+                Lifecycle.Event.ON_START -> if (clockPaused) {
+                    clockPaused = false
+                    attempt.onResumeClock()
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     LaunchedEffect(Unit) {
         while (secondsLeft > 0 && stage == MatchingStage.IN_PROGRESS) {
             delay(1000)
-            secondsLeft -= 1
+            if (!clockPaused) secondsLeft -= 1
         }
         if (secondsLeft <= 0 && stage == MatchingStage.IN_PROGRESS) {
             finish(timedOut = true, targetStage = MatchingStage.TIME_UP)
@@ -202,6 +230,7 @@ fun MatchingLessonScreen(
                     rewardLabel = "semillas (según tus aciertos)",
                     streak = attemptResult?.streak,
                     notice = if (pendingNotice) PENDING_RESULT_NOTICE else null,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0),
                     onContinue = onExit,
                     extraContent = {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -219,7 +248,8 @@ fun MatchingLessonScreen(
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
-                    onSecondary = onExit
+                    onSecondary = onExit,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0)
                 )
             }
 
@@ -230,7 +260,8 @@ fun MatchingLessonScreen(
                     primaryLabel = "Reintentar minijuego",
                     onPrimary = attempt.onRetry,
                     secondaryLabel = "Volver al inicio",
-                    onSecondary = onExit
+                    onSecondary = onExit,
+                    spentNotice = spentNotice(attemptResult?.seedsSpent ?: 0)
                 )
             }
 
@@ -257,6 +288,18 @@ fun MatchingLessonScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
+
+                    if (showExtraTime(secondsLeft, extraTimeUsed)) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ExtraTimeButton(
+                            balance = attempt.seedBalance,
+                            onBuy = {
+                                extraTimeUsed = true
+                                secondsLeft += EXTRA_TIME_SECONDS
+                                attempt.onBuyExtraTime()
+                            }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 

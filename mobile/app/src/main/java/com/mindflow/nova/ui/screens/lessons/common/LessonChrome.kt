@@ -225,7 +225,9 @@ fun LessonCompletedScreen(
     streak: AttemptStreak? = null,
     extraContent: (@Composable () -> Unit)? = null,
     /** Aclaración bajo la recompensa, por ejemplo que el resultado todavía no se subió. */
-    notice: String? = null
+    notice: String? = null,
+    /** Lo gastado en potenciadores durante el intento, si hubo. */
+    spentNotice: String? = null
 ) {
     // Si esta misión fue la primera del día, encendió (o descongeló) la racha:
     // antes de salir se muestra el momento de la llamarada. Si la racha ya
@@ -321,11 +323,11 @@ fun LessonCompletedScreen(
             fontSize = 12.sp
         )
 
-        if (notice != null) {
+        listOfNotNull(spentNotice, notice).forEach { line ->
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = notice,
+                text = line,
                 color = NovaTextSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -365,7 +367,9 @@ fun LessonEndScreen(
     primaryLabel: String,
     onPrimary: () -> Unit,
     secondaryLabel: String,
-    onSecondary: () -> Unit
+    onSecondary: () -> Unit,
+    /** Lo gastado en potenciadores durante el intento, si hubo. */
+    spentNotice: String? = null
 ) {
     Column(
         modifier = Modifier
@@ -394,6 +398,17 @@ fun LessonEndScreen(
             fontSize = 14.sp,
             textAlign = TextAlign.Center
         )
+
+        if (spentNotice != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = spentNotice,
+                color = NovaTextSecondary,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center
+            )
+        }
 
         Spacer(modifier = Modifier.height(28.dp))
 
